@@ -1,0 +1,13 @@
+services:
+  tesis-front:
+    build: .
+    container_name: tesis-front-app
+    ports:
+      - "3000:80" 
+    networks:
+      - tesis-network
+    restart: unless-stopped
+
+networks:
+  tesis-network:
+    external: true
