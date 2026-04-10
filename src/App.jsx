@@ -37,7 +37,7 @@ function App() {
             <use href="/icons.svg#documentation-icon"></use>
           </svg>
           <h2>Documentación</h2>
-          <p>Todo listo para empezar a maquetar</p>
+          <p>Todo ready para empezar a maquetar</p>
         </div>
       </section>
 
