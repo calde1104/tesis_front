@@ -1,8 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckSquare, Square } from 'lucide-react';
-import Particles from 'react-tsparticles';
-import { loadSlim } from 'tsparticles-slim';
+import Spline from '@splinetool/react-spline';
 import { login } from '../../services/auth';
 import './Login.css';
 
@@ -14,10 +13,6 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  const particlesInit = useCallback(async (engine) => {
-    await loadSlim(engine);
-  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -41,59 +36,8 @@ const Login = () => {
 
   return (
     <div className="login-wrapper">
-      <Particles
-        id="tsparticles"
-        init={particlesInit}
-        options={{
-          fullScreen: { enable: false, zIndex: 0 },
-          fpsLimit: 60,
-          interactivity: {
-            events: {
-              onHover: {
-                enable: true,
-                mode: "grab",
-              },
-              resize: true,
-            },
-            modes: {
-              grab: {
-                distance: 200,
-                links: { opacity: 0.6 },
-              },
-            },
-          },
-          particles: {
-            color: { value: "#2563eb" },
-            links: {
-              color: "#60a5fa",
-              distance: 180,
-              enable: true,
-              opacity: 0.4,
-              width: 1.5,
-            },
-            move: {
-              direction: "none",
-              enable: true,
-              outModes: { default: "bounce" },
-              random: false,
-              speed: 1.2,
-              straight: false,
-            },
-            number: {
-              density: { enable: true, area: 800 },
-              value: 50,
-            },
-            opacity: { value: 0.6 },
-            shape: { type: "circle" },
-            size: { value: { min: 1.5, max: 4 } },
-          },
-          detectRetina: true,
-        }}
-        className="particles-canvas"
-      />
-
-      <div className="bg-graphics">
-        <div className="bg-grid"></div>
+      <div className="spline-bg">
+        <Spline scene="https://prod.spline.design/tw1-qSQoYshZJjqD/scene.splinecode" />
       </div>
 
       <div className="login-container">
@@ -111,6 +55,7 @@ const Login = () => {
         <div className="login-card-wrapper">
           <div className="login-card">
             <h2>Iniciar sesión</h2>
+            <p className="login-subtitle">Ingresa tus credenciales para continuar</p>
 
             {error && (
               <div className="login-error">
