@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import './Dashboard.css';
+import logoImg from '../../assets/logo.jpg';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -64,8 +65,8 @@ const Dashboard = () => {
     <div className={`dashboard-layout ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
       
       <div className="sidebar-logo">
-        <div className="logo-icon"></div>
-        <span className="logo-text">Predictive UI</span>
+        <img src={logoImg} className="logo-icon" alt="Logo" />
+        <span className="logo-text">Predictive B2B</span>
       </div>
 
       <header className="dashboard-header">
@@ -227,8 +228,8 @@ const Dashboard = () => {
                       data={marketShare}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
+                      innerRadius={45}
+                      outerRadius={65}
                       paddingAngle={5}
                       dataKey="value"
                       stroke="none"
