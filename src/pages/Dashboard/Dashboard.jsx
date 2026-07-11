@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
-  Settings, LogOut, Search, Bell, Menu, ArrowUpRight, ArrowDownRight, Fingerprint,
-  ChevronLeft, ChevronRight
+  Settings, LogOut, Search, Bell, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart as RechartsPie, Pie, Cell
-} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import './Dashboard.css';
 import logoImg from '../../assets/logo.jpg';
+
+import InicioView from './views/InicioView';
+import SalesView from './views/SalesView';
+import ForecastView from './views/ForecastView';
+import IngestionView from './views/IngestionView';
+import MarketView from './views/MarketView';
+import SettingsView from './views/SettingsView';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ const Dashboard = () => {
   const [contextVars, setContextVars] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('inicio');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,6 +64,30 @@ const Dashboard = () => {
     );
   }
 
+  const getHeaderTitle = () => {
+    switch(activeTab) {
+      case 'inicio': return "¡Hola, Analista!";
+      case 'sales': return "Módulo de Ventas";
+      case 'forecast': return "Forecast & Simulación";
+      case 'ingestion': return "Ingesta de Datos";
+      case 'market': return "Market Share & Competencia";
+      case 'settings': return "Configuración del Sistema";
+      default: return "¡Hola, Analista!";
+    }
+  };
+
+  const getHeaderSubtitle = () => {
+    switch(activeTab) {
+      case 'inicio': return "Explora la información y actividad de tu negocio";
+      case 'sales': return "Consulta el historial detallado de ventas a nivel de SKU";
+      case 'forecast': return "Visualiza pronósticos y simula escenarios predictivos";
+      case 'ingestion': return "Sube archivos y monitorea el estado de carga de datos";
+      case 'market': return "Mapea tu cuota de mercado e identifica brechas de precio";
+      case 'settings': return "Gestiona parámetros operacionales y modelos de IA";
+      default: return "Explora la información y actividad de tu negocio";
+    }
+  };
+
   return (
     <div className={`dashboard-layout ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
       
@@ -71,8 +98,8 @@ const Dashboard = () => {
 
       <header className="dashboard-header">
         <div className="header-greeting">
-          <h1>Hola, Analista!</h1>
-          <p>Explora la información y actividad de tu negocio</p>
+          <h1>{getHeaderTitle()}</h1>
+          <p>{getHeaderSubtitle()}</p>
         </div>
         <div className="header-actions">
           <div className="search-bar">
@@ -86,47 +113,66 @@ const Dashboard = () => {
       <aside className="sidebar-wrapper">
         <div className="sidebar">
           <nav className="sidebar-nav">
-          <button className="nav-item active">
-            <Home size={22} className="nav-icon" />
-            <span className="nav-label">Inicio</span>
-          </button>
-          <button className="nav-item">
-            <BarChart3 size={22} className="nav-icon" />
-            <span className="nav-label">Ventas</span>
-          </button>
-          <button className="nav-item">
-            <TrendingUp size={22} className="nav-icon" />
-            <span className="nav-label">Proyecciones</span>
-          </button>
-          <button className="nav-item">
-            <UploadCloud size={22} className="nav-icon" />
-            <span className="nav-label">Ingesta de Datos</span>
-          </button>
-          <button className="nav-item">
-            <PieChart size={22} className="nav-icon" />
-            <span className="nav-label">Mercado</span>
-          </button>
-        </nav>
-        <div className="sidebar-bottom">
-          <button className="nav-item">
-            <Settings size={22} className="nav-icon" />
-            <span className="nav-label">Configuración</span>
-          </button>
-          <button className="nav-item" onClick={handleLogout}>
-            <LogOut size={22} className="nav-icon" />
-            <span className="nav-label">Cerrar Sesión</span>
-          </button>
-          <div className="user-profile-nav">
-            <div className="user-avatar">
-              <img src="https://ui-avatars.com/api/?name=Analista+B2B&background=0D8ABC&color=fff" alt="User" />
-            </div>
-            <div className="user-info-nav">
-              <span className="user-name">Analista B2B</span>
-              <span className="user-role">Admin</span>
+            <button 
+              className={`nav-item ${activeTab === 'inicio' ? 'active' : ''}`}
+              onClick={() => setActiveTab('inicio')}
+            >
+              <Home size={22} className="nav-icon" />
+              <span className="nav-label">Inicio</span>
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'sales' ? 'active' : ''}`}
+              onClick={() => setActiveTab('sales')}
+            >
+              <BarChart3 size={22} className="nav-icon" />
+              <span className="nav-label">Ventas</span>
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'forecast' ? 'active' : ''}`}
+              onClick={() => setActiveTab('forecast')}
+            >
+              <TrendingUp size={22} className="nav-icon" />
+              <span className="nav-label">Proyecciones</span>
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'market' ? 'active' : ''}`}
+              onClick={() => setActiveTab('market')}
+            >
+              <PieChart size={22} className="nav-icon" />
+              <span className="nav-label">Mercado</span>
+            </button>
+            <button 
+              className={`nav-item ${activeTab === 'ingestion' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ingestion')}
+            >
+              <UploadCloud size={22} className="nav-icon" />
+              <span className="nav-label">Ingesta de Datos</span>
+            </button>
+          </nav>
+          
+          <div className="sidebar-bottom">
+            <button 
+              className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              <Settings size={22} className="nav-icon" />
+              <span className="nav-label">Configuración</span>
+            </button>
+            <button className="nav-item" onClick={handleLogout}>
+              <LogOut size={22} className="nav-icon" />
+              <span className="nav-label">Cerrar Sesión</span>
+            </button>
+            <div className="user-profile-nav">
+              <div className="user-avatar">
+                <img src="https://ui-avatars.com/api/?name=Analista+B2B&background=0D8ABC&color=fff" alt="User" />
+              </div>
+              <div className="user-info-nav">
+                <span className="user-name">Analista B2B</span>
+                <span className="user-role">Admin</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
         
         <button 
           className="sidebar-toggle-edge"
@@ -138,155 +184,31 @@ const Dashboard = () => {
       </aside>
 
       <main className="dashboard-grid">
-          
-          <div className="kpi-cards">
-            <div className="card kpi-card">
-              <div className="kpi-info">
-                <h3>{kpis.sales.label}</h3>
-                <h2>{formatCurrency(kpis.sales.value)}</h2>
-              </div>
-              <div className={`kpi-trend ${kpis.sales.trend >= 0 ? 'positive' : 'negative'}`}>
-                {kpis.sales.trend >= 0 ? <ArrowUpRight size={18}/> : <ArrowDownRight size={18}/>}
-                <span>{Math.abs(kpis.sales.trend)}%</span>
-              </div>
-            </div>
-
-            <div className="card kpi-card">
-              <div className="kpi-info">
-                <h3>{kpis.projections.label}</h3>
-                <h2>{formatCurrency(kpis.projections.value)}</h2>
-              </div>
-              <div className={`kpi-trend ${kpis.projections.trend >= 0 ? 'positive' : 'negative'}`}>
-                {kpis.projections.trend >= 0 ? <ArrowUpRight size={18}/> : <ArrowDownRight size={18}/>}
-                <span>{Math.abs(kpis.projections.trend)}%</span>
-              </div>
-            </div>
-
-            <div className="card kpi-card">
-              <div className="kpi-info">
-                <h3>{kpis.marketShare.label}</h3>
-                <h2>{kpis.marketShare.value}%</h2>
-              </div>
-              <div className={`kpi-trend ${kpis.marketShare.trend >= 0 ? 'positive' : 'negative'}`}>
-                {kpis.marketShare.trend >= 0 ? <ArrowUpRight size={18}/> : <ArrowDownRight size={18}/>}
-                <span>{Math.abs(kpis.marketShare.trend)}%</span>
-              </div>
-            </div>
-
-            <div className="card kpi-card highlight-card">
-              <div className="kpi-info">
-                <h3>{kpis.priceGap.label}</h3>
-                <h2>{kpis.priceGap.value}%</h2>
-                <p>vs Competencia</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="charts-row">
-            <div className="card chart-card large-chart">
-              <div className="card-header">
-                <h3>Evolución de Ventas vs Forecast</h3>
-                <div className="card-actions">
-                  <span className="badge">Mensual</span>
-                </div>
-              </div>
-              <div className="chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorHistorical" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-                    <XAxis dataKey="month" stroke="#94a3b8" tick={{fill: '#94a3b8'}} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" tick={{fill: '#94a3b8'}} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value/1000}k`} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                      itemStyle={{ color: '#e2e8f0' }}
-                    />
-                    <Area type="monotone" dataKey="historical" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#colorHistorical)" name="Histórico" />
-                    <Area type="monotone" dataKey="forecast" stroke="#818cf8" strokeWidth={3} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorForecast)" name="Forecast" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="card chart-card side-chart">
-              <div className="card-header">
-                <h3>Composición Market Share</h3>
-              </div>
-              <div className="chart-container pie-container">
-                <ResponsiveContainer width="100%" height="70%">
-                  <RechartsPie>
-                    <Pie
-                      data={marketShare}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={65}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {marketShare.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: 'none', borderRadius: '8px', color: '#fff' }}/>
-                  </RechartsPie>
-                </ResponsiveContainer>
-                <div className="chart-legend">
-                  {marketShare.map((entry, index) => (
-                    <div key={index} className="legend-item">
-                      <span className="legend-color" style={{backgroundColor: entry.fill}}></span>
-                      <span className="legend-label">{entry.name}</span>
-                      <span className="legend-value">{entry.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bottom-row">
-            <div className="card context-card">
-              <div className="card-header">
-                <h3>Variables de Contexto</h3>
-              </div>
-              <div className="context-list">
-                <div className="context-item">
-                  <span className="context-label">{contextVars.inflation.label}</span>
-                  <span className="context-value">{contextVars.inflation.value}%</span>
-                </div>
-                <div className="context-item">
-                  <span className="context-label">{contextVars.exchangeRate.label}</span>
-                  <span className="context-value">${contextVars.exchangeRate.value}</span>
-                </div>
-                <div className="context-item">
-                  <span className="context-label">{contextVars.seasonality.label}</span>
-                  <span className="context-value highlight">{contextVars.seasonality.value}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="card security-card">
-              <div className="security-content">
-                <Fingerprint size={48} className="security-icon" />
-                <div>
-                  <h3>Auditoría de Ingesta</h3>
-                  <p>Mantén la integridad de tus datos revisando el pipeline.</p>
-                </div>
-              </div>
-              <button className="btn-primary">Ver Historial</button>
-            </div>
-          </div>
-
+        {activeTab === 'inicio' && (
+          <InicioView 
+            kpis={kpis} 
+            salesData={salesData} 
+            marketShare={marketShare} 
+            contextVars={contextVars} 
+            formatCurrency={formatCurrency}
+            setActiveTab={setActiveTab}
+          />
+        )}
+        {activeTab === 'sales' && (
+          <SalesView formatCurrency={formatCurrency} />
+        )}
+        {activeTab === 'forecast' && (
+          <ForecastView formatCurrency={formatCurrency} />
+        )}
+        {activeTab === 'ingestion' && (
+          <IngestionView />
+        )}
+        {activeTab === 'market' && (
+          <MarketView />
+        )}
+        {activeTab === 'settings' && (
+          <SettingsView />
+        )}
       </main>
     </div>
   );
