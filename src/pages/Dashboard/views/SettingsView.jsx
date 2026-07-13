@@ -7,11 +7,23 @@ const SettingsView = () => {
   const [trainingFrequency, setTrainingFrequency] = useState('semanal');
   const [forecastHorizon, setForecastHorizon] = useState(6);
   
+  const [productThresholds, setProductThresholds] = useState({
+    'SKU-001': 12000,
+    'SKU-002': 25000,
+    'SKU-005': 40000,
+    'SKU-007': 30000
+  });
+  
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [retraining, setRetraining] = useState(false);
   const [actionModelId, setActionModelId] = useState(null);
+
+  const handleSaveProductThresholds = () => {
+    localStorage.setItem('product_thresholds', JSON.stringify(productThresholds));
+    alert("Umbrales de stock de seguridad guardados correctamente.");
+  };
 
   const fetchConfigAndModels = async () => {
     const [config, modelsList] = await Promise.all([
@@ -22,6 +34,12 @@ const SettingsView = () => {
     setTrainingFrequency(config.trainingFrequency);
     setForecastHorizon(config.forecastHorizon);
     setModels(modelsList);
+    
+    const saved = localStorage.getItem('product_thresholds');
+    if (saved) {
+      setProductThresholds(JSON.parse(saved));
+    }
+    
     setLoading(false);
   };
 
@@ -99,28 +117,34 @@ const SettingsView = () => {
 
             <div className="form-group-settings">
               <label>Frecuencia de Reentrenamiento ML</label>
-              <select value={trainingFrequency} onChange={(e) => setTrainingFrequency(e.target.value)}>
-                <option value="diario">Diario</option>
-                <option value="semanal">Semanal</option>
-                <option value="mensual">Mensual</option>
-              </select>
-              <span className="help-text">La frecuencia en que el pipeline de Airflow dispara un script de Python para actualizar las ponderaciones.</span>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '6px',
+                color: '#94a3b8',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.9rem',
+                fontWeight: '600'
+              }}>
+                Mensual (Fijo)
+              </div>
+              <span className="help-text">Frecuencia fija del pipeline de Airflow para actualizar las ponderaciones (definido en la arquitectura del VPS).</span>
             </div>
 
             <div className="form-group-settings">
-              <label>Horizonte Temporal del Pronóstico (Meses)</label>
-              <div className="input-with-suffix">
-                <input 
-                  type="number" 
-                  value={forecastHorizon} 
-                  onChange={(e) => setForecastHorizon(parseInt(e.target.value))}
-                  min="3" 
-                  max="24" 
-                  required
-                />
-                <span className="input-suffix">Meses</span>
+              <label>Horizonte Temporal del Pronóstico</label>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '6px',
+                color: '#94a3b8',
+                padding: '0.5rem 0.75rem',
+                fontSize: '0.9rem',
+                fontWeight: '600'
+              }}>
+                12 Meses (Fijo)
               </div>
-              <span className="help-text">El número de períodos hacia el futuro que calcula y visualiza el gráfico de proyecciones.</span>
+              <span className="help-text">Horizonte temporal fijo configurado en el modelo de Machine Learning (XGBoost Regressor).</span>
             </div>
 
             <button type="submit" className="btn-primary form-submit-btn" disabled={savingConfig}>
@@ -128,6 +152,62 @@ const SettingsView = () => {
               Guardar Configuración
             </button>
           </form>
+          
+          <div className="card settings-card" style={{ marginTop: '1.25rem' }}>
+            <div className="card-header" style={{ marginBottom: '1rem' }}>
+              <div className="header-title-flex" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Shield size={20} className="icon-blue" style={{ color: '#38bdf8' }} />
+                <h3>Umbrales de Stock por SKU</h3>
+              </div>
+            </div>
+            <div className="card-body">
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '1.25rem', lineHeight: '1.4' }}>
+                Establece el stock de seguridad proyectado para cada SKU. Si la predicción a 12 meses supera este valor, se generará una alerta de desabastecimiento (stockout) en el sistema.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="form-group-settings">
+                  <label>Aceite de Girasol (SKU-001)</label>
+                  <input 
+                    type="number" 
+                    value={productThresholds['SKU-001']} 
+                    onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-001': parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="form-group-settings">
+                  <label>Fideos Tallarín (SKU-002)</label>
+                  <input 
+                    type="number" 
+                    value={productThresholds['SKU-002']} 
+                    onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-002': parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="form-group-settings">
+                  <label>Cerveza Lager Lata (SKU-005)</label>
+                  <input 
+                    type="number" 
+                    value={productThresholds['SKU-005']} 
+                    onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-005': parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="form-group-settings">
+                  <label>Gaseosa Cola (SKU-007)</label>
+                  <input 
+                    type="number" 
+                    value={productThresholds['SKU-007']} 
+                    onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-007': parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  onClick={handleSaveProductThresholds}
+                  style={{ width: '100%', marginTop: '0.5rem', display: 'flex', justifyContent: 'center' }}
+                >
+                  Guardar Umbrales por Producto
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="settings-right-col">
@@ -162,8 +242,10 @@ const SettingsView = () => {
                   <tr>
                     <th>Versión</th>
                     <th>Fecha</th>
+                    <th>Rango de Datos</th>
                     <th className="number-col">MAPE (%)</th>
                     <th className="number-col">MAE</th>
+                    <th className="number-col">RMSE</th>
                     <th className="center-col">Estado</th>
                   </tr>
                 </thead>
@@ -172,8 +254,10 @@ const SettingsView = () => {
                     <tr key={model.id} className={model.active ? 'active-model-row' : ''}>
                       <td className="version-cell font-bold">{model.version}</td>
                       <td>{model.date}</td>
+                      <td style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>{model.dataRange}</td>
                       <td className="number-col color-green font-bold">{model.mape}</td>
                       <td className="number-col">{model.mae}</td>
+                      <td className="number-col">{model.rmse}</td>
                       <td className="center-col">
                         {model.active ? (
                           <span className="status-badge success-fill">Activo</span>

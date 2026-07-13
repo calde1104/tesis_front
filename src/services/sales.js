@@ -4,19 +4,11 @@ export const getSalesFilters = async () => {
     setTimeout(() => {
       resolve({
         departments: ['Alimentos', 'Bebidas', 'Limpieza', 'Cuidado Personal'],
-        families: {
-          'Alimentos': ['Almacén', 'Frescos', 'Congelados'],
-          'Bebidas': ['Con Alcohol', 'Sin Alcohol', 'Infusiones'],
-          'Limpieza': ['Ropa', 'Superficies', 'Vajilla'],
-          'Cuidado Personal': ['Cabello', 'Higiene', 'Oral']
-        },
         categories: {
-          'Almacén': ['Aceites', 'Fideos', 'Arroz', 'Salsas'],
-          'Frescos': ['Lácteos', 'Fiambres', 'Carnes'],
-          'Con Alcohol': ['Cervezas', 'Vinos', 'Aperitivos'],
-          'Sin Alcohol': ['Gaseosas', 'Aguas', 'Jugos'],
-          'Ropa': ['Jabón Líquido', 'Suavizantes'],
-          'Superficies': ['Desinfectantes', 'Limpiadores Multiuso']
+          'Alimentos': ['Aceites', 'Fideos', 'Arroz', 'Salsas', 'Lácteos', 'Fiambres', 'Carnes'],
+          'Bebidas': ['Cervezas', 'Vinos', 'Aperitivos', 'Gaseosas', 'Aguas', 'Jugos'],
+          'Limpieza': ['Jabón Líquido', 'Suavizantes', 'Desinfectantes', 'Limpiadores Multiuso'],
+          'Cuidado Personal': ['Cabello', 'Higiene', 'Oral']
         }
       });
     }, 300);
@@ -40,18 +32,18 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       const allItems = [
-        { sku: 'SKU-001', name: 'Aceite de Girasol 1.5L', category: 'Aceites', units: 14200, revenue: 4970000, margin: 24.5 },
-        { sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Fideos', units: 28500, revenue: 5700000, margin: 30.2 },
-        { sku: 'SKU-003', name: 'Arroz Largo Fino 1kg', category: 'Arroz', units: 22100, revenue: 3978000, margin: 18.0 },
-        { sku: 'SKU-004', name: 'Puré de Tomate 520g', category: 'Salsas', units: 31000, revenue: 4650000, margin: 35.5 },
-        { sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Cervezas', units: 45000, revenue: 11250000, margin: 26.8 },
-        { sku: 'SKU-006', name: 'Vino Malbec Reserva 750ml', category: 'Vinos', units: 8200, revenue: 6560000, margin: 42.0 },
-        { sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Gaseosas', units: 35600, revenue: 10680000, margin: 22.1 },
-        { sku: 'SKU-008', name: 'Agua Mineral Sin Gas 1.5L', category: 'Aguas', units: 18900, revenue: 2835000, margin: 15.4 },
-        { sku: 'SKU-009', name: 'Jabón Líquido p/Ropa 3L', category: 'Jabón Líquido', units: 6200, revenue: 7440000, margin: 32.5 },
-        { sku: 'SKU-010', name: 'Desinfectante de Ambientes 360ml', category: 'Desinfectantes', units: 12400, revenue: 3720000, margin: 29.0 },
-        { sku: 'SKU-011', name: 'Suavizante Floral 3L', category: 'Suavizantes', units: 4500, revenue: 4500000, margin: 28.0 },
-        { sku: 'SKU-012', name: 'Limpiador de Pisos 1L', category: 'Limpiadores Multiuso', units: 9800, revenue: 1960000, margin: 20.0 }
+        { sku: 'SKU-001', name: 'Aceite de Girasol', netContent: 1.5, unit: 'lt', category: 'Aceites', units: 14200, revenue: 4970000, avgPrice: 350 },
+        { sku: 'SKU-002', name: 'Fideos Tallarín', netContent: 500, unit: 'gr', category: 'Fideos', units: 28500, revenue: 5700000, avgPrice: 200 },
+        { sku: 'SKU-003', name: 'Arroz Largo Fino', netContent: 1, unit: 'kg', category: 'Arroz', units: 22100, revenue: 3978000, avgPrice: 180 },
+        { sku: 'SKU-004', name: 'Puré de Tomate', netContent: 520, unit: 'gr', category: 'Salsas', units: 31000, revenue: 4650000, avgPrice: 150 },
+        { sku: 'SKU-005', name: 'Cerveza Lager Lata', netContent: 473, unit: 'ml', category: 'Cervezas', units: 45000, revenue: 11250000, avgPrice: 250 },
+        { sku: 'SKU-006', name: 'Vino Malbec Reserva', netContent: 750, unit: 'ml', category: 'Vinos', units: 8200, revenue: 6560000, avgPrice: 800 },
+        { sku: 'SKU-007', name: 'Gaseosa Cola', netContent: 2.25, unit: 'lt', category: 'Gaseosas', units: 35600, revenue: 10680000, avgPrice: 300 },
+        { sku: 'SKU-008', name: 'Agua Mineral Sin Gas', netContent: 1.5, unit: 'lt', category: 'Aguas', units: 18900, revenue: 2835000, avgPrice: 150 },
+        { sku: 'SKU-009', name: 'Jabón Líquido p/Ropa', netContent: 3, unit: 'lt', category: 'Jabón Líquido', units: 6200, revenue: 7440000, avgPrice: 1200 },
+        { sku: 'SKU-010', name: 'Desinfectante de Ambientes', netContent: 360, unit: 'ml', category: 'Desinfectantes', units: 12400, revenue: 3720000, avgPrice: 300 },
+        { sku: 'SKU-011', name: 'Suavizante Floral', netContent: 3, unit: 'lt', category: 'Suavizantes', units: 4500, revenue: 4500000, avgPrice: 1000 },
+        { sku: 'SKU-012', name: 'Limpiador de Pisos', netContent: 1, unit: 'lt', category: 'Limpiadores Multiuso', units: 9800, revenue: 1960000, avgPrice: 200 }
       ];
 
       let filtered = allItems;

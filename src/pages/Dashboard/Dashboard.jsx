@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
-  Settings, LogOut, Search, Bell, ChevronLeft, ChevronRight
+  Settings, LogOut, Search, Bell, ChevronLeft, ChevronRight, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
+import { getMLModels } from '../../services/settings';
 import './Dashboard.css';
 import logoImg from '../../assets/logo.jpg';
 
@@ -24,20 +25,76 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('inicio');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [activeModel, setActiveModel] = useState(null);
+  const [safetyStocks, setSafetyStocks] = useState({
+    'SKU-001': 12000,
+    'SKU-002': 25000,
+    'SKU-005': 40000,
+    'SKU-007': 30000
+  });
+
+  const getNotifications = () => {
+    const list = [];
+    
+    if (activeModel && activeModel.desalineado) {
+      list.push({
+        id: 'mlops-warn',
+        type: 'MLOPS',
+        title: 'Desalineación de Datos',
+        message: `Se modificaron datos históricos. El modelo activo (${activeModel.version}) requiere reentrenamiento.`,
+        severity: 'WARNING',
+        tab: 'settings'
+      });
+    }
+
+    const productPredictions = {
+      'SKU-001': { name: 'Aceite de Girasol', forecast: 14200, threshold: safetyStocks['SKU-001'] },
+      'SKU-002': { name: 'Fideos Tallarín', forecast: 28500, threshold: safetyStocks['SKU-002'] },
+      'SKU-005': { name: 'Cerveza Lager Lata', forecast: 45000, threshold: safetyStocks['SKU-005'] },
+      'SKU-007': { name: 'Gaseosa Cola', forecast: 35600, threshold: safetyStocks['SKU-007'] }
+    };
+
+    Object.entries(productPredictions).forEach(([sku, prod]) => {
+      if (prod.forecast > prod.threshold) {
+        list.push({
+          id: `stock-${sku}`,
+          type: 'STOCK',
+          title: `Quiebre de Stock: ${prod.name}`,
+          message: `La demanda estimada (${prod.forecast.toLocaleString('es-AR')} un) supera el stock de seguridad (${prod.threshold.toLocaleString('es-AR')} un).`,
+          severity: 'CRITICAL',
+          tab: 'forecast'
+        });
+      }
+    });
+
+    return list;
+  };
+
+  const notifications = getNotifications();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [kpiRes, salesRes, marketRes, contextRes] = await Promise.all([
+        const [kpiRes, salesRes, marketRes, contextRes, modelsRes] = await Promise.all([
           getKPIs(),
           getSalesEvolution(),
           getMarketShareComposition(),
-          getContextVariables()
+          getContextVariables(),
+          getMLModels()
         ]);
         setKpis(kpiRes);
         setSalesData(salesRes);
         setMarketShare(marketRes);
         setContextVars(contextRes);
+        
+        const active = modelsRes.find(m => m.activo || m.active);
+        setActiveModel(active);
+        
+        const saved = localStorage.getItem('product_thresholds');
+        if (saved) {
+          setSafetyStocks(JSON.parse(saved));
+        }
       } catch (error) {
         console.error("Error al cargar datos del dashboard:", error);
       } finally {
@@ -45,7 +102,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [activeTab]);
 
   const handleLogout = () => {
     navigate('/login');
@@ -106,7 +163,101 @@ const Dashboard = () => {
             <Search size={18} className="search-icon" />
             <input type="text" placeholder="Buscar..." />
           </div>
-          <button className="icon-btn"><Bell size={20} /></button>
+          <div className="notification-wrapper" style={{ position: 'relative' }}>
+            <button 
+              className="icon-btn" 
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{ position: 'relative' }}
+            >
+              <Bell size={20} />
+              {notifications.length > 0 && (
+                <span className="notification-badge" style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: '16px',
+                  height: '16px',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #0b0f19'
+                }}>
+                  {notifications.length}
+                </span>
+              )}
+            </button>
+            
+            {showNotifications && (
+              <div className="notifications-dropdown" style={{
+                position: 'absolute',
+                top: '40px',
+                right: '0',
+                width: '320px',
+                background: '#0f172a',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                zIndex: 1000,
+                padding: '0.75rem 0'
+              }}>
+                <div style={{
+                  padding: '0 1rem 0.5rem 1rem',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#f1f5f9' }}>Notificaciones</h4>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{notifications.length} Alertas</span>
+                </div>
+                <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                  {notifications.length > 0 ? (
+                    notifications.map(n => (
+                      <div 
+                        key={n.id} 
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.02)',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                        className="notification-item"
+                        onClick={() => {
+                          setActiveTab(n.tab);
+                          setShowNotifications(false);
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                          <span style={{
+                            color: n.severity === 'CRITICAL' ? '#ef4444' : '#eab308',
+                            fontSize: '1rem',
+                            lineHeight: '1'
+                          }}>
+                            {n.severity === 'CRITICAL' ? '●' : '▲'}
+                          </span>
+                          <span style={{ fontWeight: '600', fontSize: '0.8rem', color: '#f8fafc' }}>
+                            {n.title}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: '1.4' }}>
+                          {n.message}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+                      No tienes alertas pendientes
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

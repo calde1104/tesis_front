@@ -5,7 +5,6 @@ import { getSalesFilters, getSalesSummary, getSalesList, triggerSalesExport, che
 const SalesView = ({ formatCurrency }) => {
   const [filterOptions, setFilterOptions] = useState(null);
   const [department, setDepartment] = useState('');
-  const [family, setFamily] = useState('');
   const [category, setCategory] = useState('');
   
   const [summary, setSummary] = useState(null);
@@ -32,18 +31,18 @@ const SalesView = ({ formatCurrency }) => {
   useEffect(() => {
     const fetchSummary = async () => {
       setLoadingSummary(true);
-      const res = await getSalesSummary({ department, family, category });
+      const res = await getSalesSummary({ department, category });
       setSummary(res);
       setLoadingSummary(false);
     };
 
     fetchSummary();
-  }, [department, family, category]);
+  }, [department, category]);
 
   useEffect(() => {
     const fetchSales = async () => {
       setLoadingTable(true);
-      const res = await getSalesList({ department, family, category }, page, 8);
+      const res = await getSalesList({ department, category }, page, 8);
       setSalesData(res.data);
       setTotalPages(res.totalPages);
       setTotalItems(res.totalItems);
@@ -51,17 +50,10 @@ const SalesView = ({ formatCurrency }) => {
     };
 
     fetchSales();
-  }, [department, family, category, page]);
+  }, [department, category, page]);
 
   const handleDepartmentChange = (e) => {
     setDepartment(e.target.value);
-    setFamily('');
-    setCategory('');
-    setPage(1);
-  };
-
-  const handleFamilyChange = (e) => {
-    setFamily(e.target.value);
     setCategory('');
     setPage(1);
   };
@@ -76,14 +68,14 @@ const SalesView = ({ formatCurrency }) => {
     setExportProgress(0);
     setExportStatus('RUNNING');
     
-    const { taskId } = await triggerSalesExport({ department, family, category });
+    const { taskId } = await triggerSalesExport({ department, category });
     setExportTaskId(taskId);
   };
 
   const handleDownload = () => {
-    const csvHeader = 'SKU;Producto;Categoria;Unidades;Facturacion;Margen (%)\n';
+    const csvHeader = 'SKU;Producto;Contenido Neto;Unidad Medida;Categoria;Unidades;Facturacion;Precio Promedio\n';
     const csvRows = salesData.map(item => 
-      `${item.sku};${item.name};${item.category};${item.units};${item.revenue};${item.margin}`
+      `${item.sku};${item.name};${item.netContent};${item.unit};${item.category};${item.units};${item.revenue};${item.avgPrice}`
     ).join('\n');
     
     const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
@@ -152,28 +144,14 @@ const SalesView = ({ formatCurrency }) => {
           </div>
 
           <div className="filter-group">
-            <label>Familia</label>
-            <select 
-              value={family} 
-              onChange={handleFamilyChange}
-              disabled={!department}
-            >
-              <option value="">Todas las Familias</option>
-              {department && filterOptions?.families[department]?.map(fam => (
-                <option key={fam} value={fam}>{fam}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-group">
             <label>Categoría</label>
             <select 
               value={category} 
               onChange={handleCategoryChange}
-              disabled={!family}
+              disabled={!department}
             >
               <option value="">Todas las Categorías</option>
-              {family && filterOptions?.categories[family]?.map(cat => (
+              {department && filterOptions?.categories[department]?.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -235,9 +213,10 @@ const SalesView = ({ formatCurrency }) => {
                   <th>SKU</th>
                   <th>Producto</th>
                   <th>Categoría</th>
+                  <th>Presentación</th>
                   <th className="number-col">Unidades</th>
                   <th className="number-col">Facturación</th>
-                  <th className="number-col">Margen (%)</th>
+                  <th className="number-col">Precio Promedio</th>
                 </tr>
               </thead>
               <tbody>
@@ -247,18 +226,17 @@ const SalesView = ({ formatCurrency }) => {
                       <td className="sku-cell">{item.sku}</td>
                       <td className="name-cell">{item.name}</td>
                       <td>{item.category}</td>
+                      <td style={{ color: '#cbd5e1' }}>{item.netContent} {item.unit}</td>
                       <td className="number-col">{item.units.toLocaleString('es-AR')}</td>
                       <td className="number-col">{formatCurrency(item.revenue)}</td>
-                      <td className="number-col margin-cell">
-                        <span className={`margin-badge ${item.margin > 25 ? 'high' : 'low'}`}>
-                          {item.margin}%
-                        </span>
+                      <td className="number-col font-bold" style={{ color: '#38bdf8' }}>
+                        {formatCurrency(item.avgPrice)}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="no-data-cell">No se encontraron productos para los filtros seleccionados</td>
+                    <td colSpan="7" className="no-data-cell">No se encontraron productos para los filtros seleccionados</td>
                   </tr>
                 )}
               </tbody>

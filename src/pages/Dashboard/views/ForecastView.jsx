@@ -5,12 +5,20 @@ import {
   BarChart, Bar, Cell
 } from 'recharts';
 import { getForecast, getFeatureImportance, triggerSimulation, checkSimulationStatus } from '../../../services/forecast';
+import { getMLModels } from '../../../services/settings';
 
 const ForecastView = ({ formatCurrency }) => {
   const [forecastData, setForecastData] = useState([]);
   const [featureImportance, setFeatureImportance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState('total');
+  const [activeModel, setActiveModel] = useState(null);
+  const [safetyStocks, setSafetyStocks] = useState({
+    'SKU-001': 12000,
+    'SKU-002': 25000,
+    'SKU-005': 40000,
+    'SKU-007': 30000
+  });
 
   const [priceChange, setPriceChange] = useState(0);
   const [marketingChange, setMarketingChange] = useState(0);
@@ -23,12 +31,22 @@ const ForecastView = ({ formatCurrency }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [forecastRes, featureRes] = await Promise.all([
+      const [forecastRes, featureRes, modelsRes] = await Promise.all([
         getForecast(),
-        getFeatureImportance()
+        getFeatureImportance(),
+        getMLModels()
       ]);
       setForecastData(forecastRes);
       setFeatureImportance(featureRes);
+      
+      const active = modelsRes.find(m => m.activo || m.active);
+      setActiveModel(active);
+      
+      const saved = localStorage.getItem('product_thresholds');
+      if (saved) {
+        setSafetyStocks(JSON.parse(saved));
+      }
+      
       setLoading(false);
     };
     fetchData();
@@ -104,6 +122,25 @@ const ForecastView = ({ formatCurrency }) => {
     });
   };
 
+  const getStockoutAlert = () => {
+    if (selectedProduct === 'total') return null;
+    const threshold = safetyStocks[selectedProduct] || 0;
+    if (threshold === 0) return null;
+    
+    const scaled = getScaledData();
+    const offendingMonth = scaled.find(item => item.forecast && item.forecast > threshold);
+    if (offendingMonth) {
+      return {
+        month: offendingMonth.month,
+        forecast: offendingMonth.forecast,
+        threshold
+      };
+    }
+    return null;
+  };
+
+  const stockoutAlert = getStockoutAlert();
+
   if (loading) {
     return (
       <div className="view-loading">
@@ -117,7 +154,25 @@ const ForecastView = ({ formatCurrency }) => {
 
   return (
     <div className="view-container forecast-view">
-
+      {activeModel?.desalineado && (
+        <div className="warning-banner" style={{
+          background: 'rgba(234, 179, 8, 0.1)',
+          border: '1px solid rgba(234, 179, 8, 0.25)',
+          borderRadius: '8px',
+          padding: '0.75rem 1rem',
+          color: '#eab308',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.85rem'
+        }}>
+          <AlertCircle size={18} />
+          <span>
+            <strong>Advertencia de MLOps:</strong> Se han detectado modificaciones en los datos históricos posteriores al último entrenamiento del modelo activo (<strong>{activeModel.version}</strong>). Las proyecciones pueden presentar desviaciones hasta el próximo ciclo programado de reentrenamiento.
+          </span>
+        </div>
+      )}
       <div className="forecast-grid">
         
         <div className="forecast-charts-col">
