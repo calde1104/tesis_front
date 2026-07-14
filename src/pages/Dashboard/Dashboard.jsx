@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
-  Settings, LogOut, Search, Bell, ChevronLeft, ChevronRight, AlertCircle
+  Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
@@ -121,27 +121,34 @@ const Dashboard = () => {
     );
   }
 
+  const getDynamicGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Buen día, Analista";
+    if (hour < 20) return "Buenas tardes, Analista";
+    return "Buenas noches, Analista";
+  };
+
   const getHeaderTitle = () => {
     switch(activeTab) {
-      case 'inicio': return "¡Hola, Analista!";
-      case 'sales': return "Módulo de Ventas";
-      case 'forecast': return "Forecast & Simulación";
-      case 'ingestion': return "Ingesta de Datos";
-      case 'market': return "Market Share & Competencia";
-      case 'settings': return "Configuración del Sistema";
-      default: return "¡Hola, Analista!";
+      case 'inicio': return getDynamicGreeting();
+      case 'sales': return "Historial Comercial de Ventas";
+      case 'forecast': return "Predicciones & Simulador de Escenarios";
+      case 'ingestion': return "Pipeline de Ingesta de Datos";
+      case 'market': return "Monitoreo de Share & Competencia";
+      case 'settings': return "Panel de Configuración ML";
+      default: return getDynamicGreeting();
     }
   };
 
   const getHeaderSubtitle = () => {
     switch(activeTab) {
-      case 'inicio': return "Explora la información y actividad de tu negocio";
-      case 'sales': return "Consulta el historial detallado de ventas a nivel de SKU";
-      case 'forecast': return "Visualiza pronósticos y simula escenarios predictivos";
-      case 'ingestion': return "Sube archivos y monitorea el estado de carga de datos";
-      case 'market': return "Mapea tu cuota de mercado e identifica brechas de precio";
-      case 'settings': return "Gestiona parámetros operacionales y modelos de IA";
-      default: return "Explora la información y actividad de tu negocio";
+      case 'inicio': return "Resumen predictivo y estado de la demanda comercial.";
+      case 'sales': return "Consulta el histórico de transacciones facturadas por SKU.";
+      case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
+      case 'ingestion': return "Monitoreo del flujo de datos y auditoría de integridad hash.";
+      case 'market': return "Cuota de mercado estimada y brechas relativas de precio.";
+      case 'settings': return "Administración de modelos predictivos y parámetros de sistema.";
+      default: return "Resumen predictivo y estado de la demanda comercial.";
     }
   };
 
@@ -159,10 +166,6 @@ const Dashboard = () => {
           <p>{getHeaderSubtitle()}</p>
         </div>
         <div className="header-actions">
-          <div className="search-bar">
-            <Search size={18} className="search-icon" />
-            <input type="text" placeholder="Buscar..." />
-          </div>
           <div className="notification-wrapper" style={{ position: 'relative' }}>
             <button 
               className="icon-btn" 
@@ -268,14 +271,14 @@ const Dashboard = () => {
               className={`nav-item ${activeTab === 'inicio' ? 'active' : ''}`}
               onClick={() => setActiveTab('inicio')}
             >
-              <Home size={22} className="nav-icon" />
+              <Home size={22} className="nav-icon" fill={activeTab === 'inicio' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Inicio</span>
             </button>
             <button 
               className={`nav-item ${activeTab === 'sales' ? 'active' : ''}`}
               onClick={() => setActiveTab('sales')}
             >
-              <BarChart3 size={22} className="nav-icon" />
+              <BarChart3 size={22} className="nav-icon" fill={activeTab === 'sales' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Ventas</span>
             </button>
             <button 
@@ -289,14 +292,14 @@ const Dashboard = () => {
               className={`nav-item ${activeTab === 'market' ? 'active' : ''}`}
               onClick={() => setActiveTab('market')}
             >
-              <PieChart size={22} className="nav-icon" />
+              <PieChart size={22} className="nav-icon" fill={activeTab === 'market' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Mercado</span>
             </button>
             <button 
               className={`nav-item ${activeTab === 'ingestion' ? 'active' : ''}`}
               onClick={() => setActiveTab('ingestion')}
             >
-              <UploadCloud size={22} className="nav-icon" />
+              <UploadCloud size={22} className="nav-icon" fill={activeTab === 'ingestion' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Ingesta de Datos</span>
             </button>
           </nav>
@@ -306,7 +309,7 @@ const Dashboard = () => {
               className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveTab('settings')}
             >
-              <Settings size={22} className="nav-icon" />
+              <Settings size={22} className="nav-icon" fill={activeTab === 'settings' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Configuración</span>
             </button>
             <button className="nav-item" onClick={handleLogout}>
