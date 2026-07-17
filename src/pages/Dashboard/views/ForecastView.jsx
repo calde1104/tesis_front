@@ -264,13 +264,23 @@ const ForecastView = ({ formatCurrency }) => {
             <div className="feature-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={featureImportance} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+                  <defs>
+                    <linearGradient id="barBlue" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35}/>
+                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.95}/>
+                    </linearGradient>
+                    <linearGradient id="barPurple" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35}/>
+                      <stop offset="100%" stopColor="#818cf8" stopOpacity={0.95}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                   <XAxis type="number" domain={[0, 50]} stroke="#64748b" tickFormatter={(value) => `${value}%`} />
                   <YAxis type="category" dataKey="name" stroke="#94a3b8" tick={{fill: '#f8fafc', fontSize: 11}} width={140} />
                   <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '8px' }}/>
-                  <Bar dataKey="weight" radius={[0, 4, 4, 0]}>
+                  <Bar dataKey="weight" radius={[0, 6, 6, 0]}>
                     {featureImportance.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#38bdf8' : '#818cf8'} />
+                      <Cell key={`cell-${index}`} fill={index === 0 ? 'url(#barBlue)' : 'url(#barPurple)'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -367,31 +377,31 @@ const ForecastView = ({ formatCurrency }) => {
             )}
           </div>
 
-          <div className="card model-info-card" style={{ marginTop: '1.25rem' }}>
+          <div className="card model-info-card technical-info-card" style={{ marginTop: '1.25rem' }}>
             <div className="simulator-header">
               <Sparkles size={20} className="simulator-sparkle-icon" />
               <h3>Detalles del Modelo Activo</h3>
             </div>
             <div className="model-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '1rem 0' }}>
-              <div className="info-row" style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Algoritmo</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc' }}>XGBoost Regressor</span>
+              <div className="info-item-tech">
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Algoritmo</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc' }}>XGBoost Regressor</span>
               </div>
-              <div className="info-row" style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Versión</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#38bdf8', fontFamily: 'monospace' }}>v2.4.1</span>
+              <div className="info-item-tech">
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Versión</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#38bdf8', fontFamily: 'monospace' }}>v2.4.1</span>
               </div>
-              <div className="info-row" style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Precisión MAPE</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#34d399' }}>4.85%</span>
+              <div className="info-item-tech">
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Precisión MAPE</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#34d399' }}>4.85%</span>
               </div>
-              <div className="info-row" style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Entrenado</span>
-                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc' }}>08/07/2026</span>
+              <div className="info-item-tech">
+                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entrenado</span>
+                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#cbd5e1' }}>08/07/2026</span>
               </div>
             </div>
-            <p className="simulator-desc" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: '#64748b' }}>
-              El pronóstico (Forecast) se calcula a nivel mensual combinando el historial consolidado de la tabla <span style={{ fontFamily: 'monospace', color: '#94a3b8' }}>VENTAS_MENSUALES</span> con variables de clima e inflación. El área sombreada representa el intervalo de confianza del ±10% basado en el error histórico.
+            <p className="simulator-desc" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: '#64748b', marginTop: '0.75rem' }}>
+              El pronóstico (Forecast) se calcula a nivel mensual combinando el historial consolidado de la tabla <span style={{ fontFamily: 'monospace', color: '#cbd5e1', background: 'rgba(255,255,255,0.03)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>VENTAS_MENSUALES</span> con variables de clima e inflación. El área sombreada representa el intervalo de confianza del ±10% basado en el error histórico del modelo.
             </p>
           </div>
         </div>

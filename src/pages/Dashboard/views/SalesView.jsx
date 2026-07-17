@@ -1,12 +1,39 @@
 import { useState, useEffect } from 'react';
-import { Download, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Download, Loader2, ArrowLeft, ArrowRight, Coins, Target, Scale, X } from 'lucide-react';
 import { getSalesFilters, getSalesSummary, getSalesList, triggerSalesExport, checkExportStatus } from '../../../services/sales';
+
+const deptBrands = {
+  'Alimentos': ['Molinos', 'Vicentin', 'Arcor'],
+  'Bebidas': ['Quilmes', 'Coca-Cola', 'Otros'],
+  'Limpieza': ['Unilever', 'Otros'],
+  'Cuidado Personal': []
+};
+
+const categoryBrands = {
+  'Aceites': ['Vicentin'],
+  'Fideos': ['Molinos'],
+  'Arroz': ['Molinos'],
+  'Salsas': ['Arcor'],
+  'Cervezas': ['Quilmes'],
+  'Vinos': ['Otros'],
+  'Gaseosas': ['Coca-Cola'],
+  'Aguas': ['Coca-Cola'],
+  'Jabón Líquido': ['Unilever'],
+  'Desinfectantes': ['Unilever'],
+  'Suavizantes': ['Unilever'],
+  'Limpiadores Multiuso': ['Otros']
+};
 
 const SalesView = ({ formatCurrency }) => {
   const [filterOptions, setFilterOptions] = useState(null);
   const [department, setDepartment] = useState('');
   const [category, setCategory] = useState('');
+  const [brand, setBrand] = useState('');
+  const [search, setSearch] = useState('');
   
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+
   const [summary, setSummary] = useState(null);
   const [salesData, setSalesData] = useState([]);
   const [page, setPage] = useState(1);
@@ -31,18 +58,18 @@ const SalesView = ({ formatCurrency }) => {
   useEffect(() => {
     const fetchSummary = async () => {
       setLoadingSummary(true);
-      const res = await getSalesSummary({ department, category });
+      const res = await getSalesSummary({ department, category, brand, search });
       setSummary(res);
       setLoadingSummary(false);
     };
 
     fetchSummary();
-  }, [department, category]);
+  }, [department, category, brand, search]);
 
   useEffect(() => {
     const fetchSales = async () => {
       setLoadingTable(true);
-      const res = await getSalesList({ department, category }, page, 8);
+      const res = await getSalesList({ department, category, brand, search, sortBy, sortOrder }, page, 8);
       setSalesData(res.data);
       setTotalPages(res.totalPages);
       setTotalItems(res.totalItems);
@@ -50,16 +77,72 @@ const SalesView = ({ formatCurrency }) => {
     };
 
     fetchSales();
-  }, [department, category, page]);
+  }, [department, category, brand, search, sortBy, sortOrder, page]);
 
   const handleDepartmentChange = (e) => {
-    setDepartment(e.target.value);
-    setCategory('');
+    const nextDept = e.target.value;
+    setDepartment(nextDept);
+    let nextCat = category;
+    if (nextDept && category && filterOptions) {
+      const allowedCats = filterOptions.categories[nextDept] || [];
+      if (!allowedCats.includes(category)) {
+        setCategory('');
+        nextCat = '';
+      }
+    }
+    
+    if (brand) {
+      if (nextCat) {
+        const allowedBrands = categoryBrands[nextCat] || [];
+        if (!allowedBrands.includes(brand)) setBrand('');
+      } else if (nextDept) {
+        const allowedBrands = deptBrands[nextDept] || [];
+        if (!allowedBrands.includes(brand)) setBrand('');
+      }
+    }
+    
     setPage(1);
   };
 
   const handleCategoryChange = (e) => {
-    setCategory(e.target.value);
+    const nextCat = e.target.value;
+    setCategory(nextCat);
+    
+    if (brand && nextCat) {
+      const allowedBrands = categoryBrands[nextCat] || [];
+      if (!allowedBrands.includes(brand)) setBrand('');
+    }
+    
+    setPage(1);
+  };
+
+  const handleBrandChange = (e) => {
+    setBrand(e.target.value);
+    setPage(1);
+  };
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      if (sortOrder === 'desc') {
+        setSortOrder('asc');
+      } else {
+        setSortBy('');
+        setSortOrder('desc');
+      }
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setDepartment('');
+    setCategory('');
+    setBrand('');
+    setSortBy('');
+    setSortOrder('desc');
     setPage(1);
   };
 
@@ -68,14 +151,14 @@ const SalesView = ({ formatCurrency }) => {
     setExportProgress(0);
     setExportStatus('RUNNING');
     
-    const { taskId } = await triggerSalesExport({ department, category });
+    const { taskId } = await triggerSalesExport({ department, category, brand });
     setExportTaskId(taskId);
   };
 
   const handleDownload = () => {
-    const csvHeader = 'SKU;Producto;Contenido Neto;Unidad Medida;Categoria;Unidades;Facturacion;Precio Promedio\n';
+    const csvHeader = 'SKU;Producto;Contenido Neto;Unidad Medida;Categoria;Marca;Unidades;Facturacion;Precio Promedio\n';
     const csvRows = salesData.map(item => 
-      `${item.sku};${item.name};${item.netContent};${item.unit};${item.category};${item.units};${item.revenue};${item.avgPrice}`
+      `${item.sku};${item.name};${item.netContent};${item.unit};${item.category};${item.brand};${item.units};${item.revenue};${item.avgPrice}`
     ).join('\n');
     
     const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
@@ -131,8 +214,74 @@ const SalesView = ({ formatCurrency }) => {
       </div>
 
       <div className="card filters-card">
-        <h3>Filtros de Búsqueda</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>Filtros de Búsqueda</h3>
+          {(search || department || category || brand || sortBy) && (
+            <button 
+              className="btn-secondary" 
+              onClick={handleClearFilters}
+              style={{
+                padding: '0.35rem 0.75rem',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                borderRadius: '6px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#f87171',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+              }}
+            >
+              <X size={14} /> Limpiar Filtros
+            </button>
+          )}
+        </div>
         <div className="filters-grid">
+          <div className="filter-group">
+            <label>Buscar Producto / SKU</label>
+            <input 
+              type="text" 
+              value={search} 
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Escribí nombre o SKU..."
+              style={{
+                width: '100%',
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#f8fafc',
+                padding: '0.6rem 0.8rem',
+                fontFamily: 'inherit',
+                fontSize: '0.9rem',
+                outline: 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#0ea5e9';
+                e.currentTarget.style.boxShadow = '0 0 12px rgba(14, 165, 233, 0.45)';
+                e.currentTarget.style.background = 'rgba(15, 23, 42, 0.85)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.background = 'rgba(15, 23, 42, 0.6)';
+              }}
+            />
+          </div>
+
           <div className="filter-group">
             <label>Departamento</label>
             <select value={department} onChange={handleDepartmentChange}>
@@ -148,48 +297,80 @@ const SalesView = ({ formatCurrency }) => {
             <select 
               value={category} 
               onChange={handleCategoryChange}
-              disabled={!department}
             >
               <option value="">Todas las Categorías</option>
-              {department && filterOptions?.categories[department]?.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {department 
+                ? filterOptions?.categories[department]?.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))
+                : filterOptions && Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))
+              }
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Marca</label>
+            <select value={brand} onChange={handleBrandChange}>
+              <option value="">Todas las Marcas</option>
+              {filterOptions?.brands
+                .filter(b => {
+                  if (category) {
+                    const allowedBrands = categoryBrands[category] || [];
+                    return allowedBrands.includes(b);
+                  }
+                  if (department) {
+                    const allowedBrands = deptBrands[department] || [];
+                    return allowedBrands.includes(b);
+                  }
+                  return true;
+                })
+                .map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))
+              }
             </select>
           </div>
         </div>
       </div>
 
-      <div className="kpi-cards">
-        <div className="card kpi-card">
-          <div className="kpi-info">
-            <h3>Facturación Acumulada</h3>
-            {loadingSummary ? (
-              <div className="skeleton-text">Cargando...</div>
-            ) : (
-              <h2>{formatCurrency(summary?.totalRevenue || 0)}</h2>
-            )}
+      <div className="kpi-cards" style={{ marginBottom: '1.25rem', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="card kpi-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
+            <span className="kpi-label">Facturación Acumulada</span>
+          </div>
+          <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
+            {loadingSummary ? '...' : formatCurrency(summary?.totalRevenue || 0)}
+          </div>
+          <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Total en período filtrado</span>
           </div>
         </div>
 
-        <div className="card kpi-card">
-          <div className="kpi-info">
-            <h3>Unidades Vendidas</h3>
-            {loadingSummary ? (
-              <div className="skeleton-text">Cargando...</div>
-            ) : (
-              <h2>{summary?.totalUnits.toLocaleString('es-AR')} un.</h2>
-            )}
+        <div className="card kpi-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
+            <span className="kpi-label">Unidades Vendidas</span>
+          </div>
+          <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
+            {loadingSummary ? '...' : `${summary?.totalUnits.toLocaleString('es-AR') || 0} un.`}
+          </div>
+          <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Volumen físico de ventas</span>
           </div>
         </div>
 
-        <div className="card kpi-card">
-          <div className="kpi-info">
-            <h3>Margen Promedio</h3>
-            {loadingSummary ? (
-              <div className="skeleton-text">Cargando...</div>
-            ) : (
-              <h2>{summary?.averageMargin}%</h2>
-            )}
+        <div className="card kpi-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
+            <span className="kpi-label">Margen Comercial Promedio</span>
+          </div>
+          <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
+            {loadingSummary ? '...' : `${summary?.averageMargin || 0}%`}
+          </div>
+          <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
+              Margen Saludable
+            </span>
           </div>
         </div>
       </div>
@@ -210,23 +391,61 @@ const SalesView = ({ formatCurrency }) => {
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>SKU</th>
-                  <th>Producto</th>
-                  <th>Categoría</th>
-                  <th>Presentación</th>
-                  <th className="number-col">Unidades</th>
-                  <th className="number-col">Facturación</th>
-                  <th className="number-col">Precio Promedio</th>
+                  <th 
+                    className="center-col" 
+                    style={{ width: '8%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={() => handleSort('sku')}
+                  >
+                    SKU
+                    <span style={{ marginLeft: '4px', opacity: sortBy === 'sku' ? 1 : 0.25, fontSize: '0.75rem' }}>
+                      {sortBy === 'sku' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </th>
+                  <th style={{ width: '22%', whiteSpace: 'nowrap' }}>Producto</th>
+                  <th style={{ width: '15%', whiteSpace: 'nowrap' }}>Categoría</th>
+                  <th style={{ width: '11%', whiteSpace: 'nowrap' }}>Marca</th>
+                  <th className="center-col" style={{ width: '10%', whiteSpace: 'nowrap' }}>Presentación</th>
+                  <th 
+                    className="number-col" 
+                    style={{ width: '10%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={() => handleSort('units')}
+                  >
+                    Unidades
+                    <span style={{ marginLeft: '4px', opacity: sortBy === 'units' ? 1 : 0.25, fontSize: '0.75rem' }}>
+                      {sortBy === 'units' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </th>
+                  <th 
+                    className="number-col" 
+                    style={{ width: '12%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={() => handleSort('revenue')}
+                  >
+                    Facturación
+                    <span style={{ marginLeft: '4px', opacity: sortBy === 'revenue' ? 1 : 0.25, fontSize: '0.75rem' }}>
+                      {sortBy === 'revenue' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </th>
+                  <th 
+                    className="number-col" 
+                    style={{ width: '12%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={() => handleSort('avgPrice')}
+                  >
+                    Precio Promedio
+                    <span style={{ marginLeft: '4px', opacity: sortBy === 'avgPrice' ? 1 : 0.25, fontSize: '0.75rem' }}>
+                      {sortBy === 'avgPrice' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {salesData.length > 0 ? (
                   salesData.map((item, idx) => (
                     <tr key={idx}>
-                      <td className="sku-cell">{item.sku}</td>
+                      <td className="sku-cell center-col">{item.sku}</td>
                       <td className="name-cell">{item.name}</td>
                       <td>{item.category}</td>
-                      <td style={{ color: '#cbd5e1' }}>{item.netContent} {item.unit}</td>
+                      <td>{item.brand}</td>
+                      <td className="center-col" style={{ color: '#cbd5e1' }}>{item.netContent} {item.unit}</td>
                       <td className="number-col">{item.units.toLocaleString('es-AR')}</td>
                       <td className="number-col">{formatCurrency(item.revenue)}</td>
                       <td className="number-col font-bold" style={{ color: '#38bdf8' }}>
@@ -236,7 +455,7 @@ const SalesView = ({ formatCurrency }) => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="no-data-cell">No se encontraron productos para los filtros seleccionados</td>
+                    <td colSpan="8" className="no-data-cell">No se encontraron productos para los filtros seleccionados</td>
                   </tr>
                 )}
               </tbody>
