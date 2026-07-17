@@ -90,11 +90,6 @@ const Dashboard = () => {
         
         const active = modelsRes.find(m => m.activo || m.active);
         setActiveModel(active);
-        
-        const saved = localStorage.getItem('product_thresholds');
-        if (saved) {
-          setSafetyStocks(JSON.parse(saved));
-        }
       } catch (error) {
         console.error("Error al cargar datos del dashboard:", error);
       } finally {
@@ -102,6 +97,13 @@ const Dashboard = () => {
       }
     };
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('product_thresholds');
+    if (saved) {
+      setSafetyStocks(JSON.parse(saved));
+    }
   }, [activeTab]);
 
   const handleLogout = () => {
