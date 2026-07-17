@@ -241,7 +241,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={processedSalesData} margin={{ top: 15, right: 15, left: -10, bottom: 5 }}>
+              <AreaChart data={processedSalesData} margin={{ top: 15, right: 15, left: 10, bottom: 5 }}>
                 <defs>
                   <linearGradient id="colorHistorical" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.25}/>
@@ -269,6 +269,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
                   tickFormatter={(value) => `${value/1000}k un.`}
                   domain={['auto', 'auto']}
                   padding={{ top: 15, bottom: 15 }}
+                  width={65}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={<CustomTooltipCursor />} />
                 

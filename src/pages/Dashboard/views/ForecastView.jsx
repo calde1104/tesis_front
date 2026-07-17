@@ -593,7 +593,7 @@ const ForecastView = ({ formatCurrency }) => {
         </div>
       </div>
 
-      <div className="card" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '1.5rem', padding: '1.25rem', height: '580px', marginBottom: '1.25rem' }}>
+      <div className="card interactive-card" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '1.5rem', padding: '1.25rem', height: '580px', marginBottom: '1.25rem' }}>
         
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1.5rem', overflow: 'hidden' }}>
           <div style={{ marginBottom: '0.85rem' }}>
@@ -714,7 +714,7 @@ const ForecastView = ({ formatCurrency }) => {
           
           <div className="chart-container" style={{ flex: 1, marginTop: '1rem', minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={combinedData} margin={{ top: 15, right: 15, left: -10, bottom: 5 }}>
+              <AreaChart data={combinedData} margin={{ top: 15, right: 15, left: 10, bottom: 5 }}>
                 <defs>
                   <linearGradient id="colorHistorical" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.25}/>
@@ -746,6 +746,7 @@ const ForecastView = ({ formatCurrency }) => {
                   tickFormatter={(value) => `${value/1000}k un.`}
                   domain={['auto', 'auto']}
                   padding={{ top: 15, bottom: 15 }}
+                  width={65}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={<CustomTooltipCursor />} />
                 
@@ -1024,7 +1025,7 @@ const ForecastView = ({ formatCurrency }) => {
 
       <div className="forecast-bottom-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
         
-        <div className="card feature-importance-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div className="card feature-importance-card interactive-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <h3>Factores del Modelo Predictivo (Feature Importance)</h3>
           <p className="subtitle">Muestra las variables de negocio que tienen mayor impacto en las estimaciones del modelo de IA</p>
           <div className="feature-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
@@ -1055,7 +1056,7 @@ const ForecastView = ({ formatCurrency }) => {
           </div>
         </div>
 
-        <div className="card model-info-card technical-info-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div className="card model-info-card technical-info-card interactive-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="simulator-header">
             <Sparkles size={20} className="simulator-sparkle-icon" />
             <h3>Detalles del Modelo Activo</h3>

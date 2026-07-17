@@ -2307,3 +2307,10 @@ select {
   color-scheme: dark;
 }
 
+/* Evitar que las tarjetas interactivas se desplacen verticalmente en hover */
+.filters-card:hover,
+.table-card:hover,
+.interactive-card:hover {
+  transform: none !important;
+}
+
