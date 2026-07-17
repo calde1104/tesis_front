@@ -24,6 +24,112 @@ const categoryBrands = {
   'Limpiadores Multiuso': ['Otros']
 };
 
+// Componente selector personalizado para evitar barras de desplazamiento estándar
+const CustomSelect = ({ label, value, onChange, options, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClose = () => setIsOpen(false);
+    if (isOpen) {
+      window.addEventListener('click', handleClose);
+    }
+    return () => window.removeEventListener('click', handleClose);
+  }, [isOpen]);
+
+  const selectedOptionLabel = options.find(opt => opt.value === value)?.label || placeholder;
+
+  return (
+    <div className="filter-group" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+      <label>{label}</label>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          background: 'rgba(15, 23, 42, 0.6)',
+          border: `1px solid ${isOpen ? '#0ea5e9' : 'rgba(255, 255, 255, 0.1)'}`,
+          borderRadius: '8px',
+          color: '#f8fafc',
+          padding: '0.6rem 0.8rem',
+          fontSize: '0.9rem',
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          transition: 'all 0.2s ease',
+          userSelect: 'none',
+          boxShadow: isOpen ? '0 0 12px rgba(14, 165, 233, 0.45)' : 'none'
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedOptionLabel}</span>
+        <span style={{ 
+          fontSize: '0.65rem', 
+          color: '#64748b', 
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s ease'
+        }}>
+          ▼
+        </span>
+      </div>
+
+      {isOpen && (
+        <div 
+          className="custom-scrollbar"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: '0.35rem',
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            maxHeight: '220px',
+            overflowY: 'auto',
+            zIndex: 100,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          {options.map((opt) => (
+            <div
+              key={opt.value}
+              onClick={() => {
+                onChange({ target: { value: opt.value } });
+                setIsOpen(false);
+              }}
+              style={{
+                padding: '0.55rem 0.8rem',
+                fontSize: '0.88rem',
+                color: value === opt.value ? '#38bdf8' : '#cbd5e1',
+                background: value === opt.value ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                userSelect: 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                if (value !== opt.value) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.color = '#f8fafc';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (value !== opt.value) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#cbd5e1';
+                }
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SalesView = ({ formatCurrency }) => {
   const [filterOptions, setFilterOptions] = useState(null);
   const [department, setDepartment] = useState('');
@@ -282,39 +388,39 @@ const SalesView = ({ formatCurrency }) => {
             />
           </div>
 
-          <div className="filter-group">
-            <label>Departamento</label>
-            <select value={department} onChange={handleDepartmentChange}>
-              <option value="">Todos los Departamentos</option>
-              {filterOptions?.departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label="Departamento"
+            value={department}
+            onChange={handleDepartmentChange}
+            placeholder="Todos los Departamentos"
+            options={[
+              { value: '', label: 'Todos los Departamentos' },
+              ...(filterOptions?.departments.map(dept => ({ value: dept, label: dept })) || [])
+            ]}
+          />
 
-          <div className="filter-group">
-            <label>Categoría</label>
-            <select 
-              value={category} 
-              onChange={handleCategoryChange}
-            >
-              <option value="">Todas las Categorías</option>
-              {department 
-                ? filterOptions?.categories[department]?.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))
-                : filterOptions && Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))
-              }
-            </select>
-          </div>
+          <CustomSelect
+            label="Categoría"
+            value={category}
+            onChange={handleCategoryChange}
+            placeholder="Todas las Categorías"
+            options={[
+              { value: '', label: 'Todas las Categorías' },
+              ...(department 
+                ? (filterOptions?.categories[department]?.map(cat => ({ value: cat, label: cat })) || [])
+                : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => ({ value: cat, label: cat })) : [])
+              )
+            ]}
+          />
 
-          <div className="filter-group">
-            <label>Marca</label>
-            <select value={brand} onChange={handleBrandChange}>
-              <option value="">Todas las Marcas</option>
-              {filterOptions?.brands
+          <CustomSelect
+            label="Marca"
+            value={brand}
+            onChange={handleBrandChange}
+            placeholder="Todas las Marcas"
+            options={[
+              { value: '', label: 'Todas las Marcas' },
+              ...(filterOptions?.brands
                 .filter(b => {
                   if (category) {
                     const allowedBrands = categoryBrands[category] || [];
@@ -326,12 +432,10 @@ const SalesView = ({ formatCurrency }) => {
                   }
                   return true;
                 })
-                .map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))
-              }
-            </select>
-          </div>
+                .map(b => ({ value: b, label: b })) || []
+              )
+            ]}
+          />
         </div>
       </div>
 

@@ -34,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
             <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name}:</span>
             <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
-              {typeof pld.value === 'number' ? `$${pld.value.toLocaleString('es-AR')}` : pld.value}
+              {typeof pld.value === 'number' ? `${pld.value.toLocaleString('es-AR')} un.` : pld.value}
             </span>
           </div>
         ))}
@@ -266,7 +266,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
                   tick={{fill: '#64748b', fontSize: 11}} 
                   tickLine={false} 
                   axisLine={false} 
-                  tickFormatter={(value) => `$${value/1000}k`}
+                  tickFormatter={(value) => `${value/1000}k un.`}
                   domain={['auto', 'auto']}
                   padding={{ top: 15, bottom: 15 }}
                 />
@@ -363,7 +363,6 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
                       <Cell key={`cell-${index}`} fill={entry.fill} style={{ filter: `drop-shadow(0px 4px 10px ${entry.fill}33)` }} />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
                 </RechartsPie>
               </ResponsiveContainer>
               

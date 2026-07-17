@@ -1,20 +1,27 @@
+import { getSalesFilters } from './sales';
 
 export const getForecast = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve([
-        { month: 'Ene', historical: 400000, forecast: null, lower: null, upper: null },
-        { month: 'Feb', historical: 450000, forecast: null, lower: null, upper: null },
-        { month: 'Mar', historical: 420000, forecast: null, lower: null, upper: null },
-        { month: 'Abr', historical: 480000, forecast: null, lower: null, upper: null },
-        { month: 'May', historical: 510000, forecast: null, lower: null, upper: null },
-        { month: 'Jun', historical: 682500, forecast: null, lower: null, upper: null },
-        { month: 'Jul', historical: null, forecast: 700000, lower: 660000, upper: 740000 },
-        { month: 'Ago', historical: null, forecast: 750000, lower: 700000, upper: 800000 },
-        { month: 'Sep', historical: null, forecast: 820000, lower: 760000, upper: 880000 },
-        { month: 'Oct', historical: null, forecast: 800000, lower: 730000, upper: 870000 },
-        { month: 'Nov', historical: null, forecast: 850000, lower: 780000, upper: 920000 },
-        { month: 'Dic', historical: null, forecast: 980000, lower: 890000, upper: 1070000 }
+        { month: 'Ene 26', historical: 400000, forecast: null },
+        { month: 'Feb 26', historical: 450000, forecast: null },
+        { month: 'Mar 26', historical: 420000, forecast: null },
+        { month: 'Abr 26', historical: 480000, forecast: null },
+        { month: 'May 26', historical: 510000, forecast: null },
+        { month: 'Jun 26', historical: 682500, forecast: null },
+        { month: 'Jul 26', historical: null, forecast: 700000 },
+        { month: 'Ago 26', historical: null, forecast: 750000 },
+        { month: 'Sep 26', historical: null, forecast: 820000 },
+        { month: 'Oct 26', historical: null, forecast: 800000 },
+        { month: 'Nov 26', historical: null, forecast: 850000 },
+        { month: 'Dic 26', historical: null, forecast: 980000 },
+        { month: 'Ene 27', historical: null, forecast: 920000 },
+        { month: 'Feb 27', historical: null, forecast: 880000 },
+        { month: 'Mar 27', historical: null, forecast: 910000 },
+        { month: 'Abr 27', historical: null, forecast: 950000 },
+        { month: 'May 27', historical: null, forecast: 990000 },
+        { month: 'Jun 27', historical: null, forecast: 1050000 }
       ]);
     }, 500);
   });
@@ -61,19 +68,26 @@ export const checkSimulationStatus = async (taskId) => {
         const rawParams = sessionStorage.getItem(`sim_params_${taskId}`);
         const params = rawParams ? JSON.parse(rawParams) : {};
         
-        // Calcular un factor basado en los parámetros para cambiar la proyección
-        // Ej: priceChange (deslizador -10 a 10%), marketingSpend (deslizador -20 a 50%)
-        const priceFactor = 1 - (parseFloat(params.priceChange || 0) * 0.015); // mayor precio, baja volumen ligeramente
-        const marketingFactor = 1 + (parseFloat(params.marketingChange || 0) * 0.008); // más marketing, sube volumen
-        const finalFactor = priceFactor * marketingFactor;
+        const priceFactor = 1 - (parseFloat(params.priceChange || 0) * 0.012);
+        const marketingFactor = 1 + (parseFloat(params.marketingChange || 0) * 0.008);
+        const exchangeFactor = 1 - (parseFloat(params.exchangeRateChange || 0) * 0.006);
+        const inflationFactor = 1 - (parseFloat(params.inflationChange || 0) * 0.004);
+        
+        const finalFactor = priceFactor * marketingFactor * exchangeFactor * inflationFactor;
 
         results = [
-          { month: 'Jul', simulated: Math.round(700000 * finalFactor), original: 700000 },
-          { month: 'Ago', simulated: Math.round(750000 * finalFactor), original: 750000 },
-          { month: 'Sep', simulated: Math.round(820000 * finalFactor), original: 820000 },
-          { month: 'Oct', simulated: Math.round(800000 * finalFactor), original: 800000 },
-          { month: 'Nov', simulated: Math.round(850000 * finalFactor), original: 850000 },
-          { month: 'Dic', simulated: Math.round(980000 * finalFactor), original: 980000 }
+          { month: 'Jul 26', simulated: Math.round(700000 * finalFactor), original: 700000 },
+          { month: 'Ago 26', simulated: Math.round(750000 * finalFactor), original: 750000 },
+          { month: 'Sep 26', simulated: Math.round(820000 * finalFactor), original: 820000 },
+          { month: 'Oct 26', simulated: Math.round(800000 * finalFactor), original: 800000 },
+          { month: 'Nov 26', simulated: Math.round(850000 * finalFactor), original: 850000 },
+          { month: 'Dic 26', simulated: Math.round(980000 * finalFactor), original: 980000 },
+          { month: 'Ene 27', simulated: Math.round(920000 * finalFactor), original: 920000 },
+          { month: 'Feb 27', simulated: Math.round(880000 * finalFactor), original: 880000 },
+          { month: 'Mar 27', simulated: Math.round(910000 * finalFactor), original: 910000 },
+          { month: 'Abr 27', simulated: Math.round(950000 * finalFactor), original: 950000 },
+          { month: 'May 27', simulated: Math.round(990000 * finalFactor), original: 990000 },
+          { month: 'Jun 27', simulated: Math.round(1050000 * finalFactor), original: 1050000 }
         ];
       }
 

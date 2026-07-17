@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Play, Loader2, Sparkles, AlertCircle, Coins, Megaphone, X } from 'lucide-react';
+import { Play, Loader2, Sparkles, AlertCircle, Coins, Megaphone, X, DollarSign, TrendingUp } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, LabelList
+  BarChart, Bar, Cell, LabelList, ReferenceLine, ReferenceDot
 } from 'recharts';
 import { getForecast, getFeatureImportance, triggerSimulation, checkSimulationStatus } from '../../../services/forecast';
 import { getMLModels } from '../../../services/settings';
@@ -45,6 +45,216 @@ const allProducts = [
   { sku: 'SKU-012', name: 'Limpiador de Pisos 1L', category: 'Limpiadores Multiuso', brand: 'Otros', department: 'Limpieza', scale: 0.09 }
 ];
 
+// Componente selector personalizado para evitar barras de desplazamiento estándar de Windows
+const CustomSelect = ({ label, value, onChange, options, placeholder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClose = () => setIsOpen(false);
+    if (isOpen) {
+      window.addEventListener('click', handleClose);
+    }
+    return () => window.removeEventListener('click', handleClose);
+  }, [isOpen]);
+
+  const selectedOptionLabel = options.find(opt => opt.value === value)?.label || placeholder;
+
+  return (
+    <div className="filter-group" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+      <label>{label}</label>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          background: 'rgba(15, 23, 42, 0.6)',
+          border: `1px solid ${isOpen ? '#0ea5e9' : 'rgba(255, 255, 255, 0.1)'}`,
+          borderRadius: '8px',
+          color: '#f8fafc',
+          padding: '0.6rem 0.8rem',
+          fontSize: '0.9rem',
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          transition: 'all 0.2s ease',
+          userSelect: 'none',
+          boxShadow: isOpen ? '0 0 12px rgba(14, 165, 233, 0.45)' : 'none'
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedOptionLabel}</span>
+        <span style={{ 
+          fontSize: '0.65rem', 
+          color: '#64748b', 
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s ease'
+        }}>
+          ▼
+        </span>
+      </div>
+
+      {isOpen && (
+        <div 
+          className="custom-scrollbar"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: '0.35rem',
+            background: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '8px',
+            maxHeight: '220px',
+            overflowY: 'auto',
+            zIndex: 100,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          {options.map((opt) => (
+            <div
+              key={opt.value}
+              onClick={() => {
+                onChange({ target: { value: opt.value } });
+                setIsOpen(false);
+              }}
+              style={{
+                padding: '0.55rem 0.8rem',
+                fontSize: '0.88rem',
+                color: value === opt.value ? '#38bdf8' : '#cbd5e1',
+                background: value === opt.value ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                userSelect: 'none',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                if (value !== opt.value) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.color = '#f8fafc';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (value !== opt.value) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#cbd5e1';
+                }
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const filteredPayload = payload.filter((pld) => {
+      if (pld.dataKey === 'forecast' && pld.payload.historical !== null && pld.payload.historical !== undefined) {
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredPayload.length === 0) return null;
+
+    return (
+      <div className="custom-chart-tooltip" style={{
+        background: 'rgba(11, 15, 25, 0.85)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(14, 165, 233, 0.25)',
+        padding: '0.75rem 1rem',
+        borderRadius: '12px',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(14, 165, 233, 0.1)',
+        textAlign: 'left'
+      }}>
+        <p style={{ margin: 0, fontWeight: '700', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
+        {filteredPayload.map((pld) => (
+          <div key={pld.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
+            <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name === 'historical' ? 'Ventas Históricas' : pld.name === 'forecast' ? 'Demanda Proyectada' : pld.name === 'simulated' ? 'Simulado' : pld.name}:</span>
+            <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
+              {typeof pld.value === 'number' ? `${pld.value.toLocaleString('es-AR')} un.` : pld.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomTooltipCursor = (props) => {
+  let x = props.x;
+  let y = props.y;
+  let height = props.height || 0;
+
+  if (x === undefined && props.points && props.points.length > 0) {
+    x = props.points[0].x;
+  }
+  if (y === undefined && props.points && props.points.length > 0) {
+    y = props.points[0].y;
+  }
+  if (height === 0 && props.points && props.points.length > 1) {
+    height = props.points[1].y - props.points[0].y;
+  }
+
+  if (x === undefined) x = props.x1;
+  if (y === undefined) y = props.y1;
+  if (height === 0 && props.y2 !== undefined && props.y1 !== undefined) {
+    height = props.y2 - props.y1;
+  }
+
+  if (x === undefined || y === undefined) return null;
+
+  return (
+    <line 
+      x1={x} 
+      y1={y + 25} 
+      x2={x} 
+      y2={y + height} 
+      stroke="rgba(255, 255, 255, 0.15)" 
+      strokeWidth={1}
+    />
+  );
+};
+
+const CustomReferenceLabel = (props) => {
+  const xVal = props.x !== undefined && typeof props.x === 'number' ? props.x : (props.viewBox ? props.viewBox.x : 0);
+  const yVal = props.y !== undefined && typeof props.y === 'number' ? props.y : (props.viewBox ? props.viewBox.y : 0);
+  
+  if (!xVal) return null;
+  
+  return (
+    <g>
+      <rect 
+        x={xVal - 22} 
+        y={yVal + 5} 
+        width={44} 
+        height={18} 
+        rx={9} 
+        fill="#0ea5e9" 
+        style={{ filter: 'drop-shadow(0px 2px 4px rgba(14, 165, 233, 0.4))' }}
+      />
+      <text 
+        x={xVal} 
+        y={yVal + 17} 
+        fill="#040d21" 
+        fontSize="9" 
+        fontWeight="800" 
+        textAnchor="middle"
+        letterSpacing="0.05em"
+      >
+        HOY
+      </text>
+    </g>
+  );
+};
+
 const ForecastView = ({ formatCurrency }) => {
   const [forecastData, setForecastData] = useState([]);
   const [featureImportance, setFeatureImportance] = useState([]);
@@ -58,15 +268,10 @@ const ForecastView = ({ formatCurrency }) => {
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('total');
 
-  const [safetyStocks, setSafetyStocks] = useState({
-    'SKU-001': 12000,
-    'SKU-002': 25000,
-    'SKU-005': 40000,
-    'SKU-007': 30000
-  });
-
   const [priceChange, setPriceChange] = useState(0);
   const [marketingChange, setMarketingChange] = useState(0);
+  const [exchangeRateChange, setExchangeRateChange] = useState(0);
+  const [inflationChange, setInflationChange] = useState(0);
   
   const [simTaskId, setSimTaskId] = useState(null);
   const [simProgress, setSimProgress] = useState(0);
@@ -89,23 +294,24 @@ const ForecastView = ({ formatCurrency }) => {
       const active = modelsRes.find(m => m.activo || m.active);
       setActiveModel(active);
       
-      const saved = localStorage.getItem('product_thresholds');
-      if (saved) {
-        setSafetyStocks(JSON.parse(saved));
-      }
-      
       setLoading(false);
     };
     fetchData();
   }, []);
 
   const handleSimulate = async () => {
+    if (selectedProduct === 'total') return; // Restringir simulación en el consolidado
     setSimResults(null);
     setSimMetrics(null);
     setSimProgress(0);
     setSimStatus('RUNNING');
     
-    const { taskId } = await triggerSimulation({ priceChange, marketingChange });
+    const { taskId } = await triggerSimulation({ 
+      priceChange, 
+      marketingChange,
+      exchangeRateChange,
+      inflationChange
+    });
     setSimTaskId(taskId);
   };
 
@@ -204,18 +410,15 @@ const ForecastView = ({ formatCurrency }) => {
 
     const scaled = forecastData.map(item => ({
       ...item,
+      month: item.month,
       historical: item.historical ? Math.round(item.historical * scale) : null,
       forecast: item.forecast ? Math.round(item.forecast * scale) : null,
-      lower: item.lower ? Math.round(item.lower * scale) : null,
-      upper: item.upper ? Math.round(item.upper * scale) : null,
     }));
 
-    const junIndex = scaled.findIndex(item => item.month === 'Jun');
-    const julIndex = scaled.findIndex(item => item.month === 'Jul');
+    const junIndex = scaled.findIndex(item => item.month === 'Jun 26');
+    const julIndex = scaled.findIndex(item => item.month === 'Jul 26');
     if (junIndex !== -1 && julIndex !== -1) {
       scaled[junIndex].forecast = scaled[junIndex].historical;
-      scaled[junIndex].lower = scaled[junIndex].historical;
-      scaled[junIndex].upper = scaled[junIndex].historical;
     }
 
     return scaled;
@@ -233,7 +436,7 @@ const ForecastView = ({ formatCurrency }) => {
       };
     });
 
-    const junIndex = combined.findIndex(item => item.month === 'Jun');
+    const junIndex = combined.findIndex(item => item.month === 'Jun 26');
     if (junIndex !== -1) {
       combined[junIndex].simulated = combined[junIndex].historical;
     }
@@ -241,36 +444,35 @@ const ForecastView = ({ formatCurrency }) => {
     return combined;
   };
 
-  const getStockoutAlert = () => {
-    if (selectedProduct === 'total') return null;
-    const threshold = safetyStocks[selectedProduct] || 0;
-    if (threshold === 0) return null;
-    
-    const scaled = getScaledData();
-    const offendingMonth = scaled.find(item => item.forecast && item.forecast > threshold);
-    if (offendingMonth) {
-      return {
-        month: offendingMonth.month,
-        forecast: offendingMonth.forecast,
-        threshold
-      };
-    }
-    return null;
+  const transitionPoint = forecastData.find((item, idx) => 
+    item.historical !== null && 
+    (item.forecast === null || item.forecast === undefined) && 
+    idx < forecastData.length - 1 && 
+    forecastData[idx + 1].forecast !== null
+  );
+  const transitionMonth = transitionPoint ? transitionPoint.month : 'Jun 26';
+  
+  const getTransitionValue = () => {
+    if (!transitionPoint) return null;
+    const activeProd = allProducts.find(p => p.sku === selectedProduct);
+    const scale = activeProd ? activeProd.scale : 1.0;
+    return Math.round(transitionPoint.historical * scale);
   };
-
-  const stockoutAlert = getStockoutAlert();
+  const transitionValue = getTransitionValue();
 
   const presetStyle = (isActive) => ({
     background: isActive ? 'rgba(14, 165, 233, 0.18)' : 'rgba(255, 255, 255, 0.03)',
     border: `1px solid ${isActive ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)'}`,
     color: isActive ? '#38bdf8' : '#94a3b8',
-    padding: '0.35rem 0.7rem',
+    padding: '0.35rem 0.1rem',
     borderRadius: '6px',
-    fontSize: '0.75rem',
+    fontSize: '0.70rem',
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    userSelect: 'none'
+    userSelect: 'none',
+    flex: 1,
+    textAlign: 'center'
   });
 
   if (loading) {
@@ -302,26 +504,6 @@ const ForecastView = ({ formatCurrency }) => {
           <AlertCircle size={18} />
           <span>
             <strong>Advertencia de MLOps:</strong> Se han detectado modificaciones en los datos históricos posteriores al último entrenamiento del modelo activo (<strong>{activeModel.version}</strong>). Las proyecciones pueden presentar desviaciones hasta el próximo ciclo programado de reentrenamiento.
-          </span>
-        </div>
-      )}
-
-      {stockoutAlert && (
-        <div className="warning-banner" style={{
-          background: 'rgba(239, 68, 68, 0.08)',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          borderRadius: '8px',
-          padding: '0.75rem 1rem',
-          color: '#f87171',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          marginBottom: '1.25rem',
-          fontSize: '0.85rem'
-        }}>
-          <AlertCircle size={18} style={{ color: '#f87171' }} />
-          <span>
-            <strong>Alerta de Abastecimiento:</strong> El forecast de <strong>{stockoutAlert.month}</strong> ({stockoutAlert.forecast.toLocaleString('es-AR')} un.) supera el stock de seguridad ({stockoutAlert.threshold.toLocaleString('es-AR')} un.). Se sugiere coordinar una orden de compra o reabastecimiento.
           </span>
         </div>
       )}
@@ -360,36 +542,39 @@ const ForecastView = ({ formatCurrency }) => {
           )}
         </div>
         <div className="filters-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          <div className="filter-group">
-            <label>Departamento</label>
-            <select value={department} onChange={handleDepartmentChange}>
-              <option value="">Todos los Departamentos</option>
-              {filterOptions?.departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            label="Departamento"
+            value={department}
+            onChange={handleDepartmentChange}
+            placeholder="Todos los Departamentos"
+            options={[
+              { value: '', label: 'Todos los Departamentos' },
+              ...(filterOptions?.departments.map(dept => ({ value: dept, label: dept })) || [])
+            ]}
+          />
 
-          <div className="filter-group">
-            <label>Categoría</label>
-            <select value={category} onChange={handleCategoryChange}>
-              <option value="">Todas las Categorías</option>
-              {department 
-                ? filterOptions?.categories[department]?.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))
-                : filterOptions && Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))
-              }
-            </select>
-          </div>
+          <CustomSelect
+            label="Categoría"
+            value={category}
+            onChange={handleCategoryChange}
+            placeholder="Todas las Categorías"
+            options={[
+              { value: '', label: 'Todas las Categorías' },
+              ...(department 
+                ? (filterOptions?.categories[department]?.map(cat => ({ value: cat, label: cat })) || [])
+                : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => ({ value: cat, label: cat })) : [])
+              )
+            ]}
+          />
 
-          <div className="filter-group">
-            <label>Marca</label>
-            <select value={brand} onChange={handleBrandChange}>
-              <option value="">Todas las Marcas</option>
-              {filterOptions?.brands
+          <CustomSelect
+            label="Marca"
+            value={brand}
+            onChange={handleBrandChange}
+            placeholder="Todas las Marcas"
+            options={[
+              { value: '', label: 'Todas las Marcas' },
+              ...(filterOptions?.brands
                 .filter(b => {
                   if (category) {
                     const allowedBrands = categoryBrands[category] || [];
@@ -401,18 +586,16 @@ const ForecastView = ({ formatCurrency }) => {
                   }
                   return true;
                 })
-                .map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))
-              }
-            </select>
-          </div>
+                .map(b => ({ value: b, label: b })) || []
+              )
+            ]}
+          />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '1.25rem' }}>
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '1.5rem', padding: '1.25rem', height: '580px', marginBottom: '1.25rem' }}>
         
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '420px', padding: '1rem', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1.5rem', overflow: 'hidden' }}>
           <div style={{ marginBottom: '0.85rem' }}>
             <label style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Buscar SKU o Nombre
@@ -439,13 +622,13 @@ const ForecastView = ({ formatCurrency }) => {
             />
           </div>
           
-          <div style={{ 
+          <div className="custom-scrollbar" style={{ 
             flex: 1, 
             overflowY: 'auto', 
             display: 'flex', 
             flexDirection: 'column', 
             gap: '0.35rem',
-            paddingRight: '0.25rem'
+            paddingRight: '0.5rem'
           }}>
             <div 
               onClick={() => { setSelectedProduct('total'); setSimResults(null); }}
@@ -512,10 +695,10 @@ const ForecastView = ({ formatCurrency }) => {
           </div>
         </div>
 
-        <div className="card chart-card forecast-chart-card" style={{ height: '420px', margin: 0 }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: 0, border: 'none', background: 'none' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <h3 style={{ fontSize: '1.15rem' }}>
+              <h3 style={{ fontSize: '1.15rem', color: '#f8fafc', fontWeight: '600' }}>
                 {selectedProduct === 'total' 
                   ? 'Pronóstico de Demanda - Consolidado Total General' 
                   : `Pronóstico de Demanda - SKU: ${selectedProduct} (${allProducts.find(p => p.sku === selectedProduct)?.name})`
@@ -524,239 +707,382 @@ const ForecastView = ({ formatCurrency }) => {
             </div>
             <div className="legend-pills">
               <span className="legend-pill historical">Histórico</span>
-              <span className="legend-pill forecast">Forecast</span>
-              <span className="legend-pill confidence">Confianza (±10%)</span>
+              <span className="legend-pill forecast">Forecast (12 Meses)</span>
               {simResults && <span className="legend-pill simulated">Simulado</span>}
             </div>
           </div>
           
-          <div className="chart-container" style={{ height: '340px', marginTop: '0.5rem' }}>
+          <div className="chart-container" style={{ flex: 1, marginTop: '1rem', minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={combinedData} margin={{ top: 15, right: 15, left: 5, bottom: 5 }}>
+              <AreaChart data={combinedData} margin={{ top: 15, right: 15, left: -10, bottom: 5 }}>
                 <defs>
-                  <linearGradient id="forecastHist" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.25}/>
-                    <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+                  <linearGradient id="colorHistorical" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorSimulated" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="month" stroke="#64748b" tick={{fill: '#94a3b8'}} tickLine={false} />
-                <YAxis stroke="#64748b" tick={{fill: '#94a3b8'}} tickLine={false} tickFormatter={(value) => `$${value/1000}k`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                  itemStyle={{ color: '#e2e8f0' }}
+                <XAxis 
+                  dataKey="month" 
+                  stroke="#64748b" 
+                  tick={{fill: '#64748b', fontSize: 11}} 
+                  tickLine={false} 
+                  axisLine={false}
+                  padding={{ left: 15, right: 15 }}
                 />
+                <YAxis 
+                  stroke="#64748b" 
+                  tick={{fill: '#64748b', fontSize: 11}} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tickFormatter={(value) => `${value/1000}k un.`}
+                  domain={['auto', 'auto']}
+                  padding={{ top: 15, bottom: 15 }}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={<CustomTooltipCursor />} />
                 
-                <Area type="monotone" dataKey="upper" stroke="none" fill="rgba(129, 140, 248, 0.06)" name="Límite Superior" />
-                <Area type="monotone" dataKey="lower" stroke="none" fill="none" name="Límite Inferior" />
+                {transitionMonth && (
+                  <ReferenceLine 
+                    x={transitionMonth} 
+                    stroke="rgba(14, 165, 233, 0.4)" 
+                    strokeWidth={1.5} 
+                    strokeDasharray="4 4"
+                    isFront={false}
+                  />
+                )}
                 
-                <Area type="monotone" dataKey="historical" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#forecastHist)" name="Histórico" />
+                {transitionMonth && (
+                  <ReferenceLine 
+                    x={transitionMonth} 
+                    stroke="none"
+                    label={<CustomReferenceLabel />}
+                    isFront={true}
+                  />
+                )}
                 
-                <Area type="monotone" dataKey="forecast" stroke="#818cf8" strokeWidth={3} strokeDasharray="5 5" fill="none" name="Forecast Oficial" />
+                {transitionMonth && transitionValue !== null && transitionValue !== undefined && (
+                  <ReferenceDot 
+                    x={transitionMonth} 
+                    y={transitionValue} 
+                    r={5}
+                    fill="#0ea5e9"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    style={{ filter: 'drop-shadow(0px 0px 8px rgba(14, 165, 233, 0.9))' }}
+                    isFront={true}
+                  />
+                )}
                 
-                <Area type="monotone" dataKey="upper" stroke="rgba(129, 140, 248, 0.2)" strokeWidth={1} strokeDasharray="2 2" fill="none" name="Intervalo Confianza" />
-                <Area type="monotone" dataKey="lower" stroke="rgba(129, 140, 248, 0.2)" strokeWidth={1} strokeDasharray="2 2" fill="none" />
+                <Area type="monotone" dataKey="historical" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorHistorical)" name="historical" activeDot={{ r: 6, stroke: '#0ea5e9', strokeWidth: 2, fill: '#040d21' }} connectNulls={true} />
+                
+                <Area 
+                  type="monotone" 
+                  dataKey="forecast" 
+                  stroke="#818cf8" 
+                  strokeWidth={3} 
+                  strokeDasharray="5 5" 
+                  fillOpacity={1} 
+                  fill="url(#colorForecast)" 
+                  name="forecast" 
+                  connectNulls={true} 
+                  activeDot={(props) => {
+                    if (props && props.payload && props.payload.month === transitionMonth) {
+                      return null;
+                    }
+                    return (
+                      <circle 
+                        cx={props.cx} 
+                        cy={props.cy} 
+                        r={6} 
+                        fill="#040d21" 
+                        stroke="#818cf8" 
+                        strokeWidth={2} 
+                      />
+                    );
+                  }}
+                />
 
                 {simResults && (
-                  <Area type="monotone" dataKey="simulated" stroke="#34d399" strokeWidth={3.5} fill="none" name="Simulado" />
+                  <Area 
+                    type="monotone" 
+                    dataKey="simulated" 
+                    stroke="#34d399" 
+                    strokeWidth={3} 
+                    fillOpacity={1} 
+                    fill="url(#colorSimulated)" 
+                    name="Simulado" 
+                    connectNulls={true} 
+                  />
                 )}
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
 
-      <div className="forecast-bottom-grid">
-        
-        <div className="card simulator-card">
-          <div className="simulator-header">
-            <Sparkles size={24} className="simulator-sparkle-icon" />
-            <h3>Simulador de Escenarios</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderLeft: '1px solid rgba(255, 255, 255, 0.08)', paddingLeft: '1.5rem', overflow: 'hidden' }}>
+          <div className="simulator-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <Sparkles size={18} className="simulator-sparkle-icon" />
+            <h3 style={{ fontSize: '1rem', color: '#f8fafc', fontWeight: '600' }}>Simulador</h3>
           </div>
-          <p className="simulator-desc">Modificá los parámetros operativos para simular el impacto en la demanda en tiempo real.</p>
           
-          <div style={{ marginTop: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>Escenarios Predefinidos</span>
-            <div className="preset-buttons" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              <button 
-                type="button"
-                onClick={() => { setPriceChange(0); setMarketingChange(0); }}
-                style={presetStyle(priceChange === 0 && marketingChange === 0)}
-              >
-                Base
-              </button>
-              <button 
-                type="button"
-                onClick={() => { setPriceChange(-5); setMarketingChange(30); }}
-                style={presetStyle(priceChange === -5 && marketingChange === 30)}
-              >
-                ⚡ Optimista
-              </button>
-              <button 
-                type="button"
-                onClick={() => { setPriceChange(5); setMarketingChange(10); }}
-                style={presetStyle(priceChange === 5 && marketingChange === 10)}
-              >
-                💰 Ajuste de Precio
-              </button>
-              <button 
-                type="button"
-                onClick={() => { setPriceChange(0); setMarketingChange(-15); }}
-                style={presetStyle(priceChange === 0 && marketingChange === -15)}
-              >
-                📉 Recorte
-              </button>
+          {selectedProduct === 'total' ? (
+            /* Disabled / Hint State when no specific SKU is selected */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              textAlign: 'center',
+              color: '#64748b',
+              padding: '1rem',
+              border: '1px dashed rgba(255, 255, 255, 0.08)',
+              borderRadius: '12px',
+              background: 'rgba(255, 255, 255, 0.01)',
+              marginTop: '0.75rem'
+            }}>
+              <Sparkles size={28} style={{ color: '#334155', marginBottom: '0.75rem' }} />
+              <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#94a3b8', lineHeight: '1.4' }}>
+                Seleccioná un SKU de la lista para simular
+              </p>
+              <p style={{ fontSize: '0.7rem', marginTop: '0.5rem', color: '#475569', lineHeight: '1.3' }}>
+                La simulación de elasticidades de precio y marketing requiere seleccionar un producto individual.
+              </p>
             </div>
-          </div>
+          ) : (
+            /* Active Simulator controls */
+            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.35rem', marginTop: '0.5rem' }}>
+              
+              <div>
+                <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '0.35rem' }}>Escenarios</span>
+                <div className="preset-buttons" style={{ display: 'flex', gap: '0.25rem', width: '100%', flexWrap: 'nowrap' }}>
+                  <button 
+                    type="button"
+                    onClick={() => { setPriceChange(0); setMarketingChange(0); setExchangeRateChange(0); setInflationChange(0); }}
+                    style={presetStyle(priceChange === 0 && marketingChange === 0 && exchangeRateChange === 0 && inflationChange === 0)}
+                  >
+                    Base
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setPriceChange(-5); setMarketingChange(30); setExchangeRateChange(-5); setInflationChange(2); }}
+                    style={presetStyle(priceChange === -5 && marketingChange === 30 && exchangeRateChange === -5 && inflationChange === 2)}
+                  >
+                    Optimista
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setPriceChange(5); setMarketingChange(10); setExchangeRateChange(2); setInflationChange(4); }}
+                    style={presetStyle(priceChange === 5 && marketingChange === 10 && exchangeRateChange === 2 && inflationChange === 4)}
+                  >
+                    Precio
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setPriceChange(0); setMarketingChange(-15); setExchangeRateChange(8); setInflationChange(8); }}
+                    style={presetStyle(priceChange === 0 && marketingChange === -15 && exchangeRateChange === 8 && inflationChange === 8)}
+                  >
+                    Recorte
+                  </button>
+                </div>
+              </div>
 
-          <div className="simulator-sliders">
-            <div className="slider-group">
-              <div className="slider-label-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Coins size={14} style={{ color: '#94a3b8' }} />
-                  <label>Variación de Precio Unitario</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className="slider-group">
+                  <div className="slider-label-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Coins size={13} style={{ color: '#94a3b8' }} />
+                      <label style={{ fontSize: '0.78rem' }}>Precio Unitario</label>
+                    </div>
+                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}`}>
+                      {priceChange > 0 ? `+${priceChange}` : priceChange}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="-10" 
+                    max="10" 
+                    value={priceChange} 
+                    onChange={(e) => setPriceChange(parseInt(e.target.value))}
+                    className="range-input"
+                    style={{ height: '4px' }}
+                  />
                 </div>
-                <span className={`slider-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}`}>
-                  {priceChange > 0 ? `+${priceChange}` : priceChange}%
-                </span>
-              </div>
-              <input 
-                type="range" 
-                min="-10" 
-                max="10" 
-                value={priceChange} 
-                onChange={(e) => setPriceChange(parseInt(e.target.value))}
-                className="range-input"
-              />
-              <span className="slider-help">Modificar el precio altera la elasticidad de demanda.</span>
-            </div>
 
-            <div className="slider-group">
-              <div className="slider-label-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Megaphone size={14} style={{ color: '#94a3b8' }} />
-                  <label>Presupuesto de Marketing</label>
+                <div className="slider-group">
+                  <div className="slider-label-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Megaphone size={13} style={{ color: '#94a3b8' }} />
+                      <label style={{ fontSize: '0.78rem' }}>Marketing</label>
+                    </div>
+                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${marketingChange > 0 ? 'positive' : marketingChange < 0 ? 'negative' : ''}`}>
+                      {marketingChange > 0 ? `+${marketingChange}` : marketingChange}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="-20" 
+                    max="50" 
+                    value={marketingChange} 
+                    onChange={(e) => setMarketingChange(parseInt(e.target.value))}
+                    className="range-input"
+                    style={{ height: '4px' }}
+                  />
                 </div>
-                <span className={`slider-value ${marketingChange > 0 ? 'positive' : marketingChange < 0 ? 'negative' : ''}`}>
-                  {marketingChange > 0 ? `+${marketingChange}` : marketingChange}%
-                </span>
-              </div>
-              <input 
-                type="range" 
-                min="-20" 
-                max="50" 
-                value={marketingChange} 
-                onChange={(e) => setMarketingChange(parseInt(e.target.value))}
-                className="range-input"
-              />
-              <span className="slider-help">Suma o resta exposición de marca y acciones promocionales.</span>
-            </div>
-          </div>
 
-          <div className="simulator-actions">
-            {simStatus === 'RUNNING' ? (
-              <div className="simulation-running-card">
-                <div className="running-label">
-                  <Loader2 size={16} className="spinner" />
-                  <span>Lanzando simulación ML ({simProgress}%)</span>
+                <div className="slider-group">
+                  <div className="slider-label-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <DollarSign size={13} style={{ color: '#94a3b8' }} />
+                      <label style={{ fontSize: '0.78rem' }}>Dólar (USD)</label>
+                    </div>
+                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${exchangeRateChange > 0 ? 'negative' : exchangeRateChange < 0 ? 'positive' : ''}`}>
+                      {exchangeRateChange > 0 ? `+${exchangeRateChange}` : exchangeRateChange}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="-10" 
+                    max="10" 
+                    value={exchangeRateChange} 
+                    onChange={(e) => setExchangeRateChange(parseInt(e.target.value))}
+                    className="range-input"
+                    style={{ height: '4px' }}
+                  />
                 </div>
-                <div className="progress-bar-mini">
-                  <div className="progress-fill-mini" style={{ width: `${simProgress}%` }}></div>
-                </div>
-              </div>
-            ) : (
-              <button className="btn-primary simulate-btn" onClick={handleSimulate}>
-                <Play size={16} /> Correr Simulación
-              </button>
-            )}
-          </div>
 
-          {simStatus === 'SUCCESS' && simResults && (
-            <div className="simulator-results-panel">
-              <h4>Resultados del Escenario</h4>
-              <div className="results-grid">
-                <div className="result-metric">
-                  <span className="result-label">Precisión R²</span>
-                  <span className="result-value">{(simMetrics.r2 * 100).toFixed(0)}%</span>
-                </div>
-                <div className="result-metric">
-                  <span className="result-label">MAPE Escenario</span>
-                  <span className="result-value green">{simMetrics.mapeSimulado}</span>
+                <div className="slider-group">
+                  <div className="slider-label-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <TrendingUp size={13} style={{ color: '#94a3b8' }} />
+                      <label style={{ fontSize: '0.78rem' }}>Inflación (IPC)</label>
+                    </div>
+                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${inflationChange > 0 ? 'negative' : inflationChange < 0 ? 'positive' : ''}`}>
+                      {inflationChange > 0 ? `+${inflationChange}` : inflationChange}%
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="-5" 
+                    max="15" 
+                    value={inflationChange} 
+                    onChange={(e) => setInflationChange(parseInt(e.target.value))}
+                    className="range-input"
+                    style={{ height: '4px' }}
+                  />
                 </div>
               </div>
-              <div className="alert-message">
-                <AlertCircle size={16} className="alert-icon" />
-                <span>El nuevo escenario ha sido mapeado en verde en el gráfico para su comparación.</span>
+
+              <div style={{ marginTop: '0.25rem' }}>
+                {simStatus === 'RUNNING' ? (
+                  <div className="simulation-running-card" style={{ padding: '0.4rem 0.75rem', borderRadius: '6px' }}>
+                    <div className="running-label" style={{ fontSize: '0.75rem' }}>
+                      <Loader2 size={13} className="spinner" />
+                      <span>Simulando ML ({simProgress}%)</span>
+                    </div>
+                    <div className="progress-bar-mini" style={{ height: '3px', marginTop: '0.25rem' }}>
+                      <div className="progress-fill-mini" style={{ width: `${simProgress}%` }}></div>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="btn-primary simulate-btn" onClick={handleSimulate} style={{ width: '100%', padding: '0.5rem', fontSize: '0.82rem', borderRadius: '6px' }}>
+                    <Play size={13} /> Correr Simulación
+                  </button>
+                )}
               </div>
-              <button className="btn-secondary clear-sim-btn" onClick={() => setSimResults(null)}>
-                Restaurar Original
-              </button>
+
+              {simStatus === 'SUCCESS' && simMetrics && (
+                <div className="simulator-results-panel" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <h4 style={{ fontSize: '0.82rem', margin: 0, color: '#38bdf8' }}>Métricas de Impacto</h4>
+                  <div className="results-grid" style={{ gap: '0.4rem' }}>
+                    <div className="result-metric" style={{ padding: '0.35rem', borderRadius: '4px' }}>
+                      <span className="result-label" style={{ fontSize: '0.62rem' }}>Precisión R²</span>
+                      <span className="result-value" style={{ fontSize: '0.85rem' }}>{(simMetrics.r2 * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="result-metric" style={{ padding: '0.35rem', borderRadius: '4px' }}>
+                      <span className="result-label" style={{ fontSize: '0.62rem' }}>MAPE Sim.</span>
+                      <span className="result-value green" style={{ fontSize: '0.85rem' }}>{simMetrics.mapeSimulado}</span>
+                    </div>
+                  </div>
+                  <button className="btn-secondary clear-sim-btn" onClick={() => setSimResults(null)} style={{ padding: '0.4rem', fontSize: '0.75rem', borderRadius: '4px', marginTop: '0.25rem' }}>
+                    Restaurar Original
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          <div className="card feature-importance-card" style={{ margin: 0 }}>
-            <h3>Factores del Modelo Predictivo (Feature Importance)</h3>
-            <p className="subtitle">Muestra las variables de negocio que tienen mayor impacto en las estimaciones del modelo de IA</p>
-            <div className="feature-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={featureImportance} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="barBlue" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35}/>
-                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.95}/>
-                    </linearGradient>
-                    <linearGradient id="barPurple" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35}/>
-                      <stop offset="100%" stopColor="#818cf8" stopOpacity={0.95}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} vertical={true} />
-                  <XAxis type="number" domain={[0, 50]} stroke="#64748b" tickFormatter={(value) => `${value}%`} />
-                  <YAxis type="category" dataKey="name" stroke="#94a3b8" tick={{fill: '#f8fafc', fontSize: 11}} width={140} />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '8px' }}/>
-                  <Bar dataKey="weight" radius={[0, 6, 6, 0]}>
-                    <LabelList dataKey="weight" position="right" formatter={(v) => `${v}%`} style={{ fill: '#cbd5e1', fontSize: 10, fontWeight: '700' }} />
-                    {featureImportance.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? 'url(#barBlue)' : 'url(#barPurple)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+      <div className="forecast-bottom-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        
+        <div className="card feature-importance-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <h3>Factores del Modelo Predictivo (Feature Importance)</h3>
+          <p className="subtitle">Muestra las variables de negocio que tienen mayor impacto en las estimaciones del modelo de IA</p>
+          <div className="feature-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={featureImportance} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="barBlue" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35}/>
+                    <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.95}/>
+                  </linearGradient>
+                  <linearGradient id="barPurple" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35}/>
+                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0.95}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} vertical={true} />
+                <XAxis type="number" domain={[0, 50]} stroke="#64748b" tickFormatter={(value) => `${value}%`} />
+                <YAxis type="category" dataKey="name" stroke="#94a3b8" tick={{fill: '#f8fafc', fontSize: 11}} width={140} />
+                <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '8px' }}/>
+                <Bar dataKey="weight" radius={[0, 6, 6, 0]}>
+                  <LabelList dataKey="weight" position="right" formatter={(v) => `${v}%`} style={{ fill: '#cbd5e1', fontSize: 10, fontWeight: '700' }} />
+                  {featureImportance.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'url(#barBlue)' : 'url(#barPurple)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-
-          <div className="card model-info-card technical-info-card" style={{ margin: 0 }}>
-            <div className="simulator-header">
-              <Sparkles size={20} className="simulator-sparkle-icon" />
-              <h3>Detalles del Modelo Activo</h3>
-            </div>
-            <div className="model-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '1.25rem 0 0.75rem 0' }}>
-              <div className="info-item-tech">
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Algoritmo</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc' }}>XGBoost Regressor</span>
-              </div>
-              <div className="info-item-tech">
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Versión</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#38bdf8', fontFamily: 'monospace' }}>v2.4.1</span>
-              </div>
-              <div className="info-item-tech">
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Precisión MAPE</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#34d399' }}>4.85%</span>
-              </div>
-              <div className="info-item-tech">
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entrenado</span>
-                <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#cbd5e1' }}>08/07/2026</span>
-              </div>
-            </div>
-            <p className="simulator-desc" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: '#64748b', marginTop: '0.75rem' }}>
-              El pronóstico (Forecast) se calcula a nivel mensual combinando el historial consolidado de la tabla <span style={{ fontFamily: 'monospace', color: '#cbd5e1', background: 'rgba(255,255,255,0.03)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>VENTAS_MENSUALES</span> con variables de clima e inflación. El área sombreada representa el intervalo de confianza del ±10% basado en el error histórico del modelo.
-            </p>
-          </div>
-
         </div>
+
+        <div className="card model-info-card technical-info-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div className="simulator-header">
+            <Sparkles size={20} className="simulator-sparkle-icon" />
+            <h3>Detalles del Modelo Activo</h3>
+          </div>
+          <div className="model-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '1.25rem 0 0.75rem 0' }}>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Algoritmo</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc' }}>XGBoost Regressor</span>
+            </div>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Versión</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#38bdf8', fontFamily: 'monospace' }}>v2.4.1</span>
+            </div>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Precisión MAPE</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#34d399' }}>4.85%</span>
+            </div>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entrenado</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#cbd5e1' }}>08/07/2026</span>
+            </div>
+          </div>
+          <p className="simulator-desc" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: '#64748b', marginTop: '0.75rem', flex: 1 }}>
+            El pronóstico (Forecast) se calcula a nivel mensual combinando el historial consolidado de la tabla <span style={{ fontFamily: 'monospace', color: '#cbd5e1', background: 'rgba(255,255,255,0.03)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>VENTAS_MENSUALES</span> con variables de clima e inflación. El área sombreada representa el intervalo de confianza del ±10% basado en el error histórico del modelo.
+          </p>
+        </div>
+
       </div>
     </div>
   );
