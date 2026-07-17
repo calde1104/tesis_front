@@ -2272,3 +2272,16 @@
   border-color: rgba(129, 140, 248, 0.2) !important;
 }
 
+.forecast-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 1024px) {
+  .forecast-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
