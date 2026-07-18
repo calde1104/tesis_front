@@ -28,6 +28,7 @@ const Dashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
+  const [dismissedMlopsWarning, setDismissedMlopsWarning] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
   const [safetyStocks, setSafetyStocks] = useState({
     'SKU-001': 12000,
@@ -290,9 +291,25 @@ const Dashboard = () => {
             <button 
               className={`nav-item ${activeTab === 'forecast' ? 'active' : ''}`}
               onClick={() => setActiveTab('forecast')}
+              style={{ position: 'relative' }}
             >
               <TrendingUp size={22} className="nav-icon" />
               <span className="nav-label">Proyecciones</span>
+              {activeModel && activeModel.desalineado && !dismissedMlopsWarning && (
+                <span 
+                  title="Advertencia de MLOps: Se detectó desalineación en los datos históricos del modelo activo (v2.4.1) debido a nuevas ingestas o modificaciones de datos. Se requiere un reentrenamiento del modelo para corregir posibles desvíos en las proyecciones."
+                  style={{ 
+                    display: 'inline-flex',
+                    marginLeft: isSidebarOpen ? 'auto' : '0px', 
+                    position: isSidebarOpen ? 'static' : 'absolute',
+                    top: isSidebarOpen ? 'auto' : '4px',
+                    right: isSidebarOpen ? 'auto' : '4px',
+                    flexShrink: 0 
+                  }}
+                >
+                  <AlertCircle size={16} style={{ color: '#eab308' }} />
+                </span>
+              )}
             </button>
             <button 
               className={`nav-item ${activeTab === 'market' ? 'active' : ''}`}
@@ -358,7 +375,12 @@ const Dashboard = () => {
           <SalesView formatCurrency={formatCurrency} />
         )}
         {activeTab === 'forecast' && (
-          <ForecastView formatCurrency={formatCurrency} initialSku={forecastSelectedSku} />
+          <ForecastView 
+            formatCurrency={formatCurrency} 
+            initialSku={forecastSelectedSku} 
+            dismissedMlopsWarning={dismissedMlopsWarning}
+            onDismissMlopsWarning={() => setDismissedMlopsWarning(true)}
+          />
         )}
         {activeTab === 'ingestion' && (
           <IngestionView />
