@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Settings, Shield, Activity, RefreshCw } from 'lucide-react';
+import { Loader2, Settings, Shield, Activity, RefreshCw, Sparkles } from 'lucide-react';
+import { 
+  BarChart, Bar, Cell, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+} from 'recharts';
 import { getSystemConfig, updateSystemConfig, getMLModels, triggerRetraining, activateModelVersion } from '../../../services/settings';
+import { getFeatureImportance } from '../../../services/forecast';
 
 const SettingsView = () => {
   const [alertThreshold, setAlertThreshold] = useState(20);
@@ -15,6 +19,7 @@ const SettingsView = () => {
   });
   
   const [models, setModels] = useState([]);
+  const [featureImportance, setFeatureImportance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [retraining, setRetraining] = useState(false);
@@ -26,14 +31,16 @@ const SettingsView = () => {
   };
 
   const fetchConfigAndModels = async () => {
-    const [config, modelsList] = await Promise.all([
+    const [config, modelsList, featureRes] = await Promise.all([
       getSystemConfig(),
-      getMLModels()
+      getMLModels(),
+      getFeatureImportance()
     ]);
     setAlertThreshold(config.alertThreshold);
     setTrainingFrequency(config.trainingFrequency);
     setForecastHorizon(config.forecastHorizon);
     setModels(modelsList);
+    setFeatureImportance(featureRes);
     
     const saved = localStorage.getItem('product_thresholds');
     if (saved) {
@@ -84,6 +91,8 @@ const SettingsView = () => {
       </div>
     );
   }
+
+  const activeModel = models.find(m => m.activo || m.active);
 
   return (
     <div className="view-container settings-view">
@@ -282,6 +291,69 @@ const SettingsView = () => {
               <span>Cualquier cambio de modelo requiere permisos de Admin. La activación de un nuevo modelo impactará inmediatamente en el gráfico de Forecast.</span>
             </div>
           </div>
+        </div>
+
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
+        
+        <div className="card feature-importance-card interactive-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <h3>Factores del Modelo Predictivo (Feature Importance)</h3>
+          <p className="subtitle">Muestra las variables de negocio que tienen mayor impacto en las estimaciones del modelo de IA</p>
+          <div className="feature-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={featureImportance} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="barBlue" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35}/>
+                    <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.95}/>
+                  </linearGradient>
+                  <linearGradient id="barPurple" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35}/>
+                    <stop offset="100%" stopColor="#818cf8" stopOpacity={0.95}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} vertical={true} />
+                <XAxis type="number" domain={[0, 50]} stroke="#64748b" tickFormatter={(value) => `${value}%`} />
+                <YAxis type="category" dataKey="name" stroke="#94a3b8" tick={{fill: '#f8fafc', fontSize: 11}} width={140} />
+                <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '8px' }}/>
+                <Bar dataKey="weight" radius={[0, 6, 6, 0]}>
+                  <LabelList dataKey="weight" position="right" formatter={(v) => `${v}%`} style={{ fill: '#cbd5e1', fontSize: 10, fontWeight: '700' }} />
+                  {featureImportance.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'url(#barBlue)' : 'url(#barPurple)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="card model-info-card technical-info-card interactive-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div className="simulator-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Sparkles size={20} className="simulator-sparkle-icon" />
+            <h3>Detalles del Modelo Activo</h3>
+          </div>
+          <div className="model-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '1.25rem 0 0.75rem 0' }}>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Algoritmo</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc' }}>XGBoost Regressor</span>
+            </div>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Versión</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#38bdf8', fontFamily: 'monospace' }}>{activeModel ? activeModel.version : 'v2.4.1'}</span>
+            </div>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Precisión MAPE</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#34d399' }}>{activeModel ? activeModel.mape : '4.85%'}</span>
+            </div>
+            <div className="info-item-tech">
+              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entrenado</span>
+              <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#cbd5e1' }}>{activeModel ? activeModel.date : '08/07/2026'}</span>
+            </div>
+          </div>
+          <p className="simulator-desc" style={{ fontSize: '0.8rem', lineHeight: '1.4', color: '#64748b', marginTop: '0.75rem', flex: 1 }}>
+            El pronóstico (Forecast) se calcula a nivel mensual combinando el historial consolidado de la tabla <span style={{ fontFamily: 'monospace', color: '#cbd5e1', background: 'rgba(255,255,255,0.03)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>VENTAS_MENSUALES</span> con variables de clima e inflación. El área sombreada representa el intervalo de confianza del ±10% basado en el error histórico del modelo.
+          </p>
         </div>
 
       </div>

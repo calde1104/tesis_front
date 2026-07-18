@@ -197,21 +197,6 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           </div>
         </div>
 
-        <div className="card kpi-card clickable-card" onClick={() => setActiveTab('settings')}>
-          <div className="kpi-header">
-            <span className="kpi-label">{kpis.accuracy.label}</span>
-            <LineChart size={18} className="kpi-icon" />
-          </div>
-          <div className="kpi-value">
-            {kpis.accuracy.value}%
-          </div>
-          <div className="kpi-footer">
-            <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
-              Modelo Activo
-            </span>
-          </div>
-        </div>
-
         <div className="card kpi-card clickable-card" onClick={() => setActiveTab('market')}>
           <div className="kpi-header">
             <span className="kpi-label">{kpis.priceGap.label}</span>
@@ -223,6 +208,21 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           <div className="kpi-footer">
             <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
               Competitivo
+            </span>
+          </div>
+        </div>
+
+        <div className="card kpi-card clickable-card" onClick={() => setActiveTab('settings')}>
+          <div className="kpi-header">
+            <span className="kpi-label">{kpis.accuracy.label}</span>
+            <LineChart size={18} className="kpi-icon" />
+          </div>
+          <div className="kpi-value">
+            {kpis.accuracy.value}%
+          </div>
+          <div className="kpi-footer">
+            <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
+              Modelo Activo
             </span>
           </div>
         </div>

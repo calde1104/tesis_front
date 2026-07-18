@@ -43,9 +43,12 @@ export const predictColdStart = async (productData = {}) => {
         clusterName: isPremium ? 'Cluster Premium - Alta Elasticidad' : 'Cluster Masivo - Baja Elasticidad',
         recommendedPrice: isPremium ? Math.round(expectedPrice * 0.95) : Math.round(expectedPrice * 1.02),
         predictedShares: [
-          { month: 'Mes 1', share: isPremium ? 1.5 : 4.2 },
-          { month: 'Mes 2', share: isPremium ? 2.8 : 5.8 },
-          { month: 'Mes 3', share: isPremium ? 3.5 : 6.5 }
+          { month: 'Mes 1', share: isPremium ? 1.5 : 4.2, sales: isPremium ? 1200 : 8500 },
+          { month: 'Mes 2', share: isPremium ? 2.8 : 5.8, sales: isPremium ? 2200 : 9200 },
+          { month: 'Mes 3', share: isPremium ? 3.5 : 6.5, sales: isPremium ? 2900 : 9900 },
+          { month: 'Mes 4', share: isPremium ? 4.2 : 7.1, sales: isPremium ? 3500 : 10400 },
+          { month: 'Mes 5', share: isPremium ? 4.8 : 7.6, sales: isPremium ? 4100 : 10800 },
+          { month: 'Mes 6', share: isPremium ? 5.2 : 8.0, sales: isPremium ? 4500 : 11100 }
         ],
         salesVolume: isPremium ? 1200 : 8500,
         confidenceLevel: '84.2%'

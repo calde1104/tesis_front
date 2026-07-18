@@ -1,23 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, HelpCircle, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts';
-import { getMarketShareOverview, getPriceGap, predictColdStart } from '../../../services/marketShare';
+import { getMarketShareOverview, getPriceGap } from '../../../services/marketShare';
 
 const MarketView = () => {
   const [shareData, setShareData] = useState([]);
   const [priceGap, setPriceGap] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [productName, setProductName] = useState('');
-  const [targetCategory, setTargetCategory] = useState('Aceites');
-  const [expectedPrice, setExpectedPrice] = useState('');
-  const [expectedWeight, setExpectedWeight] = useState('');
-  
-  const [predicting, setPredicting] = useState(false);
-  const [predictionResult, setPredictionResult] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,25 +23,6 @@ const MarketView = () => {
     };
     fetchData();
   }, []);
-
-  const handleColdStartSubmit = async (e) => {
-    e.preventDefault();
-    if (!productName || !expectedPrice) {
-      alert("Por favor rellene el nombre y precio del producto.");
-      return;
-    }
-    setPredicting(true);
-    setPredictionResult(null);
-    
-    const result = await predictColdStart({
-      name: productName,
-      category: targetCategory,
-      expectedPrice,
-      weight: expectedWeight
-    });
-    setPredictionResult(result);
-    setPredicting(false);
-  };
 
   if (loading) {
     return (
@@ -123,103 +96,6 @@ const MarketView = () => {
 
       </div>
 
-      <div className="card cold-start-card">
-        <div className="cold-start-header">
-          <Sparkles size={24} className="sparkle-icon" />
-          <h3>Herramienta de Pre-lanzamiento (Cold Start)</h3>
-        </div>
-        <p className="subtitle">Algoritmo de clustering que agrupa productos nuevos sin historial para proyectar su comportamiento inicial en góndola.</p>
-
-        <div className="cold-start-layout-grid">
-          <form className="cold-start-form" onSubmit={handleColdStartSubmit}>
-            <div className="form-group">
-              <label>Nombre del SKU Nuevo</label>
-              <input 
-                type="text" 
-                placeholder="Ej: Jugo Exprés Naranja 1L" 
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-row-double">
-              <div className="form-group">
-                <label>Categoría Objetivo</label>
-                <select value={targetCategory} onChange={(e) => setTargetCategory(e.target.value)}>
-                  <option value="Aceites">Aceites</option>
-                  <option value="Fideos">Fideos</option>
-                  <option value="Arroz">Arroz</option>
-                  <option value="Salsas">Salsas</option>
-                  <option value="Cervezas">Cervezas</option>
-                  <option value="Vinos">Vinos</option>
-                  <option value="Gaseosas">Gaseosas</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Precio de Venta Sugerido ($)</label>
-                <input 
-                  type="number" 
-                  placeholder="Ej: 1250" 
-                  value={expectedPrice}
-                  onChange={(e) => setExpectedPrice(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <button type="submit" className="btn-primary" disabled={predicting}>
-              {predicting ? <Loader2 size={16} className="spinner" /> : <TrendingUp size={16} />}
-              {predicting ? 'Calculando Clusters...' : 'Predecir Lanzamiento'}
-            </button>
-          </form>
-
-          <div className="cold-start-results-panel">
-            {predictionResult ? (
-              <div className="prediction-success-box">
-                <h4>Clasificación Generada</h4>
-                <div className="result-metric-large">
-                  <span className="metric-label">Grupo de Comportamiento</span>
-                  <span className="metric-value">{predictionResult.clusterName}</span>
-                </div>
-                
-                <div className="result-stats-row">
-                  <div className="stat-box">
-                    <span className="stat-label">Precio Óptimo</span>
-                    <span className="stat-value">${predictionResult.recommendedPrice.toLocaleString('es-AR')}</span>
-                  </div>
-                  <div className="stat-box">
-                    <span className="stat-label">Ventas Est. (Mes 1)</span>
-                    <span className="stat-value">{predictionResult.salesVolume.toLocaleString('es-AR')} un.</span>
-                  </div>
-                  <div className="stat-box">
-                    <span className="stat-label">Confianza de IA</span>
-                    <span className="stat-value highlight-text">{predictionResult.confidenceLevel}</span>
-                  </div>
-                </div>
-
-                <div className="predicted-share-months">
-                  <h5>Market Share Proyectado</h5>
-                  <div className="share-months-flex">
-                    {predictionResult.predictedShares.map((m, idx) => (
-                      <div key={idx} className="month-share-item">
-                        <span className="month-num">{m.month}</span>
-                        <span className="month-percent">{m.share}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="prediction-placeholder">
-                <HelpCircle size={36} className="placeholder-icon" />
-                <p>Carga los datos del nuevo producto a la izquierda y presiona el botón para consultar al algoritmo predictivo.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
