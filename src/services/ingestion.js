@@ -116,3 +116,14 @@ export const retryFailedIngestion = async (fileId) => {
     }, 500);
   });
 };
+
+export const deleteIngestionHistory = async (fileId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const history = JSON.parse(localStorage.getItem('ingestion_history') || '[]');
+      const filtered = history.filter(item => item.id !== fileId);
+      localStorage.setItem('ingestion_history', JSON.stringify(filtered));
+      resolve({ success: true });
+    }, 400);
+  });
+};
