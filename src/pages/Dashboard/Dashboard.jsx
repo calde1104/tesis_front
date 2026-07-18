@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('inicio');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
   const [safetyStocks, setSafetyStocks] = useState({
     'SKU-001': 12000,
@@ -107,7 +108,7 @@ const Dashboard = () => {
   }, [activeTab]);
 
   const handleLogout = () => {
-    navigate('/login');
+    setShowLogoutModal(true);
   };
 
   const formatCurrency = (value) => {
@@ -220,7 +221,7 @@ const Dashboard = () => {
                   <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#f1f5f9' }}>Notificaciones</h4>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{notifications.length} Alertas</span>
                 </div>
-                <div style={{ maxHeight: '280px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                <div className="custom-scrollbar" style={{ maxHeight: '280px', overflowY: 'auto', padding: '0.25rem 0' }}>
                   {notifications.length > 0 ? (
                     notifications.map(n => (
                       <div 
@@ -314,7 +315,7 @@ const Dashboard = () => {
               <Settings size={22} className="nav-icon" fill={activeTab === 'settings' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Configuración</span>
             </button>
-            <button className="nav-item" onClick={handleLogout}>
+            <button className="nav-item logout-btn" onClick={handleLogout}>
               <LogOut size={22} className="nav-icon" />
               <span className="nav-label">Cerrar Sesión</span>
             </button>
@@ -366,6 +367,91 @@ const Dashboard = () => {
           <SettingsView />
         )}
       </main>
+
+      {showLogoutModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10000,
+          animation: 'fade-in 0.2s ease-out'
+        }} onClick={() => setShowLogoutModal(false)}>
+          <div style={{
+            background: 'rgba(30, 41, 59, 0.98)',
+            border: '1px solid rgba(244, 63, 94, 0.2)',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '400px',
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 63, 94, 0.1)',
+            animation: 'scale-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1.25rem',
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            <div style={{ background: 'rgba(244, 63, 94, 0.1)', padding: '0.75rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <LogOut size={32} style={{ color: '#ef4444' }} />
+            </div>
+
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#f8fafc' }}>¿Cerrar Sesión?</h3>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                ¿Realmente deseas salir de la plataforma? Deberás ingresar tus credenciales nuevamente para acceder.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', width: '100%', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button 
+                type="button"
+                className="btn-secondary" 
+                onClick={() => setShowLogoutModal(false)}
+                style={{ flex: 1, padding: '0.6rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowLogoutModal(false);
+                  navigate('/login');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.6rem',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'linear-gradient(90deg, #ef4444, #dc2626)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
+                onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
+              >
+                Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
