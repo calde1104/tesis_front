@@ -267,7 +267,7 @@ const CustomReferenceLabel = (props) => {
   );
 };
 
-const ForecastView = ({ formatCurrency }) => {
+const ForecastView = ({ formatCurrency, initialSku }) => {
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModel, setActiveModel] = useState(null);
@@ -277,7 +277,7 @@ const ForecastView = ({ formatCurrency }) => {
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState('total');
+  const [selectedProduct, setSelectedProduct] = useState(initialSku || 'total');
 
   const [priceChange, setPriceChange] = useState(0);
   const [marketingChange, setMarketingChange] = useState(0);
@@ -326,6 +326,17 @@ const ForecastView = ({ formatCurrency }) => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (initialSku) {
+      setDepartment('');
+      setCategory('');
+      setBrand('');
+      setSearch('');
+      setSimResults(null);
+      setSelectedProduct(initialSku);
+    }
+  }, [initialSku]);
 
   const handleSimulate = async () => {
     if (selectedProduct === 'total') return;

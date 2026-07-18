@@ -27,6 +27,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('inicio');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
   const [activeModel, setActiveModel] = useState(null);
   const [safetyStocks, setSafetyStocks] = useState({
     'SKU-001': 12000,
@@ -64,7 +65,8 @@ const Dashboard = () => {
           title: `Quiebre de Stock: ${prod.name}`,
           message: `La demanda estimada (${prod.forecast.toLocaleString('es-AR')} un) supera el stock de seguridad (${prod.threshold.toLocaleString('es-AR')} un).`,
           severity: 'CRITICAL',
-          tab: 'forecast'
+          tab: 'forecast',
+          sku: sku
         });
       }
     });
@@ -234,6 +236,7 @@ const Dashboard = () => {
                         }}
                         className="notification-item"
                         onClick={() => {
+                          if (n.sku) setForecastSelectedSku(n.sku);
                           setActiveTab(n.tab);
                           setShowNotifications(false);
                         }}
@@ -355,7 +358,7 @@ const Dashboard = () => {
           <SalesView formatCurrency={formatCurrency} />
         )}
         {activeTab === 'forecast' && (
-          <ForecastView formatCurrency={formatCurrency} />
+          <ForecastView formatCurrency={formatCurrency} initialSku={forecastSelectedSku} />
         )}
         {activeTab === 'ingestion' && (
           <IngestionView />
