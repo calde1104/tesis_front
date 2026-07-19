@@ -271,9 +271,9 @@ const IngestionView = () => {
                   <th style={{ textAlign: 'left', padding: '0.5rem 0.25rem' }}>Archivo</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Tamaño</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Fecha de Carga</th>
-                  <th className="number-col" style={{ textAlign: 'right', padding: '0.5rem 0.25rem' }}>Registros</th>
+                  <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Registros</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Estado</th>
-                  <th className="center-col" style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Acción</th>
+                  <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -282,7 +282,7 @@ const IngestionView = () => {
                     <td className="name-cell" style={{ textAlign: 'left', padding: '0.55rem 0.25rem', color: '#38bdf8', fontWeight: '600' }}>{log.name}</td>
                     <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>{formatBytes(log.size)}</td>
                     <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>{log.date}</td>
-                    <td className="number-col" style={{ textAlign: 'right', padding: '0.55rem 0.25rem', fontWeight: '700', color: '#f8fafc' }}>
+                    <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem', fontWeight: '700', color: '#f8fafc' }}>
                       {log.status === 'FAILED' ? '-' : log.records.toLocaleString('es-AR')}
                     </td>
                     <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>
@@ -298,43 +298,73 @@ const IngestionView = () => {
                         {log.status === 'SUCCESS' ? 'Completado' : 'Fallido'}
                       </span>
                     </td>
-                    <td className="center-col" style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}>
-                        {log.status === 'FAILED' && (
-                          <button className="action-btn retry-btn" onClick={() => handleRetry(log.id)} title="Intentar Cargar Nuevamente" style={{
-                            background: 'rgba(56, 189, 248, 0.1)',
-                            border: '1px solid rgba(56, 189, 248, 0.2)',
-                            color: '#38bdf8',
-                            padding: '0.2rem 0.45rem',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.25rem'
-                          }}>
-                            <RefreshCw size={11} /> Reintentar
+                    <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '165px', margin: '0 auto' }}>
+                        {log.status === 'FAILED' ? (
+                          <>
+                            <button className="action-btn retry-btn" onClick={() => handleRetry(log.id)} title="Intentar Cargar Nuevamente" style={{
+                              background: 'rgba(56, 189, 248, 0.1)',
+                              border: '1px solid rgba(56, 189, 248, 0.2)',
+                              color: '#38bdf8',
+                              padding: '0.2rem 0.35rem',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.2rem',
+                              width: 'calc(50% - 0.175rem)',
+                              flexShrink: 0
+                            }}>
+                              <RefreshCw size={11} /> Reintentar
+                            </button>
+                            <button 
+                              className="action-btn delete-btn" 
+                              onClick={() => handleDeleteClick(log)} 
+                              title="Eliminar Registro" 
+                              style={{
+                                background: 'rgba(244, 63, 94, 0.08)',
+                                border: '1px solid rgba(244, 63, 94, 0.15)',
+                                color: '#f43f5e',
+                                padding: '0.2rem 0.35rem',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.2rem',
+                                width: 'calc(50% - 0.175rem)',
+                                flexShrink: 0
+                              }}
+                            >
+                              <Trash2 size={11} /> Eliminar
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            className="action-btn delete-btn" 
+                            onClick={() => handleDeleteClick(log)} 
+                            title="Eliminar Registro" 
+                            style={{
+                              background: 'rgba(244, 63, 94, 0.08)',
+                              border: '1px solid rgba(244, 63, 94, 0.15)',
+                              color: '#f43f5e',
+                              padding: '0.2rem 0.35rem',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.2rem',
+                              width: '100%'
+                            }}
+                          >
+                            <Trash2 size={11} /> Eliminar
                           </button>
                         )}
-                        <button 
-                          className="action-btn delete-btn" 
-                          onClick={() => handleDeleteClick(log)} 
-                          title="Eliminar Registro" 
-                          style={{
-                            background: 'rgba(244, 63, 94, 0.08)',
-                            border: '1px solid rgba(244, 63, 94, 0.15)',
-                            color: '#f43f5e',
-                            padding: '0.2rem 0.45rem',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.25rem'
-                          }}
-                        >
-                          <Trash2 size={11} /> Eliminar
-                        </button>
                       </div>
                     </td>
                   </tr>

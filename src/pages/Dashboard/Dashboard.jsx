@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import { getMLModels } from '../../services/settings';
 import './Dashboard.css';
-import logoImg from '../../assets/logo.jpg';
 
 import InicioView from './views/InicioView';
 import SalesView from './views/SalesView';
@@ -162,7 +161,40 @@ const Dashboard = () => {
     <div className={`dashboard-layout ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
       
       <div className="sidebar-logo">
-        <img src={logoImg} className="logo-icon" alt="Logo" />
+        <svg className="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="100%" stopColor="#0284c7" />
+            </linearGradient>
+            <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="#38bdf8" floodOpacity="0.4" />
+            </filter>
+          </defs>
+          <path 
+            d="M16 3L27 9.35V22.65L16 29L5 22.65V9.35L16 3Z" 
+            stroke="url(#logoGrad)" 
+            strokeWidth="2.2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            fill="rgba(56, 189, 248, 0.03)"
+          />
+          <path 
+            d="M15.5 8V24 M15.5 8H20C22.5 8, 22.5 16, 20 16H15.5 M15.5 16H20C22.5 16, 22.5 24, 20 24H15.5" 
+            stroke="#38bdf8" 
+            strokeWidth="2.4" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+          <path 
+            d="M9.5 8V24 M9.5 8H14.5C17.5 8, 17.5 16, 14.5 16H9.5" 
+            stroke="#ffffff" 
+            strokeWidth="2.4" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            filter="url(#logoGlow)"
+          />
+        </svg>
         <span className="logo-text">Predictive B2B</span>
       </div>
 
