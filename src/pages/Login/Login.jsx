@@ -6,7 +6,8 @@ import { login } from '../../services/auth';
 import './Login.css';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [empresaId, setEmpresaId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -24,7 +25,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(username, password);
+      const response = await login(empresaId, email, password);
       console.log('Login successful:', response);
       navigate('/dashboard');
     } catch (err) {
@@ -67,9 +68,19 @@ const Login = () => {
               <div className="form-group">
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="ej. 15602226456"
+                  value={empresaId}
+                  onChange={(e) => setEmpresaId(e.target.value)}
+                  placeholder="ID de Empresa (UUID)"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Correo electrónico (ej. admin@CCR.com)"
                   required
                 />
               </div>

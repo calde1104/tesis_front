@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import { getMLModels } from '../../services/settings';
+import { logout } from '../../services/auth';
 import './Dashboard.css';
 
 import InicioView from './views/InicioView';
@@ -373,11 +374,11 @@ const Dashboard = () => {
             </button>
             <div className="user-profile-nav">
               <div className="user-avatar">
-                <img src="https://ui-avatars.com/api/?name=Analista+B2B&background=0D8ABC&color=fff" alt="User" />
+                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(localStorage.getItem('empresaNombre') || 'Analista B2B')}&background=0D8ABC&color=fff`} alt="User" />
               </div>
               <div className="user-info-nav">
-                <span className="user-name">Analista B2B</span>
-                <span className="user-role">Admin</span>
+                <span className="user-name">{localStorage.getItem('empresaNombre') || 'Analista B2B'}</span>
+                <span className="user-role">{localStorage.getItem('rol') || 'Admin'}</span>
               </div>
             </div>
           </div>
@@ -479,8 +480,9 @@ const Dashboard = () => {
               </button>
               <button 
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   setShowLogoutModal(false);
+                  await logout();
                   navigate('/login');
                 }}
                 style={{
