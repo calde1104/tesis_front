@@ -45,12 +45,12 @@ const IngestionView = () => {
   const handleDownloadTemplate = () => {
     const headers = [
       'Año', 'Mes', 'Canal', 'Departamento', 'Categoria', 'Sku', 'Descripcion',
-      'Empresa', 'Marca', 'Familia', 'Departamento_2', 'Unidades Vendidas', 'Facturación'
+      'Empresa', 'Marca', 'Unidades Vendidas', 'Facturación'
     ];
     
     const sampleRow = [
       '2026', '6', 'Autoservicio', 'Bebidas', 'Gaseosas', '7790070411122', 'Gaseosa Cola 2.25L',
-      'Coca-Cola Company', 'Coca-Cola', 'Gaseosas Cola', 'Bebidas', '1500', '450000.00'
+      'Coca-Cola Company', 'Coca-Cola', '1500', '450000.00'
     ];
     
     const csvContent = [
@@ -162,8 +162,8 @@ const IngestionView = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '1.25rem',
-      height: 'calc(100vh - 155px)',
-      minHeight: '620px',
+      height: 'calc(100vh - 175px)',
+      minHeight: '550px',
       padding: '0 0.5rem 0.5rem 0.5rem'
     }}>
 
@@ -400,10 +400,6 @@ const IngestionView = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38bdf8', background: 'rgba(56,189,248,0.08)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace', alignSelf: 'flex-start' }}>Marca</span>
               <span style={{ fontSize: '0.68rem', color: '#cbd5e1' }}>Marca comercial</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38bdf8', background: 'rgba(56,189,248,0.08)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace', alignSelf: 'flex-start' }}>Familia</span>
-              <span style={{ fontSize: '0.68rem', color: '#cbd5e1' }}>Familia de productos</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#38bdf8', background: 'rgba(56,189,248,0.08)', padding: '0.1rem 0.35rem', borderRadius: '4px', fontFamily: 'monospace', alignSelf: 'flex-start' }}>Unidades Vendidas</span>

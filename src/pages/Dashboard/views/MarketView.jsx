@@ -557,8 +557,8 @@ const MarketView = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '1.25rem',
-      height: 'calc(100vh - 180px)',
-      minHeight: '680px',
+      height: 'calc(100vh - 200px)',
+      minHeight: '600px',
       padding: '0 0.5rem 0.5rem 0.5rem'
     }}>
 

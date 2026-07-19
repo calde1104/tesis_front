@@ -101,8 +101,8 @@ const SettingsView = () => {
       display: 'flex',
       flexDirection: 'column',
       gap: '1.25rem',
-      height: 'calc(100vh - 155px)',
-      minHeight: '620px',
+      height: 'calc(100vh - 175px)',
+      minHeight: '550px',
       padding: '0 0.5rem 0.5rem 0.5rem',
       position: 'relative'
     }}>

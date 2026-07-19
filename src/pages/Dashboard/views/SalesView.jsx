@@ -370,27 +370,6 @@ const SalesView = ({ formatCurrency }) => {
 
   return (
     <div className="view-container">
-      <div className="view-header" style={{ justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
-        <div className="view-actions">
-          {exportStatus === 'RUNNING' ? (
-            <div className="export-status-panel card">
-              <Loader2 size={16} className="spinner" />
-              <span>Generando reporte ({exportProgress}%)</span>
-              <div className="progress-bar-mini">
-                <div className="progress-fill-mini" style={{ width: `${exportProgress}%` }}></div>
-              </div>
-            </div>
-          ) : exportStatus === 'SUCCESS' ? (
-            <button onClick={handleDownload} className="btn-success">
-              <Download size={18} /> Descargar Reporte
-            </button>
-          ) : (
-            <button className="btn-primary" onClick={handleExport}>
-              <Download size={18} /> Exportar Selección
-            </button>
-          )}
-        </div>
-      </div>
 
       <div className="card filters-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -579,9 +558,33 @@ const SalesView = ({ formatCurrency }) => {
       </div>
 
       <div className="card table-card">
-        <div className="table-header">
-          <h3>Ventas a Nivel de SKU</h3>
-          <span className="badge">{totalItems} productos encontrados</span>
+        <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <h3 style={{ margin: 0 }}>Ventas a Nivel de SKU</h3>
+            <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '700' }}>
+              {totalItems} productos encontrados
+            </span>
+          </div>
+
+          <div className="view-actions" style={{ display: 'flex', alignItems: 'center' }}>
+            {exportStatus === 'RUNNING' ? (
+              <div className="export-status-panel card" style={{ padding: '0.35rem 0.75rem', gap: '0.5rem', display: 'flex', alignItems: 'center', borderRadius: '6px', fontSize: '0.75rem', margin: 0 }}>
+                <Loader2 size={13} className="spinner" />
+                <span>Generando ({exportProgress}%)</span>
+                <div className="progress-bar-mini" style={{ width: '40px', height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div className="progress-fill-mini" style={{ width: `${exportProgress}%`, height: '100%', background: '#38bdf8' }}></div>
+                </div>
+              </div>
+            ) : exportStatus === 'SUCCESS' ? (
+              <button onClick={handleDownload} className="btn-success" style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', borderRadius: '6px' }}>
+                <Download size={14} /> Descargar Reporte
+              </button>
+            ) : (
+              <button className="btn-primary" onClick={handleExport} style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', borderRadius: '6px' }}>
+                <Download size={14} /> Exportar Selección
+              </button>
+            )}
+          </div>
         </div>
         
         <div className="table-wrapper">
