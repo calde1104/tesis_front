@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Loader2, Sparkles, AlertCircle, Coins, Megaphone, X, DollarSign, TrendingUp, HelpCircle, Utensils, GlassWater, User, Droplet, Folder } from 'lucide-react';
+import { Play, Loader2, Sparkles, AlertCircle, Coins, Megaphone, X, DollarSign, TrendingUp, HelpCircle, Utensils, GlassWater, User, Droplet, Folder, Info } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, LabelList, ReferenceLine, ReferenceDot
@@ -41,18 +41,18 @@ const categoryBrands = {
 };
 
 const allProducts = [
-  { sku: 'SKU-001', name: 'Aceite de Girasol 1.5L', category: 'Aceites', brand: 'Vicentin', department: 'Alimentos', scale: 0.15 },
-  { sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Fideos', brand: 'Molinos', department: 'Alimentos', scale: 0.12 },
-  { sku: 'SKU-003', name: 'Arroz Largo Fino 1kg', category: 'Arroz', brand: 'Molinos', department: 'Alimentos', scale: 0.10 },
-  { sku: 'SKU-004', name: 'Puré de Tomate 520g', category: 'Salsas', brand: 'Arcor', department: 'Alimentos', scale: 0.08 },
-  { sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Cervezas', brand: 'Quilmes', department: 'Bebidas', scale: 0.25 },
-  { sku: 'SKU-006', name: 'Vino Malbec Reserva 750ml', category: 'Vinos', brand: 'Otros', department: 'Bebidas', scale: 0.18 },
-  { sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Gaseosas', brand: 'Coca-Cola', department: 'Bebidas', scale: 0.20 },
-  { sku: 'SKU-008', name: 'Agua Mineral Sin Gas 1.5L', category: 'Aguas', brand: 'Coca-Cola', department: 'Bebidas', scale: 0.07 },
-  { sku: 'SKU-009', name: 'Jabón Líquido Para Ropa 3L', category: 'Jabón Líquido', brand: 'Unilever', department: 'Limpieza', scale: 0.14 },
-  { sku: 'SKU-010', name: 'Desinfectante de Ambientes 360ml', category: 'Desinfectantes', brand: 'Unilever', department: 'Limpieza', scale: 0.11 },
-  { sku: 'SKU-011', name: 'Suavizante Floral 3L', category: 'Suavizantes', brand: 'Unilever', department: 'Limpieza', scale: 0.13 },
-  { sku: 'SKU-012', name: 'Limpiador de Pisos 1L', category: 'Limpiadores Multiuso', brand: 'Otros', department: 'Limpieza', scale: 0.09 }
+  { sku: 'SKU-001', name: 'Aceite de Girasol 1.5L', category: 'Aceites', brand: 'Vicentin', department: 'Alimentos', scale: 0.15, price: 350 },
+  { sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Fideos', brand: 'Molinos', department: 'Alimentos', scale: 0.12, price: 200 },
+  { sku: 'SKU-003', name: 'Arroz Largo Fino 1kg', category: 'Arroz', brand: 'Molinos', department: 'Alimentos', scale: 0.10, price: 180 },
+  { sku: 'SKU-004', name: 'Puré de Tomate 520g', category: 'Salsas', brand: 'Arcor', department: 'Alimentos', scale: 0.08, price: 150 },
+  { sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Cervezas', brand: 'Quilmes', department: 'Bebidas', scale: 0.25, price: 250 },
+  { sku: 'SKU-006', name: 'Vino Malbec Reserva 750ml', category: 'Vinos', brand: 'Otros', department: 'Bebidas', scale: 0.18, price: 800 },
+  { sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Gaseosas', brand: 'Coca-Cola', department: 'Bebidas', scale: 0.20, price: 300 },
+  { sku: 'SKU-008', name: 'Agua Mineral Sin Gas 1.5L', category: 'Aguas', brand: 'Coca-Cola', department: 'Bebidas', scale: 0.07, price: 150 },
+  { sku: 'SKU-009', name: 'Jabón Líquido Para Ropa 3L', category: 'Jabón Líquido', brand: 'Unilever', department: 'Limpieza', scale: 0.14, price: 1200 },
+  { sku: 'SKU-010', name: 'Desinfectante de Ambientes 360ml', category: 'Desinfectantes', brand: 'Unilever', department: 'Limpieza', scale: 0.11, price: 300 },
+  { sku: 'SKU-011', name: 'Suavizante Floral 3L', category: 'Suavizantes', brand: 'Unilever', department: 'Limpieza', scale: 0.13, price: 1000 },
+  { sku: 'SKU-012', name: 'Limpiador de Pisos 1L', category: 'Limpiadores Multiuso', brand: 'Otros', department: 'Limpieza', scale: 0.09, price: 200 }
 ];
 
 // Componente selector personalizado para evitar barras de desplazamiento estándar de Windows
@@ -163,7 +163,7 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   );
 };
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, selectedProduct, formatCurrency, priceChange }) => {
   if (active && payload && payload.length) {
     const filteredPayload = payload.filter((pld) => {
       if (pld.dataKey === 'forecast' && pld.payload.historical !== null && pld.payload.historical !== undefined) {
@@ -173,6 +173,27 @@ const CustomTooltip = ({ active, payload, label }) => {
     });
 
     if (filteredPayload.length === 0) return null;
+
+    const activeProd = selectedProduct && selectedProduct !== 'total' 
+      ? allProducts.find(p => p.sku === selectedProduct) 
+      : null;
+
+    const getHistoricalPrice = (basePrice, monthName) => {
+      const monthIndices = {
+        'Ene 26': 0,
+        'Feb 26': 1,
+        'Mar 26': 2,
+        'Abr 26': 3,
+        'May 26': 4,
+        'Jun 26': 5 // Último mes (base)
+      };
+      const idx = monthIndices[monthName];
+      if (idx !== undefined) {
+        const factors = [0.935, 0.948, 0.962, 0.975, 0.988, 1.0];
+        return Math.round(basePrice * factors[idx]);
+      }
+      return basePrice;
+    };
 
     return (
       <div className="custom-chart-tooltip" style={{
@@ -185,15 +206,39 @@ const CustomTooltip = ({ active, payload, label }) => {
         textAlign: 'left'
       }}>
         <p style={{ margin: 0, fontWeight: '700', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
-        {filteredPayload.map((pld) => (
-          <div key={pld.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
-            <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name === 'historical' ? 'Ventas Históricas' : pld.name === 'forecast' ? 'Demanda Proyectada' : pld.name === 'simulated' ? 'Simulado' : pld.name}:</span>
-            <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
-              {typeof pld.value === 'number' ? `${pld.value.toLocaleString('es-AR')} un.` : pld.value}
-            </span>
-          </div>
-        ))}
+        {filteredPayload.map((pld) => {
+          const isSimulated = pld.name === 'simulated' || pld.dataKey === 'simulated';
+          const isHistorical = pld.name === 'historical' || pld.dataKey === 'historical';
+          
+          let displayedPrice = null;
+          if (activeProd) {
+            if (isHistorical) {
+              displayedPrice = getHistoricalPrice(activeProd.price, label);
+            } else if (isSimulated) {
+              displayedPrice = activeProd.price * (1 + (priceChange || 0) / 100);
+            } else {
+              displayedPrice = activeProd.price;
+            }
+          }
+
+          return (
+            <div key={pld.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
+                <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name === 'historical' ? 'Ventas Históricas' : pld.name === 'forecast' ? 'Demanda Proyectada' : pld.name === 'simulated' ? 'Simulado' : pld.name}:</span>
+                <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
+                  {typeof pld.value === 'number' ? `${pld.value.toLocaleString('es-AR')} un.` : pld.value}
+                </span>
+              </div>
+              
+              {activeProd && displayedPrice && (
+                <div style={{ paddingLeft: '1rem', fontSize: '0.72rem', color: '#38bdf8', opacity: 0.9 }}>
+                  <span>Precio Unitario: {formatCurrency(displayedPrice)}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -730,7 +775,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
         </div>
       </div>
 
-      <div className="card interactive-card" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '1.5rem', padding: '1.25rem', height: '580px', marginBottom: '1.25rem' }}>
+      <div className="card interactive-card" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '1.5rem', padding: '1.25rem', height: '610px', marginBottom: '1.25rem' }}>
 
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1.5rem', overflow: 'hidden' }}>
           <div style={{ marginBottom: '0.85rem' }}>
@@ -885,7 +930,16 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                   padding={{ top: 15, bottom: 15 }}
                   width={65}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={<CustomTooltipCursor />} />
+                <Tooltip 
+                  content={
+                    <CustomTooltip 
+                      selectedProduct={selectedProduct} 
+                      formatCurrency={formatCurrency} 
+                      priceChange={priceChange} 
+                    />
+                  } 
+                  cursor={<CustomTooltipCursor />} 
+                />
 
                 {transitionMonth && (
                   <ReferenceLine
@@ -997,7 +1051,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             </div>
           ) : (
             /* Active Simulator controls */
-            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.35rem', marginTop: '0.5rem' }}>
+            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '0.35rem', marginTop: '0.5rem' }}>
 
               <div>
                 <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '0.35rem' }}>Escenarios</span>
@@ -1033,7 +1087,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div className="slider-group">
                   <div className="slider-label-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
@@ -1155,6 +1209,22 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                   </button>
                 </div>
               )}
+
+              <div style={{
+                marginTop: 'auto',
+                paddingTop: '0.5rem',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                fontSize: '0.7rem',
+                color: '#64748b',
+                lineHeight: '1.3'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#94a3b8', fontWeight: '700', marginBottom: '0.2rem', textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                  <Info size={12} style={{ color: '#0ea5e9' }} /> Variables de Entorno
+                </div>
+                <span style={{ fontSize: '0.68rem', display: 'block', color: '#8892b0' }}>
+                  Factores exógenos (<strong>Clima</strong> / <strong>Feriados</strong>) son predecibles y estacionales, integrándose fijos en la base. Dólar e inflación se habilitan para simular shocks de riesgo país.
+                </span>
+              </div>
             </div>
           )}
         </div>

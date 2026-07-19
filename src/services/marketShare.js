@@ -1,30 +1,91 @@
 
-export const getMarketShareOverview = async () => {
+const generateMarketShareHistory = () => {
+  const history = [];
+  const years = [2024, 2025, 2026];
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  
+  years.forEach(year => {
+    const maxMonth = year === 2026 ? 6 : 12;
+    for (let month = 1; month <= maxMonth; month++) {
+      const factor = 1 + 0.05 * Math.sin((month / 6) * Math.PI) + (Math.sin(year + month) * 0.02);
+      
+      const ourShareBase = 32.5;
+      const compABase = 26.0;
+      const compBBase = 21.0;
+      
+      const ourShare = parseFloat((ourShareBase * factor).toFixed(1));
+      const compA = parseFloat((compABase * (2 - factor)).toFixed(1));
+      const compB = parseFloat((compBBase * (0.95 + 0.05 * Math.sin(month))).toFixed(1));
+      const otros = parseFloat((100 - ourShare - compA - compB).toFixed(1));
+      
+      history.push({
+        month: `${months[month - 1]} ${year.toString().slice(-2)}`, // String label (e.g. "Feb 25")
+        'Nuestra Empresa': ourShare,
+        'Competidor A': compA,
+        'Competidor B': compB,
+        'Otros': otros,
+        year,
+        monthNum: month // Numeric month index (1-12)
+      });
+    }
+  });
+  return history;
+};
+
+const marketShareHistory = generateMarketShareHistory();
+
+export const getMarketShareOverview = async (filters = {}) => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve([
-        { month: 'Ene', 'Nuestra Empresa': 33.2, 'Competidor A': 26.5, 'Competidor B': 21.0, 'Otros': 19.3 },
-        { month: 'Feb', 'Nuestra Empresa': 33.8, 'Competidor A': 26.0, 'Competidor B': 20.8, 'Otros': 19.4 },
-        { month: 'Mar', 'Nuestra Empresa': 34.0, 'Competidor A': 25.8, 'Competidor B': 20.5, 'Otros': 19.7 },
-        { month: 'Abr', 'Nuestra Empresa': 34.2, 'Competidor A': 25.5, 'Competidor B': 20.3, 'Otros': 20.0 },
-        { month: 'May', 'Nuestra Empresa': 34.1, 'Competidor A': 25.4, 'Competidor B': 20.5, 'Otros': 20.0 },
-        { month: 'Jun', 'Nuestra Empresa': 34.5, 'Competidor A': 25.0, 'Competidor B': 20.5, 'Otros': 20.0 }
-      ]);
+      let filtered = marketShareHistory;
+      
+      if (filters.year) {
+        filtered = filtered.filter(item => item.year === parseInt(filters.year));
+      } else if (filters.years && filters.years.length > 0) {
+        const selectedYears = filters.years.map(y => parseInt(y));
+        filtered = filtered.filter(item => selectedYears.includes(item.year));
+      }
+      
+      if (filters.month) {
+        filtered = filtered.filter(item => item.monthNum === parseInt(filters.month));
+      } else if (filters.months && filters.months.length > 0) {
+        const selected = filters.months.map(m => parseInt(m));
+        filtered = filtered.filter(item => selected.includes(item.monthNum));
+      }
+      
+      resolve(filtered);
     }, 450);
   });
 };
 
-export const getPriceGap = async () => {
+export const getPriceGap = async (filters = {}) => {
   return new Promise((resolve) => {
     setTimeout(() => {
+      let yr = 2026;
+      if (filters.year) {
+        yr = parseInt(filters.year);
+      } else if (filters.years && filters.years.length > 0) {
+        yr = parseInt(filters.years[filters.years.length - 1]);
+      }
+      
+      let mo = 6;
+      if (filters.month) {
+        mo = parseInt(filters.month);
+      } else if (filters.months && filters.months.length > 0) {
+        mo = parseInt(filters.months[filters.months.length - 1]);
+      }
+      
+      const seed = yr * 12 + mo;
+      const fluctuation = parseFloat((Math.sin(seed) * 2.2).toFixed(1)); // -2.2% to +2.2%
+      
       resolve([
-        { category: 'Aceites', gap: -3.8 },
-        { category: 'Fideos', gap: 5.2 },
-        { category: 'Arroz', gap: -6.5 },
-        { category: 'Salsas', gap: 8.4 },
-        { category: 'Cervezas', gap: -1.2 },
-        { category: 'Vinos', gap: 12.0 },
-        { category: 'Gaseosas', gap: 2.5 }
+        { category: 'Aceites', gap: parseFloat((-3.8 + fluctuation).toFixed(1)) },
+        { category: 'Fideos', gap: parseFloat((5.2 - fluctuation).toFixed(1)) },
+        { category: 'Arroz', gap: parseFloat((-6.5 + fluctuation * 0.5).toFixed(1)) },
+        { category: 'Salsas', gap: parseFloat((8.4 + fluctuation * 0.8).toFixed(1)) },
+        { category: 'Cervezas', gap: parseFloat((-1.2 - fluctuation).toFixed(1)) },
+        { category: 'Vinos', gap: parseFloat((12.0 + fluctuation * 1.2).toFixed(1)) },
+        { category: 'Gaseosas', gap: parseFloat((2.5 - fluctuation * 0.6).toFixed(1)) }
       ]);
     }, 400);
   });
@@ -33,8 +94,6 @@ export const getPriceGap = async () => {
 export const predictColdStart = async (productData = {}) => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Simula predicción de Cold Start basada en clustering
-      // (ej: si se elije categoría Almacén vs Bebidas, o precio esperado)
       const expectedPrice = parseFloat(productData.expectedPrice || 1000);
       const isPremium = expectedPrice > 5000;
       

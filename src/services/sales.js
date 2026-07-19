@@ -6,23 +6,95 @@ const deptCats = {
   'Cuidado Personal': ['Cabello', 'Higiene', 'Oral']
 };
 
-const allItems = [
-  { sku: 'SKU-001', name: 'Aceite de Girasol', netContent: 1.5, unit: 'lt', category: 'Aceites', brand: 'Vicentin', units: 14200, revenue: 4970000, avgPrice: 350 },
-  { sku: 'SKU-002', name: 'Fideos Tallarín', netContent: 500, unit: 'gr', category: 'Fideos', brand: 'Molinos', units: 28500, revenue: 5700000, avgPrice: 200 },
-  { sku: 'SKU-003', name: 'Arroz Largo Fino', netContent: 1, unit: 'kg', category: 'Arroz', brand: 'Molinos', units: 22100, revenue: 3978000, avgPrice: 180 },
-  { sku: 'SKU-004', name: 'Puré de Tomate', netContent: 520, unit: 'gr', category: 'Salsas', brand: 'Arcor', units: 31000, revenue: 4650000, avgPrice: 150 },
-  { sku: 'SKU-005', name: 'Cerveza Lager Lata', netContent: 473, unit: 'ml', category: 'Cervezas', brand: 'Quilmes', units: 45000, revenue: 11250000, avgPrice: 250 },
-  { sku: 'SKU-006', name: 'Vino Malbec Reserva', netContent: 750, unit: 'ml', category: 'Vinos', brand: 'Otros', units: 8200, revenue: 6560000, avgPrice: 800 },
-  { sku: 'SKU-007', name: 'Gaseosa Cola', netContent: 2.25, unit: 'lt', category: 'Gaseosas', brand: 'Coca-Cola', units: 35600, revenue: 10680000, avgPrice: 300 },
-  { sku: 'SKU-008', name: 'Agua Mineral Sin Gas', netContent: 1.5, unit: 'lt', category: 'Aguas', brand: 'Coca-Cola', units: 18900, revenue: 2835000, avgPrice: 150 },
-  { sku: 'SKU-009', name: 'Jabón Líquido p/Ropa', netContent: 3, unit: 'lt', category: 'Jabón Líquido', brand: 'Unilever', units: 6200, revenue: 7440000, avgPrice: 1200 },
-  { sku: 'SKU-010', name: 'Desinfectante de Ambientes', netContent: 360, unit: 'ml', category: 'Desinfectantes', brand: 'Unilever', units: 12400, revenue: 3720000, avgPrice: 300 },
-  { sku: 'SKU-011', name: 'Suavizante Floral', netContent: 3, unit: 'lt', category: 'Suavizantes', brand: 'Unilever', units: 4500, revenue: 4500000, avgPrice: 1000 },
-  { sku: 'SKU-012', name: 'Limpiador de Pisos', netContent: 1, unit: 'lt', category: 'Limpiadores Multiuso', brand: 'Otros', units: 9800, revenue: 1960000, avgPrice: 200 }
+const baseProducts = [
+  { sku: 'SKU-001', name: 'Aceite de Girasol', netContent: 1.5, unit: 'lt', category: 'Aceites', brand: 'Vicentin', baseUnits: 14200, avgPrice: 350 },
+  { sku: 'SKU-002', name: 'Fideos Tallarín', netContent: 500, unit: 'gr', category: 'Fideos', brand: 'Molinos', baseUnits: 28500, avgPrice: 200 },
+  { sku: 'SKU-003', name: 'Arroz Largo Fino', netContent: 1, unit: 'kg', category: 'Arroz', brand: 'Molinos', baseUnits: 22100, avgPrice: 180 },
+  { sku: 'SKU-004', name: 'Puré de Tomate', netContent: 520, unit: 'gr', category: 'Salsas', brand: 'Arcor', baseUnits: 31000, avgPrice: 150 },
+  { sku: 'SKU-005', name: 'Cerveza Lager Lata', netContent: 473, unit: 'ml', category: 'Cervezas', brand: 'Quilmes', baseUnits: 45000, avgPrice: 250 },
+  { sku: 'SKU-006', name: 'Vino Malbec Reserva', netContent: 750, unit: 'ml', category: 'Vinos', brand: 'Otros', baseUnits: 8200, avgPrice: 800 },
+  { sku: 'SKU-007', name: 'Gaseosa Cola', netContent: 2.25, unit: 'lt', category: 'Gaseosas', brand: 'Coca-Cola', baseUnits: 35600, avgPrice: 300 },
+  { sku: 'SKU-008', name: 'Agua Mineral Sin Gas', netContent: 1.5, unit: 'lt', category: 'Aguas', brand: 'Coca-Cola', baseUnits: 18900, avgPrice: 150 },
+  { sku: 'SKU-009', name: 'Jabón Líquido p/Ropa', netContent: 3, unit: 'lt', category: 'Jabón Líquido', brand: 'Unilever', baseUnits: 6200, avgPrice: 1200 },
+  { sku: 'SKU-010', name: 'Desinfectante de Ambientes', netContent: 360, unit: 'ml', category: 'Desinfectantes', brand: 'Unilever', baseUnits: 12400, avgPrice: 300 },
+  { sku: 'SKU-011', name: 'Suavizante Floral', netContent: 3, unit: 'lt', category: 'Suavizantes', brand: 'Unilever', baseUnits: 4500, avgPrice: 1000 },
+  { sku: 'SKU-012', name: 'Limpiador de Pisos', netContent: 1, unit: 'lt', category: 'Limpiadores Multiuso', brand: 'Otros', baseUnits: 9800, avgPrice: 200 }
 ];
 
+const generateSalesHistory = () => {
+  const history = [];
+  const years = [2024, 2025, 2026];
+  
+  years.forEach(year => {
+    const maxMonth = year === 2026 ? 6 : 12;
+    for (let month = 1; month <= maxMonth; month++) {
+      baseProducts.forEach(prod => {
+        const seasonality = 1 + 0.15 * Math.sin((month / 12) * 2 * Math.PI);
+        const randomNoise = 0.9 + (Math.sin(month + year) * 0.05) + (month % 3 === 0 ? 0.05 : -0.05); // pseudo-random stable
+        const units = Math.round(prod.baseUnits * seasonality * randomNoise);
+        const revenue = units * prod.avgPrice;
+        
+        history.push({
+          sku: prod.sku,
+          name: prod.name,
+          netContent: prod.netContent,
+          unit: prod.unit,
+          category: prod.category,
+          brand: prod.brand,
+          units,
+          revenue,
+          avgPrice: prod.avgPrice,
+          year,
+          month
+        });
+      });
+    }
+  });
+  return history;
+};
+
+const allSalesRecords = generateSalesHistory();
+
 const getFilteredItems = (filters = {}) => {
-  let filtered = allItems;
+  let records = allSalesRecords;
+  
+  if (filters.year) {
+    records = records.filter(item => item.year === parseInt(filters.year));
+  } else if (filters.years && filters.years.length > 0) {
+    const selectedYears = filters.years.map(y => parseInt(y));
+    records = records.filter(item => selectedYears.includes(item.year));
+  }
+  
+  if (filters.month) {
+    records = records.filter(item => item.month === parseInt(filters.month));
+  } else if (filters.months && filters.months.length > 0) {
+    const selectedMonths = filters.months.map(m => parseInt(m));
+    records = records.filter(item => selectedMonths.includes(item.month));
+  }
+  
+  const skuMap = {};
+  records.forEach(item => {
+    if (!skuMap[item.sku]) {
+      skuMap[item.sku] = {
+        sku: item.sku,
+        name: item.name,
+        netContent: item.netContent,
+        unit: item.unit,
+        category: item.category,
+        brand: item.brand,
+        units: 0,
+        revenue: 0,
+        avgPrice: item.avgPrice
+      };
+    }
+    skuMap[item.sku].units += item.units;
+    skuMap[item.sku].revenue += item.revenue;
+  });
+  
+  let filtered = Object.values(skuMap).map(item => ({
+    ...item,
+    avgPrice: item.units > 0 ? Math.round(item.revenue / item.units) : item.avgPrice
+  }));
   
   if (filters.search) {
     const q = filters.search.toLowerCase();
@@ -63,7 +135,22 @@ export const getSalesFilters = async () => {
       resolve({
         departments: ['Alimentos', 'Bebidas', 'Limpieza', 'Cuidado Personal'],
         categories: deptCats,
-        brands: ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros']
+        brands: ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'],
+        years: [2024, 2025, 2026],
+        months: [
+          { value: 1, label: 'Enero' },
+          { value: 2, label: 'Febrero' },
+          { value: 3, label: 'Marzo' },
+          { value: 4, label: 'Abril' },
+          { value: 5, label: 'Mayo' },
+          { value: 6, label: 'Junio' },
+          { value: 7, label: 'Julio' },
+          { value: 8, label: 'Agosto' },
+          { value: 9, label: 'Septiembre' },
+          { value: 10, label: 'Octubre' },
+          { value: 11, label: 'Noviembre' },
+          { value: 12, label: 'Diciembre' }
+        ]
       });
     }, 300);
   });
@@ -76,17 +163,12 @@ export const getSalesSummary = async (filters = {}) => {
       const totalRevenue = filtered.reduce((acc, item) => acc + item.revenue, 0);
       const totalUnits = filtered.reduce((acc, item) => acc + item.units, 0);
       
-      let baseMargin = 28.4;
-      if (filters.brand === 'Unilever') baseMargin = 31.2;
-      if (filters.brand === 'Molinos') baseMargin = 26.8;
-      if (filters.brand === 'Quilmes') baseMargin = 27.5;
-      if (filters.department === 'Limpieza') baseMargin = 29.8;
-      if (filtered.length === 0) baseMargin = 0;
+      const averagePrice = totalUnits > 0 ? parseFloat((totalRevenue / totalUnits).toFixed(1)) : 0;
       
       resolve({
         totalRevenue,
         totalUnits,
-        averageMargin: parseFloat(baseMargin.toFixed(1))
+        averagePrice
       });
     }, 400);
   });

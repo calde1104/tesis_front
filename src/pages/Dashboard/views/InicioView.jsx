@@ -181,10 +181,10 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           </div>
         </div>
 
-        <div className="card kpi-card clickable-card" onClick={() => setActiveTab('sales')}>
+        <div className="card kpi-card clickable-card" onClick={() => setActiveTab('market')}>
           <div className="kpi-header">
             <span className="kpi-label">{kpis.margin.label}</span>
-            <Target size={18} className="kpi-icon" />
+            <Layers size={18} className="kpi-icon" />
           </div>
           <div className="kpi-value">
             {kpis.margin.value}%

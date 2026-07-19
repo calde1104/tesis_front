@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Award, DollarSign, Activity, Building2, TrendingUp, TrendingDown, GlassWater, Utensils, Droplet, Folder } from 'lucide-react';
+import { Loader2, Award, DollarSign, Activity, Building2, TrendingUp, TrendingDown, GlassWater, Utensils, Droplet, Folder, X } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
@@ -61,7 +61,7 @@ const marketCompetitivenessData = [
   { category: 'Aguas', ourShare: 31.0, leaderShare: 'Competidor A (33.5%)', priceGap: -1.5, status: 'Desafiante', trend: 'up' }
 ];
 
-const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down' }) => {
+const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down', isMulti = false }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,46 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
     return () => window.removeEventListener('click', handleClose);
   }, [isOpen]);
 
-  const selectedOptionLabel = options.find(opt => opt.value === value)?.label || placeholder;
+  let selectedOptionLabel = placeholder;
+  if (isMulti) {
+    if (Array.isArray(value) && value.length > 0) {
+      const numericSelectedCount = value.filter(val => val !== '').length;
+      const totalNumericCount = options.filter(opt => opt.value !== '').length;
+      
+      if (numericSelectedCount === totalNumericCount) {
+        selectedOptionLabel = placeholder;
+      } else {
+        selectedOptionLabel = value
+          .map(val => options.find(opt => opt.value.toString() === val.toString())?.label)
+          .filter(Boolean)
+          .join(', ');
+      }
+    } else {
+      selectedOptionLabel = placeholder;
+    }
+  } else {
+    selectedOptionLabel = options.find(opt => opt.value === value)?.label || placeholder;
+  }
+
+  const handleOptionClick = (optVal) => {
+    if (isMulti) {
+      let newValue;
+      if (optVal === '') {
+        newValue = [];
+      } else {
+        const exist = value.includes(optVal);
+        if (exist) {
+          newValue = value.filter(v => v !== optVal);
+        } else {
+          newValue = [...value, optVal];
+        }
+      }
+      onChange({ target: { value: newValue } });
+    } else {
+      onChange({ target: { value: optVal } });
+      setIsOpen(false);
+    }
+  };
 
   return (
     <div className="filter-group" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -90,12 +129,14 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          height: '38px',
+          boxSizing: 'border-box',
           transition: 'all 0.2s ease',
           userSelect: 'none',
           boxShadow: isOpen ? '0 0 12px rgba(14, 165, 233, 0.45)' : 'none'
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedOptionLabel}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85%' }}>{selectedOptionLabel}</span>
         <span style={{
           fontSize: '0.6rem',
           color: '#64748b',
@@ -127,41 +168,57 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
           }}
         >
-          {options.map((opt) => (
-            <div
-              key={opt.value}
-              onClick={() => {
-                onChange({ target: { value: opt.value } });
-                setIsOpen(false);
-              }}
-              style={{
-                padding: '0.5rem 0.75rem',
-                fontSize: '0.82rem',
-                color: value === opt.value ? '#38bdf8' : '#cbd5e1',
-                background: value === opt.value ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                userSelect: 'none',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                if (value !== opt.value) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                  e.currentTarget.style.color = '#f8fafc';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (value !== opt.value) {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#cbd5e1';
-                }
-              }}
-            >
-              {opt.label}
-            </div>
-          ))}
+          {options.map((opt) => {
+            const isChecked = isMulti
+              ? (opt.value === '' ? (!value || value.length === 0) : value.includes(opt.value))
+              : value === opt.value;
+
+            return (
+              <div
+                key={opt.value}
+                onClick={() => handleOptionClick(opt.value)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.82rem',
+                  color: isChecked ? '#38bdf8' : '#cbd5e1',
+                  background: isChecked ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  userSelect: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isChecked) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    e.currentTarget.style.color = '#f8fafc';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isChecked) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#cbd5e1';
+                  }
+                }}
+              >
+                {isMulti && (
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    style={{
+                      accentColor: '#38bdf8',
+                      cursor: 'pointer'
+                    }}
+                  />
+                )}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {opt.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -176,22 +233,34 @@ const MarketView = () => {
   const [department, setDepartment] = useState('');
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
+  const [years, setYears] = useState([]);
+  const [months, setMonths] = useState([]);
   const [filterOptions, setFilterOptions] = useState(null);
 
   useEffect(() => {
+    const fetchFilters = async () => {
+      const filters = await getSalesFilters();
+      setFilterOptions(filters);
+    };
+    fetchFilters();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
-      const [shareRes, priceRes, filtersRes] = await Promise.all([
-        getMarketShareOverview(),
-        getPriceGap(),
-        getSalesFilters()
+      const [shareRes, priceRes] = await Promise.all([
+        getMarketShareOverview({ department, category, brand, years, months }),
+        getPriceGap({ department, category, brand, years, months })
       ]);
-      setShareData(shareRes);
-      setPriceGap(priceRes);
-      setFilterOptions(filtersRes);
-      setLoading(false);
+      if (isMounted) {
+        setShareData(shareRes);
+        setPriceGap(priceRes);
+        setLoading(false);
+      }
     };
     fetchData();
-  }, []);
+    return () => { isMounted = false; };
+  }, [department, category, brand, years, months]);
 
   const handleDepartmentChange = (e) => {
     const val = e.target.value;
@@ -251,6 +320,22 @@ const MarketView = () => {
     }
   };
 
+  const handleYearsChange = (e) => {
+    setYears(e.target.value);
+  };
+
+  const handleMonthsChange = (e) => {
+    setMonths(e.target.value);
+  };
+
+  const handleClearFilters = () => {
+    setDepartment('');
+    setCategory('');
+    setBrand('');
+    setYears([]);
+    setMonths([]);
+  };
+
   const deptOptions = [
     { value: '', label: 'Todos los departamentos' },
     ...(filterOptions?.departments?.map(d => ({ value: d, label: d })) || [])
@@ -301,11 +386,21 @@ const MarketView = () => {
 
   const getPriceGapChartData = () => {
     if (category) {
+      let yr = 2026;
+      if (years && years.length > 0) {
+        yr = parseInt(years[years.length - 1]);
+      }
+      let mo = 6;
+      if (months && months.length > 0) {
+        mo = parseInt(months[months.length - 1]);
+      }
+      const seed = yr * 12 + mo;
+      const fluctuation = parseFloat((Math.sin(seed) * 1.5).toFixed(1));
       return [
         { category: 'Nosotros', gap: 0 },
-        { category: 'Comp. A', gap: category === 'Gaseosas' ? -4.2 : 5.8 },
-        { category: 'Comp. B', gap: category === 'Gaseosas' ? -10.5 : -3.4 },
-        { category: 'Otros', gap: -8.0 }
+        { category: 'Comp. A', gap: category === 'Gaseosas' ? parseFloat((-4.2 + fluctuation).toFixed(1)) : parseFloat((5.8 - fluctuation).toFixed(1)) },
+        { category: 'Comp. B', gap: category === 'Gaseosas' ? parseFloat((-10.5 - fluctuation).toFixed(1)) : parseFloat((-3.4 + fluctuation).toFixed(1)) },
+        { category: 'Otros', gap: parseFloat((-8.0 + fluctuation * 0.5).toFixed(1)) }
       ];
     }
     if (department) {
@@ -321,28 +416,51 @@ const MarketView = () => {
   };
 
   const getCompetitivenessTableData = () => {
+    let yr = 2026;
+    if (years && years.length > 0) {
+      yr = parseInt(years[years.length - 1]);
+    }
+    let mo = 6;
+    if (months && months.length > 0) {
+      mo = parseInt(months[months.length - 1]);
+    }
+    const seed = yr * 12 + mo;
+    const fluctuation = parseFloat((Math.sin(seed) * 1.2).toFixed(1));
+    const priceGapFluct = parseFloat((Math.cos(seed) * 0.9).toFixed(1));
+
+    const baseTableData = [
+      { category: 'Aceites', ourShare: parseFloat((33.5 + fluctuation).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-3.8 + priceGapFluct).toFixed(1)), status: 'Líder', trend: fluctuation >= 0 ? 'up' : 'down' },
+      { category: 'Fideos', ourShare: parseFloat((28.0 - fluctuation * 0.6).toFixed(1)), leaderShare: 'Competidor A (31.2%)', priceGap: parseFloat((5.2 - priceGapFluct).toFixed(1)), status: 'Seguidor', trend: fluctuation < 0 ? 'up' : 'down' },
+      { category: 'Arroz', ourShare: parseFloat((36.5 + fluctuation * 0.4).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-6.5 + priceGapFluct * 0.5).toFixed(1)), status: 'Líder', trend: fluctuation >= 0 ? 'up' : 'down' },
+      { category: 'Salsas', ourShare: parseFloat((22.4 - fluctuation * 0.3).toFixed(1)), leaderShare: 'Competidor B (29.0%)', priceGap: parseFloat((8.4 + priceGapFluct * 0.8).toFixed(1)), status: 'Desafiante', trend: fluctuation < 0 ? 'up' : 'down' },
+      { category: 'Cervezas', ourShare: parseFloat((42.0 + fluctuation * 1.5).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-1.2 - priceGapFluct).toFixed(1)), status: 'Líder', trend: fluctuation >= 0 ? 'up' : 'down' },
+      { category: 'Vinos', ourShare: parseFloat((19.8 - fluctuation * 0.8).toFixed(1)), leaderShare: 'Competidor A (34.0%)', priceGap: parseFloat((12.0 + priceGapFluct * 1.2).toFixed(1)), status: 'Seguidor', trend: fluctuation < 0 ? 'up' : 'down' },
+      { category: 'Gaseosas', ourShare: parseFloat((34.5 + fluctuation * 0.5).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((2.5 - priceGapFluct * 0.6).toFixed(1)), status: 'Líder', trend: 'stable' },
+      { category: 'Aguas', ourShare: parseFloat((31.0 - fluctuation * 0.2).toFixed(1)), leaderShare: 'Competidor A (33.5%)', priceGap: parseFloat((-1.5 + priceGapFluct * 0.4).toFixed(1)), status: 'Desafiante', trend: fluctuation >= 0 ? 'up' : 'down' }
+    ];
+
     if (category) {
       if (category === 'Gaseosas') {
         return [
-          { name: 'Coca-Cola (Nosotros)', ourShare: 34.5, leaderShare: 'Nuestra Empresa', priceGap: 2.5, status: 'Líder', trend: 'stable', isBrand: true },
-          { name: 'Competidor A (Pepsi)', ourShare: 28.0, leaderShare: 'Nuestra Empresa', priceGap: -1.8, status: 'Desafiante', trend: 'up', isBrand: true },
-          { name: 'Competidor B (Manaos)', ourShare: 20.5, leaderShare: 'Nuestra Empresa', priceGap: -10.5, status: 'Seguidor', trend: 'down', isBrand: true },
-          { name: 'Otros', ourShare: 17.0, leaderShare: 'Nuestra Empresa', priceGap: -12.4, status: 'Seguidor', trend: 'stable', isBrand: true }
+          { name: 'Coca-Cola (Nosotros)', ourShare: parseFloat((34.5 + fluctuation * 0.5).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((2.5 - priceGapFluct * 0.6).toFixed(1)), status: 'Líder', trend: 'stable', isBrand: true },
+          { name: 'Competidor A (Pepsi)', ourShare: parseFloat((28.0 - fluctuation * 0.2).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-1.8 + priceGapFluct * 0.4).toFixed(1)), status: 'Desafiante', trend: fluctuation >= 0 ? 'up' : 'down', isBrand: true },
+          { name: 'Competidor B (Manaos)', ourShare: parseFloat((20.5 - fluctuation * 0.3).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-10.5 - priceGapFluct).toFixed(1)), status: 'Seguidor', trend: fluctuation < 0 ? 'up' : 'down', isBrand: true },
+          { name: 'Otros', ourShare: parseFloat((17.0).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-12.4 + priceGapFluct * 0.2).toFixed(1)), status: 'Seguidor', trend: 'stable', isBrand: true }
         ];
       }
       if (category === 'Aceites') {
         return [
-          { name: 'Nuestra Empresa (Natura)', ourShare: 33.5, leaderShare: 'Nuestra Empresa', priceGap: -3.8, status: 'Líder', trend: 'up', isBrand: true },
-          { name: 'Competidor A (Cañuelas)', ourShare: 31.0, leaderShare: 'Nuestra Empresa', priceGap: 2.5, status: 'Desafiante', trend: 'stable', isBrand: true },
-          { name: 'Competidor B (Cocinero)', ourShare: 20.0, leaderShare: 'Nuestra Empresa', priceGap: 6.2, status: 'Seguidor', trend: 'down', isBrand: true },
-          { name: 'Otros', ourShare: 15.5, leaderShare: 'Nuestra Empresa', priceGap: -8.0, status: 'Seguidor', trend: 'up', isBrand: true }
+          { name: 'Nuestra Empresa (Natura)', ourShare: parseFloat((33.5 + fluctuation).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-3.8 + priceGapFluct).toFixed(1)), status: 'Líder', trend: fluctuation >= 0 ? 'up' : 'down', isBrand: true },
+          { name: 'Competidor A (Cañuelas)', ourShare: parseFloat((31.0 - fluctuation * 0.4).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((2.5 - priceGapFluct * 0.5).toFixed(1)), status: 'Desafiante', trend: 'stable', isBrand: true },
+          { name: 'Competidor B (Cocinero)', ourShare: parseFloat((20.0 - fluctuation * 0.3).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((6.2 + priceGapFluct * 0.8).toFixed(1)), status: 'Seguidor', trend: fluctuation < 0 ? 'up' : 'down', isBrand: true },
+          { name: 'Otros', ourShare: parseFloat((15.5 - fluctuation * 0.3).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-8.0 - priceGapFluct * 0.4).toFixed(1)), status: 'Seguidor', trend: fluctuation >= 0 ? 'up' : 'down', isBrand: true }
         ];
       }
       return [
-        { name: 'Nuestra Empresa', ourShare: category === 'Arroz' ? 36.5 : category === 'Cervezas' ? 42.0 : 25.0, leaderShare: 'Nuestra Empresa', priceGap: -2.0, status: 'Líder', trend: 'up', isBrand: true },
-        { name: 'Competidor A', ourShare: 30.0, leaderShare: 'Nuestra Empresa', priceGap: 4.5, status: 'Desafiante', trend: 'stable', isBrand: true },
-        { name: 'Competidor B', ourShare: 25.0, leaderShare: 'Nuestra Empresa', priceGap: -6.0, status: 'Seguidor', trend: 'down', isBrand: true },
-        { name: 'Otros', ourShare: 10.0, leaderShare: 'Nuestra Empresa', priceGap: -8.5, status: 'Seguidor', trend: 'stable', isBrand: true }
+        { name: 'Nuestra Empresa', ourShare: category === 'Arroz' ? parseFloat((36.5 + fluctuation * 0.4).toFixed(1)) : category === 'Cervezas' ? parseFloat((42.0 + fluctuation * 1.5).toFixed(1)) : parseFloat((25.0).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-2.0 - priceGapFluct * 0.5).toFixed(1)), status: 'Líder', trend: fluctuation >= 0 ? 'up' : 'down', isBrand: true },
+        { name: 'Competidor A', ourShare: parseFloat((30.0 - fluctuation * 0.3).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((4.5 + priceGapFluct * 0.4).toFixed(1)), status: 'Desafiante', trend: 'stable', isBrand: true },
+        { name: 'Competidor B', ourShare: parseFloat((25.0 - fluctuation * 0.4).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-6.0 - priceGapFluct * 0.3).toFixed(1)), status: 'Seguidor', trend: fluctuation < 0 ? 'up' : 'down', isBrand: true },
+        { name: 'Otros', ourShare: parseFloat((10.0 + fluctuation * 0.3).toFixed(1)), leaderShare: 'Nuestra Empresa', priceGap: parseFloat((-8.5 + priceGapFluct * 0.2).toFixed(1)), status: 'Seguidor', trend: 'stable', isBrand: true }
       ];
     }
 
@@ -353,39 +471,50 @@ const MarketView = () => {
         'Limpieza': ['Jabón Líquido', 'Suavizantes', 'Desinfectantes'],
         'Cuidado Personal': []
       }[department] || [];
-      return marketCompetitivenessData.filter(item => allowedCats.includes(item.category));
+      return baseTableData.filter(item => allowedCats.includes(item.category));
     }
-    return marketCompetitivenessData;
+    return baseTableData;
   };
 
   const getRankingData = () => {
+    let yr = 2026;
+    if (years && years.length > 0) {
+      yr = parseInt(years[years.length - 1]);
+    }
+    let mo = 6;
+    if (months && months.length > 0) {
+      mo = parseInt(months[months.length - 1]);
+    }
+    const seed = yr * 12 + mo;
+    const fluctuation = parseFloat((Math.sin(seed) * 0.8).toFixed(1));
+
     let base = [
-      { name: 'Nuestra Empresa', share: 34.5, color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
-      { name: 'Competidor A', share: 25.0, color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
-      { name: 'Competidor B', share: 20.5, color: '#64748b', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
-      { name: 'Otros', share: 20.0, color: '#475569', icon: null }
+      { name: 'Nuestra Empresa', share: parseFloat((32.8 + fluctuation).toFixed(1)), color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
+      { name: 'Competidor A', share: parseFloat((25.5 - fluctuation * 0.4).toFixed(1)), color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
+      { name: 'Competidor B', share: parseFloat((22.0 - fluctuation * 0.3).toFixed(1)), color: '#64748b', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
+      { name: 'Otros', share: parseFloat((19.7 - fluctuation * 0.3).toFixed(1)), color: '#475569', icon: null }
     ];
 
     if (category === 'Cervezas') {
       base = [
-        { name: 'Nuestra Empresa', share: 42.0, color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
-        { name: 'Competidor A (Quilmes)', share: 35.0, color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
-        { name: 'Competidor B', share: 15.0, color: '#64748b', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
-        { name: 'Otros', share: 8.0, color: '#475569', icon: null }
+        { name: 'Nuestra Empresa', share: parseFloat((38.5 + fluctuation * 1.1).toFixed(1)), color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
+        { name: 'Competidor A (Quilmes)', share: parseFloat((36.0 - fluctuation * 0.5).toFixed(1)), color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
+        { name: 'Competidor B', share: parseFloat((15.5 - fluctuation * 0.3).toFixed(1)), color: '#64748b', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
+        { name: 'Otros', share: parseFloat((10.0 - fluctuation * 0.3).toFixed(1)), color: '#475569', icon: null }
       ];
     } else if (category === 'Vinos') {
       base = [
-        { name: 'Competidor A', share: 34.0, color: '#cbd5e1', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
-        { name: 'Competidor B', share: 25.0, color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
-        { name: 'Nuestra Empresa', share: 19.8, color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
-        { name: 'Otros', share: 21.2, color: '#475569', icon: null }
+        { name: 'Competidor A', share: parseFloat((32.0 - fluctuation * 0.5).toFixed(1)), color: '#cbd5e1', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
+        { name: 'Competidor B', share: parseFloat((26.5 - fluctuation * 0.3).toFixed(1)), color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
+        { name: 'Nuestra Empresa', share: parseFloat((21.5 + fluctuation).toFixed(1)), color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
+        { name: 'Otros', share: parseFloat((20.0 - fluctuation * 0.2).toFixed(1)), color: '#475569', icon: null }
       ];
     } else if (department === 'Limpieza') {
       base = [
-        { name: 'Nuestra Empresa', share: 45.0, color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
-        { name: 'Competidor A (Unilever)', share: 30.0, color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
-        { name: 'Competidor B', share: 15.0, color: '#64748b', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
-        { name: 'Otros', share: 10.0, color: '#475569', icon: null }
+        { name: 'Nuestra Empresa', share: parseFloat((41.2 + fluctuation * 1.2).toFixed(1)), color: 'linear-gradient(90deg, #0284c7, #38bdf8)', icon: <Award size={14} style={{ color: '#38bdf8' }} /> },
+        { name: 'Competidor A (Unilever)', share: parseFloat((32.5 - fluctuation * 0.6).toFixed(1)), color: '#94a3b8', icon: <Building2 size={14} style={{ color: '#cbd5e1' }} /> },
+        { name: 'Competidor B', share: parseFloat((16.0 - fluctuation * 0.3).toFixed(1)), color: '#64748b', icon: <Building2 size={14} style={{ color: '#94a3b8' }} /> },
+        { name: 'Otros', share: parseFloat((10.3 - fluctuation * 0.3).toFixed(1)), color: '#475569', icon: null }
       ];
     }
 
@@ -433,13 +562,67 @@ const MarketView = () => {
       padding: '0 0.5rem 0.5rem 0.5rem'
     }}>
 
-      <div className="card filters-card" style={{ padding: '0.85rem 1.25rem', marginBottom: 0 }}>
+      <div className="card filters-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '0.85rem 1.25rem', marginBottom: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Filtros de Búsqueda</h3>
+          {(department || category || brand || years.length > 0 || months.length > 0) && (
+            <button 
+              className="btn-secondary" 
+              onClick={handleClearFilters}
+              style={{
+                padding: '0.35rem 0.75rem',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                borderRadius: '6px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#f87171',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+              }}
+            >
+              <X size={14} /> Limpiar Filtros
+            </button>
+          )}
+        </div>
         <div className="filters-grid" style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: '1.5rem',
+          gridTemplateColumns: 'repeat(5, 1fr)', 
+          gap: '1rem',
           alignItems: 'center'
         }}>
+          <CustomSelect
+            label="Año"
+            isMulti={true}
+            value={years}
+            onChange={handleYearsChange}
+            placeholder="Todos los Años"
+            options={[
+              { value: '', label: 'Todos los Años' },
+              ...(filterOptions?.years.map(yr => ({ value: yr.toString(), label: yr.toString() })) || [])
+            ]}
+          />
+          <CustomSelect
+            label="Mes"
+            isMulti={true}
+            value={months}
+            onChange={handleMonthsChange}
+            placeholder="Todos los Meses"
+            options={[
+              { value: '', label: 'Todos los Meses' },
+              ...(filterOptions?.months.map(m => ({ value: m.value.toString(), label: m.label })) || [])
+            ]}
+          />
           <CustomSelect
             label="Departamento"
             value={department}
@@ -528,11 +711,11 @@ const MarketView = () => {
 
           <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', flex: 1, minHeight: 0 }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Participación del Canal</h3>
-              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Ranking consolidado de competidores en el mercado</p>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Share of Assortment (SOA)</h3>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Distribución de referencias (SKUs) en el catálogo total del mercado</p>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', marginTop: '0.5rem', flex: 1, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.85rem' }}>
               {currentRankingData.map((item, idx) => (
                 <div key={item.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: item.name.includes('Nuestra') ? '700' : '400' }}>
@@ -547,6 +730,25 @@ const MarketView = () => {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div style={{
+              marginTop: 'auto',
+              background: 'rgba(14, 165, 233, 0.03)',
+              border: '1px dashed rgba(14, 165, 233, 0.2)',
+              borderRadius: '8px',
+              padding: '0.75rem',
+              fontSize: '0.72rem',
+              color: '#cbd5e1',
+              lineHeight: '1.4'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', fontWeight: '700', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Award size={13} />
+                Insight de Surtido
+              </div>
+              <span>
+                Nuestra Empresa posee un <strong>{currentRankingData.find(d => d.name.includes('Nuestra'))?.share || 32.8}%</strong> de presencia en el total de referencias activas del catálogo (SOA). Se recomienda {category === 'Vinos' || (currentRankingData[0] && currentRankingData[0].name.includes('Competidor A')) ? 'fortalecer la introducción de nuevas variantes en los segmentos donde los competidores lideran en cantidad de ítems.' : 'mantener el plan de lanzamiento de nuevos SKUs para sostener este liderazgo frente a Competidor A.'}
+              </span>
             </div>
           </div>
 

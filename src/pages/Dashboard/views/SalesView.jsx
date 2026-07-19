@@ -25,7 +25,7 @@ const categoryBrands = {
 };
 
 // Componente selector personalizado para evitar barras de desplazamiento estándar
-const CustomSelect = ({ label, value, onChange, options, placeholder }) => {
+const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down', isMulti = false }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -36,33 +36,74 @@ const CustomSelect = ({ label, value, onChange, options, placeholder }) => {
     return () => window.removeEventListener('click', handleClose);
   }, [isOpen]);
 
-  const selectedOptionLabel = options.find(opt => opt.value === value)?.label || placeholder;
+  let selectedOptionLabel = placeholder;
+  if (isMulti) {
+    if (Array.isArray(value) && value.length > 0) {
+      const numericSelectedCount = value.filter(val => val !== '').length;
+      const totalNumericCount = options.filter(opt => opt.value !== '').length;
+      
+      if (numericSelectedCount === totalNumericCount) {
+        selectedOptionLabel = placeholder;
+      } else {
+        selectedOptionLabel = value
+          .map(val => options.find(opt => opt.value.toString() === val.toString())?.label)
+          .filter(Boolean)
+          .join(', ');
+      }
+    } else {
+      selectedOptionLabel = placeholder;
+    }
+  } else {
+    selectedOptionLabel = options.find(opt => opt.value === value)?.label || placeholder;
+  }
+
+  const handleOptionClick = (optVal) => {
+    if (isMulti) {
+      let newValue;
+      if (optVal === '') {
+        newValue = [];
+      } else {
+        const exist = value.includes(optVal);
+        if (exist) {
+          newValue = value.filter(v => v !== optVal);
+        } else {
+          newValue = [...value, optVal];
+        }
+      }
+      onChange({ target: { value: newValue } });
+    } else {
+      onChange({ target: { value: optVal } });
+      setIsOpen(false);
+    }
+  };
 
   return (
     <div className="filter-group" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-      <label>{label}</label>
-      <div 
+      <label style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>{label}</label>
+      <div
         onClick={() => setIsOpen(!isOpen)}
         style={{
           background: 'rgba(15, 23, 42, 0.6)',
           border: `1px solid ${isOpen ? '#0ea5e9' : 'rgba(255, 255, 255, 0.1)'}`,
           borderRadius: '8px',
           color: '#f8fafc',
-          padding: '0.6rem 0.8rem',
-          fontSize: '0.9rem',
+          padding: '0.55rem 0.75rem',
+          fontSize: '0.85rem',
           cursor: 'pointer',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          height: '38px',
+          boxSizing: 'border-box',
           transition: 'all 0.2s ease',
           userSelect: 'none',
           boxShadow: isOpen ? '0 0 12px rgba(14, 165, 233, 0.45)' : 'none'
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedOptionLabel}</span>
-        <span style={{ 
-          fontSize: '0.65rem', 
-          color: '#64748b', 
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85%' }}>{selectedOptionLabel}</span>
+        <span style={{
+          fontSize: '0.6rem',
+          color: '#64748b',
           transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
           transition: 'transform 0.2s ease'
         }}>
@@ -71,59 +112,77 @@ const CustomSelect = ({ label, value, onChange, options, placeholder }) => {
       </div>
 
       {isOpen && (
-        <div 
+        <div
           className="custom-scrollbar"
           style={{
             position: 'absolute',
-            top: '100%',
+            bottom: direction === 'up' ? '100%' : undefined,
+            top: direction === 'down' ? '100%' : undefined,
             left: 0,
             right: 0,
-            marginTop: '0.35rem',
+            marginBottom: direction === 'up' ? '0.35rem' : undefined,
+            marginTop: direction === 'down' ? '0.35rem' : undefined,
             background: 'rgba(15, 23, 42, 0.95)',
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '8px',
-            maxHeight: '220px',
+            maxHeight: '200px',
             overflowY: 'auto',
             zIndex: 100,
             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
           }}
         >
-          {options.map((opt) => (
-            <div
-              key={opt.value}
-              onClick={() => {
-                onChange({ target: { value: opt.value } });
-                setIsOpen(false);
-              }}
-              style={{
-                padding: '0.55rem 0.8rem',
-                fontSize: '0.88rem',
-                color: value === opt.value ? '#38bdf8' : '#cbd5e1',
-                background: value === opt.value ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                userSelect: 'none',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                if (value !== opt.value) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                  e.currentTarget.style.color = '#f8fafc';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (value !== opt.value) {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#cbd5e1';
-                }
-              }}
-            >
-              {opt.label}
-            </div>
-          ))}
+          {options.map((opt) => {
+            const isChecked = isMulti
+              ? (opt.value === '' ? (!value || value.length === 0) : value.includes(opt.value))
+              : value === opt.value;
+
+            return (
+              <div
+                key={opt.value}
+                onClick={() => handleOptionClick(opt.value)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.82rem',
+                  color: isChecked ? '#38bdf8' : '#cbd5e1',
+                  background: isChecked ? 'rgba(14, 165, 233, 0.1)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  userSelect: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isChecked) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                    e.currentTarget.style.color = '#f8fafc';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isChecked) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#cbd5e1';
+                  }
+                }}
+              >
+                {isMulti && (
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    style={{
+                      accentColor: '#38bdf8',
+                      cursor: 'pointer'
+                    }}
+                  />
+                )}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {opt.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -136,6 +195,8 @@ const SalesView = ({ formatCurrency }) => {
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
   const [search, setSearch] = useState('');
+  const [years, setYears] = useState([]);
+  const [months, setMonths] = useState([]);
   
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -164,18 +225,18 @@ const SalesView = ({ formatCurrency }) => {
   useEffect(() => {
     const fetchSummary = async () => {
       setLoadingSummary(true);
-      const res = await getSalesSummary({ department, category, brand, search });
+      const res = await getSalesSummary({ department, category, brand, search, years, months });
       setSummary(res);
       setLoadingSummary(false);
     };
 
     fetchSummary();
-  }, [department, category, brand, search]);
+  }, [department, category, brand, search, years, months]);
 
   useEffect(() => {
     const fetchSales = async () => {
       setLoadingTable(true);
-      const res = await getSalesList({ department, category, brand, search, sortBy, sortOrder }, page, 8);
+      const res = await getSalesList({ department, category, brand, search, sortBy, sortOrder, years, months }, page, 8);
       setSalesData(res.data);
       setTotalPages(res.totalPages);
       setTotalItems(res.totalItems);
@@ -183,7 +244,7 @@ const SalesView = ({ formatCurrency }) => {
     };
 
     fetchSales();
-  }, [department, category, brand, search, sortBy, sortOrder, page]);
+  }, [department, category, brand, search, sortBy, sortOrder, page, years, months]);
 
   const handleDepartmentChange = (e) => {
     const nextDept = e.target.value;
@@ -227,6 +288,16 @@ const SalesView = ({ formatCurrency }) => {
     setPage(1);
   };
 
+  const handleYearsChange = (e) => {
+    setYears(e.target.value);
+    setPage(1);
+  };
+
+  const handleMonthsChange = (e) => {
+    setMonths(e.target.value);
+    setPage(1);
+  };
+
   const handleSort = (field) => {
     if (sortBy === field) {
       if (sortOrder === 'desc') {
@@ -247,6 +318,8 @@ const SalesView = ({ formatCurrency }) => {
     setDepartment('');
     setCategory('');
     setBrand('');
+    setYears([]);
+    setMonths([]);
     setSortBy('');
     setSortOrder('desc');
     setPage(1);
@@ -257,7 +330,7 @@ const SalesView = ({ formatCurrency }) => {
     setExportProgress(0);
     setExportStatus('RUNNING');
     
-    const { taskId } = await triggerSalesExport({ department, category, brand });
+    const { taskId } = await triggerSalesExport({ department, category, brand, search, years, months });
     setExportTaskId(taskId);
   };
 
@@ -322,7 +395,7 @@ const SalesView = ({ formatCurrency }) => {
       <div className="card filters-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3>Filtros de Búsqueda</h3>
-          {(search || department || category || brand || sortBy) && (
+          {(search || department || category || brand || sortBy || years.length > 0 || months.length > 0) && (
             <button 
               className="btn-secondary" 
               onClick={handleClearFilters}
@@ -353,8 +426,8 @@ const SalesView = ({ formatCurrency }) => {
           )}
         </div>
         <div className="filters-grid">
-          <div className="filter-group">
-            <label>Buscar Producto / SKU</label>
+          <div className="filter-group" style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>Buscar Producto / SKU</label>
             <input 
               type="text" 
               value={search} 
@@ -369,10 +442,12 @@ const SalesView = ({ formatCurrency }) => {
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px',
                 color: '#f8fafc',
-                padding: '0.6rem 0.8rem',
+                padding: '0.55rem 0.75rem',
                 fontFamily: 'inherit',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 outline: 'none',
+                height: '38px',
+                boxSizing: 'border-box',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
               onFocus={(e) => {
@@ -387,6 +462,30 @@ const SalesView = ({ formatCurrency }) => {
               }}
             />
           </div>
+
+          <CustomSelect
+            label="Año"
+            isMulti={true}
+            value={years}
+            onChange={handleYearsChange}
+            placeholder="Todos los Años"
+            options={[
+              { value: '', label: 'Todos los Años' },
+              ...(filterOptions?.years.map(yr => ({ value: yr.toString(), label: yr.toString() })) || [])
+            ]}
+          />
+
+          <CustomSelect
+            label="Mes"
+            isMulti={true}
+            value={months}
+            onChange={handleMonthsChange}
+            placeholder="Todos los Meses"
+            options={[
+              { value: '', label: 'Todos los Meses' },
+              ...(filterOptions?.months.map(m => ({ value: m.value.toString(), label: m.label })) || [])
+            ]}
+          />
 
           <CustomSelect
             label="Departamento"
@@ -466,14 +565,14 @@ const SalesView = ({ formatCurrency }) => {
 
         <div className="card kpi-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
           <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
-            <span className="kpi-label">Margen Comercial Promedio</span>
+            <span className="kpi-label">Precio Unitario Promedio (ASP)</span>
           </div>
           <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
-            {loadingSummary ? '...' : `${summary?.averageMargin || 0}%`}
+            {loadingSummary ? '...' : formatCurrency(summary?.averagePrice || 0)}
           </div>
           <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
             <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
-              Margen Saludable
+              Precio de Lista Promedio
             </span>
           </div>
         </div>

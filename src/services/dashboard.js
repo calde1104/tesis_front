@@ -4,7 +4,7 @@ export const getKPIs = async () => {
     setTimeout(() => {
       resolve({
         sales: { value: 682500, label: 'Ventas del Mes', trend: 12.5 },
-        margin: { value: 28.5, label: 'Margen Comercial', trend: 1.2 },
+        margin: { value: 32.8, label: 'Share of Assortment (SOA)', trend: 1.5 },
         accuracy: { value: 94.2, label: 'Precisión del Modelo', trend: 0.8 },
         priceGap: { value: -4.5, label: 'Price Gap vs Promedio (%)', trend: 0.8 },
       });
