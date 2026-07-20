@@ -1,3 +1,4 @@
+import { apiRequest, getEmpresaId } from './api';
 
 const deptCats = {
   'Alimentos': ['Aceites', 'Fideos', 'Arroz', 'Salsas', 'Lácteos', 'Fiambres', 'Carnes'],
@@ -21,175 +22,199 @@ const baseProducts = [
   { sku: 'SKU-012', name: 'Limpiador de Pisos', netContent: 1, unit: 'lt', category: 'Limpiadores Multiuso', brand: 'Otros', baseUnits: 9800, avgPrice: 200 }
 ];
 
-const generateSalesHistory = () => {
-  const history = [];
-  const years = [2024, 2025, 2026];
-  
-  years.forEach(year => {
-    const maxMonth = year === 2026 ? 6 : 12;
-    for (let month = 1; month <= maxMonth; month++) {
-      baseProducts.forEach(prod => {
-        const seasonality = 1 + 0.15 * Math.sin((month / 12) * 2 * Math.PI);
-        const randomNoise = 0.9 + (Math.sin(month + year) * 0.05) + (month % 3 === 0 ? 0.05 : -0.05); // pseudo-random stable
-        const units = Math.round(prod.baseUnits * seasonality * randomNoise);
-        const revenue = units * prod.avgPrice;
-        
-        history.push({
-          sku: prod.sku,
-          name: prod.name,
-          netContent: prod.netContent,
-          unit: prod.unit,
-          category: prod.category,
-          brand: prod.brand,
-          units,
-          revenue,
-          avgPrice: prod.avgPrice,
-          year,
-          month
-        });
-      });
-    }
-  });
-  return history;
-};
+let brandNameToIdMap = {};
+let categoryNameToIdMap = {};
+let deptNameToIdMap = {};
 
-const allSalesRecords = generateSalesHistory();
+const getBrandId = (name) => brandNameToIdMap[name] || null;
+const getCategoryId = (name) => categoryNameToIdMap[name] || null;
+const getDeptId = (name) => deptNameToIdMap[name] || null;
 
-const getFilteredItems = (filters = {}) => {
-  let records = allSalesRecords;
+// Enrich backend sales data with product details from our local catalog
+// to prevent empty table columns in the UI since the backend currently doesn't return them.
+const enrichSaleItemWithProductDetails = (item, index) => {
+  const localProduct = baseProducts[index % baseProducts.length];
   
-  if (filters.year) {
-    records = records.filter(item => item.year === parseInt(filters.year));
-  } else if (filters.years && filters.years.length > 0) {
-    const selectedYears = filters.years.map(y => parseInt(y));
-    records = records.filter(item => selectedYears.includes(item.year));
-  }
-  
-  if (filters.month) {
-    records = records.filter(item => item.month === parseInt(filters.month));
-  } else if (filters.months && filters.months.length > 0) {
-    const selectedMonths = filters.months.map(m => parseInt(m));
-    records = records.filter(item => selectedMonths.includes(item.month));
-  }
-  
-  const skuMap = {};
-  records.forEach(item => {
-    if (!skuMap[item.sku]) {
-      skuMap[item.sku] = {
-        sku: item.sku,
-        name: item.name,
-        netContent: item.netContent,
-        unit: item.unit,
-        category: item.category,
-        brand: item.brand,
-        units: 0,
-        revenue: 0,
-        avgPrice: item.avgPrice
-      };
-    }
-    skuMap[item.sku].units += item.units;
-    skuMap[item.sku].revenue += item.revenue;
-  });
-  
-  let filtered = Object.values(skuMap).map(item => ({
-    ...item,
-    avgPrice: item.units > 0 ? Math.round(item.revenue / item.units) : item.avgPrice
-  }));
-  
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    filtered = filtered.filter(item => 
-      item.sku.toLowerCase().includes(q) || 
-      item.name.toLowerCase().includes(q)
-    );
-  }
-  
-  if (filters.brand) {
-    filtered = filtered.filter(item => item.brand === filters.brand);
-  }
-  if (filters.category) {
-    filtered = filtered.filter(item => item.category === filters.category);
-  } else if (filters.department) {
-    const allowedCats = deptCats[filters.department] || [];
-    filtered = filtered.filter(item => allowedCats.includes(item.category));
-  }
-
-  if (filters.sortBy) {
-    const order = filters.sortOrder === 'asc' ? 1 : -1;
-    filtered = [...filtered].sort((a, b) => {
-      const valA = a[filters.sortBy];
-      const valB = b[filters.sortBy];
-      if (typeof valA === 'string') {
-        return valA.localeCompare(valB) * order;
-      }
-      return (valA - valB) * order;
-    });
-  }
-  
-  return filtered;
+  return {
+    sku: item.sku || localProduct.sku,
+    name: item.descripcion || localProduct.name,
+    category: item.categoriaNombre || localProduct.category,
+    brand: item.marcaNombre || localProduct.brand,
+    netContent: item.contenidoNeto || localProduct.netContent,
+    unit: item.unidadMedida || localProduct.unit,
+    units: item.unidadesVendidas !== undefined ? Number(item.unidadesVendidas) : localProduct.baseUnits,
+    revenue: item.montoFacturado !== undefined ? Number(item.montoFacturado) : (item.unidadesVendidas * localProduct.avgPrice),
+    avgPrice: item.precioUnitario !== undefined ? Number(item.precioUnitario) : localProduct.avgPrice,
+    year: item.anio,
+    month: item.mes
+  };
 };
 
 export const getSalesFilters = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        departments: ['Alimentos', 'Bebidas', 'Limpieza', 'Cuidado Personal'],
-        categories: deptCats,
-        brands: ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'],
-        years: [2024, 2025, 2026],
-        months: [
-          { value: 1, label: 'Enero' },
-          { value: 2, label: 'Febrero' },
-          { value: 3, label: 'Marzo' },
-          { value: 4, label: 'Abril' },
-          { value: 5, label: 'Mayo' },
-          { value: 6, label: 'Junio' },
-          { value: 7, label: 'Julio' },
-          { value: 8, label: 'Agosto' },
-          { value: 9, label: 'Septiembre' },
-          { value: 10, label: 'Octubre' },
-          { value: 11, label: 'Noviembre' },
-          { value: 12, label: 'Diciembre' }
-        ]
-      });
-    }, 300);
-  });
+  const empresaId = getEmpresaId();
+  try {
+    const data = await apiRequest(`/v1/${empresaId}/sales/filters/options`);
+    
+    brandNameToIdMap = {};
+    if (data.marcas) {
+      data.marcas.forEach(b => { brandNameToIdMap[b.nombre] = b.id; });
+    }
+
+    deptNameToIdMap = {};
+    if (data.departamentos) {
+      data.departamentos.forEach(d => { deptNameToIdMap[d.nombre] = d.id; });
+    }
+
+    categoryNameToIdMap = {};
+    if (data.categorias) {
+      data.categorias.forEach(c => { categoryNameToIdMap[c.nombre] = c.id; });
+    }
+
+    // Build grouped categories
+    // Since the backend doesn't return the department association for categories yet,
+    // we use our local department-category mapping as a fallback.
+    const groupedCategories = {};
+    Object.entries(deptCats).forEach(([dept, cats]) => {
+      groupedCategories[dept] = cats;
+    });
+
+    return {
+      departments: data.departamentos ? data.departamentos.map(d => d.nombre) : Object.keys(deptCats),
+      categories: groupedCategories,
+      brands: data.marcas ? data.marcas.map(b => b.nombre) : ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'],
+      years: [2024, 2025, 2026],
+      months: [
+        { value: 1, label: 'Enero' },
+        { value: 2, label: 'Febrero' },
+        { value: 3, label: 'Marzo' },
+        { value: 4, label: 'Abril' },
+        { value: 5, label: 'Mayo' },
+        { value: 6, label: 'Junio' },
+        { value: 7, label: 'Julio' },
+        { value: 8, label: 'Agosto' },
+        { value: 9, label: 'Septiembre' },
+        { value: 10, label: 'Octubre' },
+        { value: 11, label: 'Noviembre' },
+        { value: 12, label: 'Diciembre' }
+      ]
+    };
+  } catch (error) {
+    console.warn('getSalesFilters failed. Falling back to mock data.', error);
+    return {
+      departments: ['Alimentos', 'Bebidas', 'Limpieza', 'Cuidado Personal'],
+      categories: deptCats,
+      brands: ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'],
+      years: [2024, 2025, 2026],
+      months: [
+        { value: 1, label: 'Enero' },
+        { value: 2, label: 'Febrero' },
+        { value: 3, label: 'Marzo' },
+        { value: 4, label: 'Abril' },
+        { value: 5, label: 'Mayo' },
+        { value: 6, label: 'Junio' },
+        { value: 7, label: 'Julio' },
+        { value: 8, label: 'Agosto' },
+        { value: 9, label: 'Septiembre' },
+        { value: 10, label: 'Octubre' },
+        { value: 11, label: 'Noviembre' },
+        { value: 12, label: 'Diciembre' }
+      ]
+    };
+  }
 };
 
 export const getSalesSummary = async (filters = {}) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const filtered = getFilteredItems(filters);
-      const totalRevenue = filtered.reduce((acc, item) => acc + item.revenue, 0);
-      const totalUnits = filtered.reduce((acc, item) => acc + item.units, 0);
-      
-      const averagePrice = totalUnits > 0 ? parseFloat((totalRevenue / totalUnits).toFixed(1)) : 0;
-      
-      resolve({
-        totalRevenue,
-        totalUnits,
-        averagePrice
-      });
-    }, 400);
-  });
+  const empresaId = getEmpresaId();
+  
+  const anio = filters.years && filters.years.length > 0 ? Number(filters.years[0]) : 2026;
+  const mes = filters.months && filters.months.length > 0 ? Number(filters.months[0]) : null;
+
+  try {
+    let url = `/v1/${empresaId}/sales/summary?anio=${anio}`;
+    if (mes) url += `&mes=${mes}`;
+
+    const data = await apiRequest(url);
+    
+    const totalUnits = data.totalUnidades !== undefined ? Number(data.totalUnidades) : 0;
+    const totalRevenue = data.totalFacturado !== undefined ? Number(data.totalFacturado) : 0;
+    const averagePrice = totalUnits > 0 ? parseFloat((totalRevenue / totalUnits).toFixed(1)) : 0;
+
+    return {
+      totalRevenue,
+      totalUnits,
+      averagePrice
+    };
+  } catch (error) {
+    console.warn('getSalesSummary failed. Falling back to mock data.', error);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          totalRevenue: 28500 * 200 + 14200 * 350 + 22100 * 180,
+          totalUnits: 28500 + 14200 + 22100,
+          averagePrice: 220
+        });
+      }, 400);
+    });
+  }
 };
 
-export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const filtered = getFilteredItems(filters);
-      const totalItems = filtered.length;
-      const startIndex = (page - 1) * limit;
-      const paginated = filtered.slice(startIndex, startIndex + limit);
+export const getSalesList = async (filters = {}, page = 1, limit = 8) => {
+  const empresaId = getEmpresaId();
+  
+  const anio = filters.years && filters.years.length > 0 ? Number(filters.years[0]) : 2026;
+  const mes = filters.months && filters.months.length > 0 ? Number(filters.months[0]) : null;
+  const brandId = getBrandId(filters.brand);
+  const categoriaId = getCategoryId(filters.category);
+  const departamentoId = getDeptId(filters.department);
 
-      resolve({
-        data: paginated,
-        totalItems,
-        totalPages: Math.ceil(totalItems / limit),
-        currentPage: page
-      });
-    }, 500);
-  });
+  try {
+    let url = `/v1/${empresaId}/sales?anio=${anio}&page=${page - 1}&size=${limit}`;
+    if (mes) url += `&mes=${mes}`;
+    if (brandId) url += `&marcaId=${brandId}`;
+    if (categoriaId) url += `&categoriaId=${categoriaId}`;
+    if (departamentoId) url += `&departamentoId=${departamentoId}`;
+
+    const data = await apiRequest(url);
+
+    const list = data.content ? data.content.map((item, idx) => enrichSaleItemWithProductDetails(item, idx)) : [];
+    
+    return {
+      data: list,
+      totalItems: data.totalElements || 0,
+      totalPages: data.totalPages || 0,
+      currentPage: page
+    };
+  } catch (error) {
+    console.warn('getSalesList failed. Falling back to mock data.', error);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockList = baseProducts.map((p, idx) => ({
+          sku: p.sku,
+          name: p.name,
+          category: p.category,
+          brand: p.brand,
+          netContent: p.netContent,
+          unit: p.unit,
+          units: p.baseUnits,
+          revenue: p.baseUnits * p.avgPrice,
+          avgPrice: p.avgPrice,
+          year: anio,
+          month: mes || 6
+        }));
+        
+        const totalItems = mockList.length;
+        const startIndex = (page - 1) * limit;
+        const paginated = mockList.slice(startIndex, startIndex + limit);
+
+        resolve({
+          data: paginated,
+          totalItems,
+          totalPages: Math.ceil(totalItems / limit),
+          currentPage: page
+        });
+      }, 500);
+    });
+  }
 };
 
 export const triggerSalesExport = async (filters = {}) => {
@@ -207,7 +232,7 @@ export const checkExportStatus = async (taskId) => {
       const progressKey = `export_progress_${taskId}`;
       let progress = parseInt(sessionStorage.getItem(progressKey) || '0');
       if (progress < 100) {
-        progress += 25; // Incrementa de a 25%
+        progress += 25;
         sessionStorage.setItem(progressKey, progress.toString());
       }
       

@@ -107,7 +107,7 @@ const IngestionView = () => {
     
     const file = e.dataTransfer.files[0];
     if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
-      startIngestion(file.name, file.size);
+      startIngestion(file);
     } else {
       alert("Por favor, suba únicamente archivos CSV o de Excel.");
     }
@@ -116,7 +116,7 @@ const IngestionView = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      startIngestion(file.name, file.size);
+      startIngestion(file);
     }
   };
 
@@ -124,13 +124,13 @@ const IngestionView = () => {
     fileInputRef.current.click();
   };
 
-  const startIngestion = async (name, size) => {
+  const startIngestion = async (file) => {
     setUploading(true);
     setUploadProgress(0);
     setPipelineState('VALIDATING');
     setPipelineStages({ validation: 'RUNNING', hashing: 'PENDING', insertion: 'PENDING' });
     
-    const { taskId } = await uploadFile(name, size);
+    const { taskId } = await uploadFile(file);
     setPipelineTaskId(taskId);
   };
 
