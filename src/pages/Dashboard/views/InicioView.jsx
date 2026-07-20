@@ -430,7 +430,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             <div>
               <h3>Auditoría de Ingesta</h3>
               <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0.25rem 0 0 0', lineHeight: '1.4' }}>
-                Mantén la integridad criptográfica de tus datos históricos y valida los hashes SHA-256 del pipeline.
+                Sube nuevos archivos de ventas para actualizar los pronósticos, valida el formato de las planillas y gestiona el historial de cargas.
               </p>
             </div>
           </div>

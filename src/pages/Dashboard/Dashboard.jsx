@@ -151,7 +151,7 @@ const Dashboard = () => {
       case 'inicio': return "Resumen predictivo y estado de la demanda comercial.";
       case 'sales': return "Consulta el histórico de transacciones facturadas por SKU.";
       case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
-      case 'ingestion': return "Monitoreo del flujo de datos y auditoría de integridad hash.";
+      case 'ingestion': return "Carga de archivos de ventas, validación de formato y control de historial.";
       case 'market': return "Cuota de mercado estimada y brechas relativas de precio.";
       case 'settings': return "Administración de modelos predictivos y parámetros de sistema.";
       default: return "Resumen predictivo y estado de la demanda comercial.";
