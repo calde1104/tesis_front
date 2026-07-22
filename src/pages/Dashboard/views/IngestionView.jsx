@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { UploadCloud, CheckCircle2, RefreshCw, Loader2, Download, FileSpreadsheet, Info, Trash2, AlertTriangle } from 'lucide-react';
+import { UploadCloud, CheckCircle2, RefreshCw, Loader2, Download, FileSpreadsheet, Info, Trash2, AlertTriangle, Calendar, MoreVertical } from 'lucide-react';
 import { uploadFile, checkPipelineStatus, getIngestionHistory, retryFailedIngestion, deleteIngestionHistory } from '../../../services/ingestion';
 
 const IngestionView = () => {
@@ -13,6 +13,9 @@ const IngestionView = () => {
   const [pipelineState, setPipelineState] = useState(null);
   const [pipelineStages, setPipelineStages] = useState(null);
 
+  const [frequency, setFrequency] = useState(null); // 'MENSUAL' | 'SEMANAL' | null
+  const [frequencyError, setFrequencyError] = useState(false);
+
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSuccessCelebration, setShowSuccessCelebration] = useState(false);
 
@@ -20,6 +23,14 @@ const IngestionView = () => {
   const [confirmText, setConfirmText] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActiveActionMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const fetchHistory = async () => {
     const historyRes = await getIngestionHistory();
@@ -105,6 +116,11 @@ const IngestionView = () => {
     e.preventDefault();
     setIsDragOver(false);
     
+    if (!frequency) {
+      setFrequencyError(true);
+      return;
+    }
+
     const file = e.dataTransfer.files[0];
     if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
       startIngestion(file);
@@ -116,11 +132,20 @@ const IngestionView = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (!frequency) {
+        setFrequencyError(true);
+        e.target.value = '';
+        return;
+      }
       startIngestion(file);
     }
   };
 
   const triggerBrowse = () => {
+    if (!frequency) {
+      setFrequencyError(true);
+      return;
+    }
     fileInputRef.current.click();
   };
 
@@ -130,7 +155,7 @@ const IngestionView = () => {
     setPipelineState('VALIDATING');
     setPipelineStages({ validation: 'RUNNING', hashing: 'PENDING', insertion: 'PENDING' });
     
-    const { taskId } = await uploadFile(file);
+    const { taskId } = await uploadFile(file, frequency);
     setPipelineTaskId(taskId);
   };
 
@@ -179,9 +204,11 @@ const IngestionView = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '2rem 1.5rem',
+            padding: '1.75rem 1.5rem',
             textAlign: 'center',
-            minHeight: '210px'
+            minHeight: '220px',
+            border: frequencyError ? '1px dashed #f43f5e' : undefined,
+            transition: 'border 0.2s ease'
           }}
         >
           <input 
@@ -192,12 +219,69 @@ const IngestionView = () => {
             style={{ display: 'none' }}
             disabled={uploading}
           />
-          <UploadCloud size={36} className="upload-icon" style={{ color: '#38bdf8', marginBottom: '0.35rem' }} />
+
+          <div style={{ marginBottom: '1.1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Calendar size={14} style={{ color: '#38bdf8' }} /> Frecuencia del Archivo <span style={{ color: '#f43f5e' }}>*</span>
+            </label>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                type="button"
+                onClick={() => { setFrequency('MENSUAL'); setFrequencyError(false); }}
+                style={{
+                  padding: '0.4rem 1.1rem',
+                  borderRadius: '6px',
+                  border: `1px solid ${frequency === 'MENSUAL' ? '#38bdf8' : 'rgba(255, 255, 255, 0.1)'}`,
+                  background: frequency === 'MENSUAL' ? 'rgba(14, 165, 233, 0.18)' : 'rgba(15, 23, 42, 0.6)',
+                  color: frequency === 'MENSUAL' ? '#38bdf8' : '#94a3b8',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: frequency === 'MENSUAL' ? '0 0 10px rgba(56, 189, 248, 0.25)' : 'none'
+                }}
+              >
+                {frequency === 'MENSUAL' && <CheckCircle2 size={13} />} Mensual
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFrequency('SEMANAL'); setFrequencyError(false); }}
+                style={{
+                  padding: '0.4rem 1.1rem',
+                  borderRadius: '6px',
+                  border: `1px solid ${frequency === 'SEMANAL' ? '#38bdf8' : 'rgba(255, 255, 255, 0.1)'}`,
+                  background: frequency === 'SEMANAL' ? 'rgba(14, 165, 233, 0.18)' : 'rgba(15, 23, 42, 0.6)',
+                  color: frequency === 'SEMANAL' ? '#38bdf8' : '#94a3b8',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: frequency === 'SEMANAL' ? '0 0 10px rgba(56, 189, 248, 0.25)' : 'none'
+                }}
+              >
+                {frequency === 'SEMANAL' && <CheckCircle2 size={13} />} Semanal
+              </button>
+            </div>
+            {frequencyError && (
+              <span style={{ color: '#f43f5e', fontSize: '0.73rem', fontWeight: '600', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <AlertTriangle size={13} /> Seleccioná la frecuencia (Mensual o Semanal) para habilitar la carga.
+              </span>
+            )}
+          </div>
+
+          <UploadCloud size={34} className="upload-icon" style={{ color: frequency ? '#38bdf8' : '#475569', marginBottom: '0.25rem', transition: 'color 0.2s' }} />
           <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '700', color: '#f8fafc' }}>Arrastra tu archivo aquí</h3>
           <p style={{ margin: '0.15rem 0 0.5rem 0', fontSize: '0.7rem', color: '#64748b' }}>
             Soporta formatos CSV y planillas de Excel (.xlsx, .xls) hasta 20MB
           </p>
-          <button className="btn-secondary" onClick={triggerBrowse} disabled={uploading} style={{ padding: '0.35rem 0.9rem', fontSize: '0.75rem' }}>
+          <button className="btn-secondary" onClick={triggerBrowse} disabled={uploading} style={{ padding: '0.35rem 0.9rem', fontSize: '0.75rem', opacity: frequency ? 1 : 0.8 }}>
             Seleccionar Archivo
           </button>
         </div>
@@ -269,17 +353,32 @@ const IngestionView = () => {
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.5rem 0.25rem' }}>Archivo</th>
+                  <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Frecuencia</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Tamaño</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Fecha de Carga</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Registros</th>
                   <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Estado</th>
-                  <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem' }}>Acciones</th>
+                  <th style={{ width: '40px', padding: '0.5rem 0.25rem' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((log) => (
                   <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                     <td className="name-cell" style={{ textAlign: 'left', padding: '0.55rem 0.25rem', color: '#38bdf8', fontWeight: '600' }}>{log.name}</td>
+                    <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>
+                      <span style={{
+                        background: log.frequency === 'SEMANAL' ? 'rgba(129, 140, 248, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+                        color: log.frequency === 'SEMANAL' ? '#818cf8' : '#38bdf8',
+                        border: `1px solid ${log.frequency === 'SEMANAL' ? 'rgba(129, 140, 248, 0.25)' : 'rgba(56, 189, 248, 0.25)'}`,
+                        padding: '0.1rem 0.45rem',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: '600',
+                        display: 'inline-block'
+                      }}>
+                        {log.frequency === 'SEMANAL' ? 'Semanal' : 'Mensual'}
+                      </span>
+                    </td>
                     <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>{formatBytes(log.size)}</td>
                     <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>{log.date}</td>
                     <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem', fontWeight: '700', color: '#f8fafc' }}>
@@ -289,7 +388,7 @@ const IngestionView = () => {
                       <span className={`status-badge ${log.status.toLowerCase()}`} style={{
                         background: log.status === 'SUCCESS' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(244, 63, 94, 0.1)',
                         color: log.status === 'SUCCESS' ? '#34d399' : '#f43f5e',
-                        padding: '0.15rem 0.5rem',
+                        padding: '0.15rem 0.55rem',
                         borderRadius: '12px',
                         fontSize: '0.75rem',
                         fontWeight: '600',
@@ -298,74 +397,113 @@ const IngestionView = () => {
                         {log.status === 'SUCCESS' ? 'Completado' : 'Fallido'}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '165px', margin: '0 auto' }}>
-                        {log.status === 'FAILED' ? (
-                          <>
-                            <button className="action-btn retry-btn" onClick={() => handleRetry(log.id)} title="Intentar Cargar Nuevamente" style={{
-                              background: 'rgba(56, 189, 248, 0.1)',
-                              border: '1px solid rgba(56, 189, 248, 0.2)',
-                              color: '#38bdf8',
-                              padding: '0.2rem 0.35rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.2rem',
-                              width: 'calc(50% - 0.175rem)',
-                              flexShrink: 0
-                            }}>
-                              <RefreshCw size={11} /> Reintentar
-                            </button>
-                            <button 
-                              className="action-btn delete-btn" 
-                              onClick={() => handleDeleteClick(log)} 
-                              title="Eliminar Registro" 
-                              style={{
-                                background: 'rgba(244, 63, 94, 0.08)',
-                                border: '1px solid rgba(244, 63, 94, 0.15)',
-                                color: '#f43f5e',
-                                padding: '0.2rem 0.35rem',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.2rem',
-                                width: 'calc(50% - 0.175rem)',
-                                flexShrink: 0
+                    <td style={{ textAlign: 'center', padding: '0.55rem 0.25rem', position: 'relative', width: '40px' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveActionMenuId(activeActionMenuId === log.id ? null : log.id);
+                        }}
+                        style={{
+                          background: activeActionMenuId === log.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                          border: 'none',
+                          borderRadius: '6px',
+                          color: activeActionMenuId === log.id ? '#f8fafc' : '#64748b',
+                          padding: '0.25rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        title="Opciones de archivo"
+                        onMouseEnter={(e) => { e.currentTarget.style.color = '#f8fafc'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
+                        onMouseLeave={(e) => {
+                          if (activeActionMenuId !== log.id) {
+                            e.currentTarget.style.color = '#64748b';
+                            e.currentTarget.style.background = 'transparent';
+                          }
+                        }}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+
+                      {activeActionMenuId === log.id && (
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 2px)',
+                            right: '0.5rem',
+                            background: '#0f172a',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            borderRadius: '8px',
+                            padding: '0.35rem',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.3)',
+                            zIndex: 100,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.2rem',
+                            minWidth: '135px'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {log.status === 'FAILED' && (
+                            <button
+                              onClick={() => {
+                                setActiveActionMenuId(null);
+                                handleRetry(log.id);
                               }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.45rem',
+                                padding: '0.4rem 0.6rem',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#38bdf8',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                width: '100%',
+                                textAlign: 'left',
+                                transition: 'background 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                             >
-                              <Trash2 size={11} /> Eliminar
+                              <RefreshCw size={13} /> Reintentar
                             </button>
-                          </>
-                        ) : (
-                          <button 
-                            className="action-btn delete-btn" 
-                            onClick={() => handleDeleteClick(log)} 
-                            title="Eliminar Registro" 
-                            style={{
-                              background: 'rgba(244, 63, 94, 0.08)',
-                              border: '1px solid rgba(244, 63, 94, 0.15)',
-                              color: '#f43f5e',
-                              padding: '0.2rem 0.35rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '0.2rem',
-                              width: '100%'
+                          )}
+
+                          <button
+                            onClick={() => {
+                              setActiveActionMenuId(null);
+                              handleDeleteClick(log);
                             }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              padding: '0.4rem 0.6rem',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: 'transparent',
+                              color: '#f43f5e',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              width: '100%',
+                              textAlign: 'left',
+                              transition: 'background 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(244, 63, 94, 0.12)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                           >
-                            <Trash2 size={11} /> Eliminar
+                            <Trash2 size={13} /> Eliminar
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

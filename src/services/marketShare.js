@@ -164,7 +164,7 @@ export const predictColdStart = async (productData = {}) => {
           { month: 'Mes 2', share: isPremium ? 2.8 : 5.8, sales: isPremium ? 2200 : 9200 },
           { month: 'Mes 3', share: isPremium ? 3.5 : 6.5, sales: isPremium ? 2900 : 9900 },
           { month: 'Mes 4', share: isPremium ? 4.2 : 7.1, sales: isPremium ? 3500 : 10400 },
-          { month: 'Mes 5', share: isPremium ? 4.8 : 7.6, stroke: isPremium ? 4100 : 10800 },
+          { month: 'Mes 5', share: isPremium ? 4.8 : 7.6, sales: isPremium ? 4100 : 10800 },
           { month: 'Mes 6', share: isPremium ? 5.2 : 8.0, sales: isPremium ? 4500 : 11100 }
         ],
         salesVolume: isPremium ? 1200 : 8500,

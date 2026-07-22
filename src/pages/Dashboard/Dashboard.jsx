@@ -12,9 +12,11 @@ import './Dashboard.css';
 import InicioView from './views/InicioView';
 import SalesView from './views/SalesView';
 import ForecastView from './views/ForecastView';
+import ColdStartView from './views/ColdStartView';
 import IngestionView from './views/IngestionView';
 import MarketView from './views/MarketView';
 import SettingsView from './views/SettingsView';
+import SettingsInfoView from './views/SettingsInfoView';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -139,9 +141,11 @@ const Dashboard = () => {
       case 'inicio': return getDynamicGreeting();
       case 'sales': return "Historial Comercial de Ventas";
       case 'forecast': return "Predicciones & Simulador de Escenarios";
+      case 'cold-start': return "Asistente Predictivo de Pre-lanzamiento";
       case 'ingestion': return "Pipeline de Ingesta de Datos";
       case 'market': return "Monitoreo de Share & Competencia";
-      case 'settings': return "Panel de Configuración ML";
+      case 'settings': return "Umbrales de Demanda por SKU";
+      case 'settings-info': return "Información & Estado del Sistema";
       default: return getDynamicGreeting();
     }
   };
@@ -151,9 +155,11 @@ const Dashboard = () => {
       case 'inicio': return "Resumen predictivo y estado de la demanda comercial.";
       case 'sales': return "Consulta el histórico de transacciones facturadas por SKU.";
       case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
+      case 'cold-start': return "Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento.";
       case 'ingestion': return "Carga de archivos de ventas, validación de formato y control de historial.";
       case 'market': return "Cuota de mercado estimada y brechas relativas de precio.";
-      case 'settings': return "Administración de modelos predictivos y parámetros de sistema.";
+      case 'settings': return "Configuración de límites de demanda máxima esperada por producto.";
+      case 'settings-info': return "Metadatos de la organización, especificaciones del modelo ML y estado de la plataforma.";
       default: return "Resumen predictivo y estado de la demanda comercial.";
     }
   };
@@ -321,29 +327,52 @@ const Dashboard = () => {
               <BarChart3 size={22} className="nav-icon" fill={activeTab === 'sales' ? 'currentColor' : 'none'} fillOpacity={0.15} />
               <span className="nav-label">Ventas</span>
             </button>
-            <button 
-              className={`nav-item ${activeTab === 'forecast' ? 'active' : ''}`}
-              onClick={() => setActiveTab('forecast')}
-              style={{ position: 'relative' }}
-            >
-              <TrendingUp size={22} className="nav-icon" />
-              <span className="nav-label">Proyecciones</span>
-              {activeModel && activeModel.desalineado && !dismissedMlopsWarning && (
-                <span 
-                  title="Advertencia de MLOps: Se detectó desalineación en los datos históricos del modelo activo (v2.4.1) debido a nuevas ingestas o modificaciones de datos. Se requiere un reentrenamiento del modelo para corregir posibles desvíos en las proyecciones."
-                  style={{ 
-                    display: 'inline-flex',
-                    marginLeft: isSidebarOpen ? 'auto' : '0px', 
-                    position: isSidebarOpen ? 'static' : 'absolute',
-                    top: isSidebarOpen ? 'auto' : '4px',
-                    right: isSidebarOpen ? 'auto' : '4px',
-                    flexShrink: 0 
-                  }}
-                >
-                  <AlertCircle size={16} style={{ color: '#eab308' }} />
-                </span>
+            <div className="nav-group" style={{ width: '100%' }}>
+              <button 
+                className={`nav-item ${(activeTab === 'forecast' || activeTab === 'cold-start') ? 'active' : ''}`}
+                onClick={() => setActiveTab('forecast')}
+                style={{ position: 'relative' }}
+              >
+                <TrendingUp size={22} className="nav-icon" />
+                <span className="nav-label">Proyecciones</span>
+                {activeModel && activeModel.desalineado && !dismissedMlopsWarning && (
+                  <span 
+                    title="Advertencia de MLOps: Se detectó desalineación en los datos históricos del modelo activo (v2.4.1) debido a nuevas ingestas o modificaciones de datos. Se requiere un reentrenamiento del modelo para corregir posibles desvíos en las proyecciones."
+                    style={{ 
+                      display: 'inline-flex',
+                      marginLeft: isSidebarOpen ? 'auto' : '0px', 
+                      position: isSidebarOpen ? 'static' : 'absolute',
+                      top: isSidebarOpen ? 'auto' : '4px',
+                      right: isSidebarOpen ? 'auto' : '4px',
+                      flexShrink: 0 
+                    }}
+                  >
+                    <AlertCircle size={16} style={{ color: '#eab308' }} />
+                  </span>
+                )}
+              </button>
+              
+              {(activeTab === 'forecast' || activeTab === 'cold-start') && (
+                <div className="sub-nav-list">
+                  <button
+                    className={`sub-nav-item ${activeTab === 'forecast' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('forecast')}
+                    title="Predicciones & Simulaciones"
+                  >
+                    <span className="sub-nav-dash" style={{ color: activeTab === 'forecast' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <span className="sub-nav-label">Predicciones y Simulaciones</span>
+                  </button>
+                  <button
+                    className={`sub-nav-item ${activeTab === 'cold-start' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('cold-start')}
+                    title="Pre-lanzamiento (Cold Start)"
+                  >
+                    <span className="sub-nav-dash" style={{ color: activeTab === 'cold-start' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <span className="sub-nav-label">Pre-lanzamiento (Cold Start)</span>
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
             <button 
               className={`nav-item ${activeTab === 'market' ? 'active' : ''}`}
               onClick={() => setActiveTab('market')}
@@ -361,13 +390,36 @@ const Dashboard = () => {
           </nav>
           
           <div className="sidebar-bottom">
-            <button 
-              className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('settings')}
-            >
-              <Settings size={22} className="nav-icon" fill={activeTab === 'settings' ? 'currentColor' : 'none'} fillOpacity={0.15} />
-              <span className="nav-label">Configuración</span>
-            </button>
+            <div className="nav-group" style={{ width: '100%' }}>
+              <button 
+                className={`nav-item ${(activeTab === 'settings' || activeTab === 'settings-info') ? 'active' : ''}`}
+                onClick={() => setActiveTab('settings')}
+              >
+                <Settings size={22} className="nav-icon" fill={(activeTab === 'settings' || activeTab === 'settings-info') ? 'currentColor' : 'none'} fillOpacity={0.15} />
+                <span className="nav-label">Configuración</span>
+              </button>
+
+              {(activeTab === 'settings' || activeTab === 'settings-info') && (
+                <div className="sub-nav-list">
+                  <button
+                    className={`sub-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('settings')}
+                    title="Umbrales por SKU"
+                  >
+                    <span className="sub-nav-dash" style={{ color: activeTab === 'settings' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <span className="sub-nav-label">Umbrales por SKU</span>
+                  </button>
+                  <button
+                    className={`sub-nav-item ${activeTab === 'settings-info' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('settings-info')}
+                    title="Información del Sistema"
+                  >
+                    <span className="sub-nav-dash" style={{ color: activeTab === 'settings-info' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <span className="sub-nav-label">Información del Sistema</span>
+                  </button>
+                </div>
+              )}
+            </div>
             <button className="nav-item logout-btn" onClick={handleLogout}>
               <LogOut size={22} className="nav-icon" />
               <span className="nav-label">Cerrar Sesión</span>
@@ -415,6 +467,9 @@ const Dashboard = () => {
             onDismissMlopsWarning={() => setDismissedMlopsWarning(true)}
           />
         )}
+        {activeTab === 'cold-start' && (
+          <ColdStartView />
+        )}
         {activeTab === 'ingestion' && (
           <IngestionView />
         )}
@@ -423,6 +478,9 @@ const Dashboard = () => {
         )}
         {activeTab === 'settings' && (
           <SettingsView />
+        )}
+        {activeTab === 'settings-info' && (
+          <SettingsInfoView />
         )}
       </main>
 

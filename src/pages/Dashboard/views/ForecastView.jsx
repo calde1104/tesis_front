@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Play, Loader2, Sparkles, AlertCircle, Coins, Megaphone, X, DollarSign, TrendingUp, HelpCircle, Utensils, GlassWater, User, Droplet, Folder, Info } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -7,7 +7,6 @@ import {
 import { getForecast, triggerSimulation, checkSimulationStatus } from '../../../services/forecast';
 import { getMLModels } from '../../../services/settings';
 import { getSalesFilters } from '../../../services/sales';
-import { predictColdStart } from '../../../services/marketShare';
 
 const getDepartmentIcon = (deptName) => {
   const name = deptName ? deptName.toLowerCase() : '';
@@ -335,15 +334,55 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
   const [simResults, setSimResults] = useState(null);
   const [simMetrics, setSimMetrics] = useState(null);
 
-  const [coldProductName, setColdProductName] = useState('');
-  const [coldDepartment, setColdDepartment] = useState('Bebidas');
-  const [coldTargetCategory, setColdTargetCategory] = useState('');
-  const [coldBrand, setColdBrand] = useState('');
-  const [coldExpectedPrice, setColdExpectedPrice] = useState('');
-  const [coldExpectedWeight, setColdExpectedWeight] = useState('');
-  const [coldUnit, setColdUnit] = useState('L');
-  const [coldPredicting, setColdPredicting] = useState(false);
-  const [coldPredictionResult, setColdPredictionResult] = useState(null);
+  const containerRef = useRef(null);
+  const [leftWidth, setLeftWidth] = useState(280);
+  const [rightWidth, setRightWidth] = useState(320);
+  const [isDraggingLeft, setIsDraggingLeft] = useState(false);
+  const [isDraggingRight, setIsDraggingRight] = useState(false);
+
+  const handleLeftMouseDown = (e) => {
+    e.preventDefault();
+    setIsDraggingLeft(true);
+  };
+
+  const handleRightMouseDown = (e) => {
+    e.preventDefault();
+    setIsDraggingRight(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+
+      if (isDraggingLeft) {
+        const newLeft = Math.min(Math.max(180, e.clientX - rect.left), 480);
+        setLeftWidth(newLeft);
+      } else if (isDraggingRight) {
+        const newRight = Math.min(Math.max(220, rect.right - e.clientX), 500);
+        setRightWidth(newRight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLeft(false);
+      setIsDraggingRight(false);
+    };
+
+    if (isDraggingLeft || isDraggingRight) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDraggingLeft, isDraggingRight]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -357,16 +396,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
 
       const active = modelsRes.find(m => m.activo || m.active);
       setActiveModel(active);
-
-      if (filtersRes) {
-        if (filtersRes.departments && filtersRes.departments.length > 0) {
-          const firstDept = filtersRes.departments[0];
-          setColdDepartment(firstDept);
-          setColdTargetCategory('');
-          setColdBrand('');
-        }
-      }
-
       setLoading(false);
     };
     fetchData();
@@ -426,56 +455,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     return () => clearInterval(intervalId);
   }, [simTaskId, simStatus, selectedProduct]);
 
-  const handleColdStartSubmit = async (e) => {
-    e.preventDefault();
-    if (!coldProductName || !coldExpectedPrice || !coldTargetCategory || !coldBrand) {
-      alert("Por favor rellene todos los campos, incluyendo categoría y marca.");
-      return;
-    }
-    setColdPredicting(true);
-    setColdPredictionResult(null);
-
-    const result = await predictColdStart({
-      name: coldProductName,
-      department: coldDepartment,
-      category: coldTargetCategory,
-      brand: coldBrand,
-      expectedPrice: coldExpectedPrice,
-      weight: coldExpectedWeight,
-      unit: coldUnit
-    });
-    setColdPredictionResult(result);
-    setColdPredicting(false);
-  };
-
-  const handleColdDepartmentChange = (deptId) => {
-    setColdDepartment(deptId);
-    setColdTargetCategory('');
-    setColdBrand('');
-  };
-
-  const handleColdCategoryChange = (catId) => {
-    setColdTargetCategory(catId);
-    if (catId && coldBrand) {
-      const allowed = categoryBrands[catId] || [];
-      if (!allowed.includes(coldBrand)) {
-        setColdBrand('');
-      }
-    }
-  };
-
-  const handleColdBrandChange = (brandId) => {
-    setColdBrand(brandId);
-    if (brandId && coldTargetCategory) {
-      const allowedCategories = (filterOptions?.categories[coldDepartment] || []).filter(cat => {
-        const allowed = categoryBrands[cat] || [];
-        return allowed.includes(brandId);
-      });
-      if (!allowedCategories.includes(coldTargetCategory)) {
-        setColdTargetCategory('');
-      }
-    }
-  };
 
   const handleDepartmentChange = (e) => {
     const nextDept = e.target.value;
@@ -620,22 +599,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
 
   const combinedData = getCombinedData();
 
-  const coldAllowedCategories = (filterOptions?.categories[coldDepartment] || []).filter(cat => {
-    if (coldBrand) {
-      const allowedBrands = categoryBrands[cat] || [];
-      return allowedBrands.includes(coldBrand);
-    }
-    return true;
-  });
-
-  const coldAllowedBrands = (filterOptions?.brands || []).filter(b => {
-    if (coldTargetCategory) {
-      const allowedBrands = categoryBrands[coldTargetCategory] || [];
-      if (!allowedBrands.includes(b)) return false;
-    }
-    const deptAllowed = deptBrands[coldDepartment] || [];
-    return deptAllowed.includes(b);
-  });
 
   return (
     <div className="view-container forecast-view">
@@ -775,9 +738,20 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
         </div>
       </div>
 
-      <div className="card interactive-card" style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '1.5rem', padding: '1.25rem', height: '610px', marginBottom: '1.25rem' }}>
-
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderRight: '1px solid rgba(255, 255, 255, 0.08)', paddingRight: '1.5rem', overflow: 'hidden' }}>
+      <div 
+        ref={containerRef}
+        className="card interactive-card" 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: `${leftWidth}px 14px 1fr 14px ${rightWidth}px`, 
+          gap: '0.25rem', 
+          padding: '1.25rem 0.75rem', 
+          height: '610px', 
+          marginBottom: '1.25rem',
+          position: 'relative'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingRight: '0.75rem', overflow: 'hidden' }}>
           <div style={{ marginBottom: '0.85rem' }}>
             <label style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Buscar SKU o Nombre
@@ -877,7 +851,31 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
+        <div
+          onMouseDown={handleLeftMouseDown}
+          className="resizer-handle"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'col-resize',
+            userSelect: 'none',
+            height: '100%',
+            width: '14px',
+            zIndex: 10
+          }}
+          title="Mantener click y arrastrar para ajustar el ancho"
+        >
+          <div style={{
+            width: '1px',
+            height: '100%',
+            background: isDraggingLeft ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)',
+            boxShadow: isDraggingLeft ? '0 0 10px rgba(56, 189, 248, 0.8)' : 'none',
+            transition: 'background 0.2s, box-shadow 0.2s'
+          }} />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, paddingLeft: '0.25rem', paddingRight: '0.25rem' }}>
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: 0, border: 'none', background: 'none' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <h3 style={{ fontSize: '1.15rem', color: '#f8fafc', fontWeight: '600' }}>
@@ -1019,7 +1017,31 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderLeft: '1px solid rgba(255, 255, 255, 0.08)', paddingLeft: '1.5rem', overflow: 'hidden' }}>
+        <div
+          onMouseDown={handleRightMouseDown}
+          className="resizer-handle"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'col-resize',
+            userSelect: 'none',
+            height: '100%',
+            width: '14px',
+            zIndex: 10
+          }}
+          title="Mantener click y arrastrar para ajustar el ancho"
+        >
+          <div style={{
+            width: '1px',
+            height: '100%',
+            background: isDraggingRight ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)',
+            boxShadow: isDraggingRight ? '0 0 10px rgba(56, 189, 248, 0.8)' : 'none',
+            transition: 'background 0.2s, box-shadow 0.2s'
+          }} />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingLeft: '0.75rem', overflow: 'hidden' }}>
           <div className="simulator-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <Sparkles size={18} className="simulator-sparkle-icon" />
             <h3 style={{ fontSize: '1rem', color: '#f8fafc', fontWeight: '600' }}>Simulador</h3>
@@ -1227,426 +1249,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="card cold-start-card interactive-card" style={{
-        marginTop: '1.5rem',
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.5) 100%)',
-        border: '1px solid rgba(14, 165, 233, 0.15)',
-        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.4)',
-        padding: '1.5rem',
-        position: 'relative',
-        overflow: 'visible'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '150px',
-          height: '150px',
-          background: 'radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, rgba(0,0,0,0) 70%)',
-          pointerEvents: 'none'
-        }} />
-
-        <div className="cold-start-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <div style={{
-            background: 'rgba(14, 165, 233, 0.1)',
-            border: '1px solid rgba(14, 165, 233, 0.2)',
-            borderRadius: '10px',
-            padding: '0.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Sparkles size={24} style={{ color: '#38bdf8' }} />
-          </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#f8fafc', letterSpacing: '-0.01em' }}>
-              Asistente Predictivo de Pre-lanzamiento (Cold Start)
-            </h3>
-            <p className="subtitle" style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.15rem 0 0 0' }}>
-              Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento de similitud física y marcaria.
-            </p>
-          </div>
-        </div>
-
-        <div className="cold-start-layout-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2.5rem', marginTop: '1.5rem' }}>
-          <form className="cold-start-form" onSubmit={handleColdStartSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-            <div className="form-group">
-              <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700', marginBottom: '0.5rem', display: 'block' }}>
-                Seleccioná el Departamento
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(filterOptions?.departments || []).length || 4}, 1fr)`, gap: '0.5rem' }}>
-                {(filterOptions?.departments || []).map(deptId => {
-                  const isActive = coldDepartment === deptId;
-                  return (
-                    <div
-                      key={deptId}
-                      onClick={() => handleColdDepartmentChange(deptId)}
-                      style={{
-                        padding: '0.65rem 0.5rem',
-                        borderRadius: '8px',
-                        border: `1px solid ${isActive ? '#38bdf8' : 'rgba(255, 255, 255, 0.06)'}`,
-                        background: isActive ? 'rgba(14, 165, 233, 0.1)' : 'rgba(15, 23, 42, 0.3)',
-                        color: isActive ? '#38bdf8' : '#94a3b8',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.35rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        textAlign: 'center',
-                        transition: 'all 0.2s ease',
-                        userSelect: 'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                          e.currentTarget.style.color = '#cbd5e1';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
-                          e.currentTarget.style.color = '#94a3b8';
-                        }
-                      }}
-                    >
-                      {getDepartmentIcon(deptId)}
-                      <span>{deptId}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <CustomSelect
-                  label="Categoría Objetivo"
-                  value={coldTargetCategory}
-                  onChange={(e) => handleColdCategoryChange(e.target.value)}
-                  placeholder="Seleccionar Categoría"
-                  options={[
-                    { value: '', label: 'Seleccionar Categoría' },
-                    ...coldAllowedCategories.map(cat => ({ value: cat, label: cat }))
-                  ]}
-                />
-              </div>
-
-              <div className="form-group">
-                <CustomSelect
-                  label="Marca / Distribuidor"
-                  value={coldBrand}
-                  onChange={(e) => handleColdBrandChange(e.target.value)}
-                  placeholder="Seleccionar Marca"
-                  options={[
-                    { value: '', label: 'Seleccionar Marca' },
-                    ...coldAllowedBrands.map(b => ({ value: b, label: b }))
-                  ]}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>
-                Nombre del Producto Nuevo
-              </label>
-              <input
-                type="text"
-                placeholder="Ej: Jugo Exprés Naranja 1L"
-                value={coldProductName}
-                onChange={(e) => setColdProductName(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  background: 'rgba(15, 23, 42, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '8px',
-                  color: '#f8fafc',
-                  padding: '0.6rem 0.8rem',
-                  fontSize: '0.88rem',
-                  outline: 'none',
-                  marginTop: '0.35rem',
-                  transition: 'all 0.2s ease'
-                }}
-                onFocus={(e) => e.currentTarget.style.borderColor = '#38bdf8'}
-                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>
-                  Precio Sugerido ($)
-                </label>
-                <input
-                  type="number"
-                  placeholder="Ej: 1250"
-                  value={coldExpectedPrice}
-                  onChange={(e) => setColdExpectedPrice(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '8px',
-                    color: '#f8fafc',
-                    padding: '0.6rem 0.8rem',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    marginTop: '0.35rem'
-                  }}
-                />
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700' }}>
-                  Contenido Neto
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="Ej: 1.5"
-                  value={coldExpectedWeight}
-                  onChange={(e) => setColdExpectedWeight(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '8px',
-                    color: '#f8fafc',
-                    padding: '0.6rem 0.8rem',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    marginTop: '0.35rem'
-                  }}
-                />
-              </div>
-
-              <div className="form-group">
-                <CustomSelect
-                  label="Medida"
-                  value={coldUnit}
-                  onChange={(e) => setColdUnit(e.target.value)}
-                  placeholder="Unidad"
-                  options={[
-                    { value: 'L', label: 'L' },
-                    { value: 'ml', label: 'ml' },
-                    { value: 'g', label: 'g' },
-                    { value: 'kg', label: 'kg' },
-                    { value: 'un', label: 'un' }
-                  ]}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={coldPredicting}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                padding: '0.75rem 1rem',
-                fontSize: '0.9rem',
-                fontWeight: '700',
-                borderRadius: '8px',
-                marginTop: '0.5rem',
-                boxShadow: '0 4px 12px rgba(14, 165, 233, 0.25)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {coldPredicting ? <Loader2 size={16} className="spinner" /> : <TrendingUp size={16} />}
-              {coldPredicting ? 'Calculando Clusters...' : 'Predecir Lanzamiento'}
-            </button>
-          </form>
-
-          <div className="cold-start-results-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            {coldPredicting ? (
-              /* Scanning / Loading state */
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                background: 'rgba(15, 23, 42, 0.4)',
-                border: '1px dashed rgba(14, 165, 233, 0.2)',
-                borderRadius: '12px',
-                padding: '2rem'
-              }}>
-                <Loader2 size={40} className="spinner" style={{ color: '#38bdf8', marginBottom: '1rem' }} />
-                <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', margin: '0 0 0.5rem 0', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ejecutando Modelado</h4>
-                <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, lineHeight: '1.4' }}>
-                  El motor de IA está procesando la Distancia de Gower y el algoritmo K-Medoids para agrupar el nuevo SKU en el cluster adecuado...
-                </p>
-              </div>
-            ) : coldPredictionResult ? (
-              /* Gorgeous Result Card */
-              <div className="prediction-success-box" style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                borderRadius: '12px',
-                padding: '1.25rem',
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem',
-                boxShadow: '0 8px 24px rgba(16, 185, 129, 0.05)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.78rem', color: '#34d399', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Clasificación Exitosa
-                  </h4>
-                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.65rem' }}>
-                    Cluster Activo
-                  </span>
-                </div>
-
-                <div className="result-metric-large" style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                  <span className="metric-label" style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Grupo de Comportamiento</span>
-                  <span className="metric-value" style={{ fontSize: '1.35rem', fontWeight: '800', color: '#34d399' }}>{coldPredictionResult.clusterName}</span>
-                </div>
-
-                <div className="result-stats-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Precio Óptimo</span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.15rem' }}>
-                      ${coldPredictionResult.recommendedPrice.toLocaleString('es-AR')}
-                    </span>
-                  </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Ventas Est. M1</span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.15rem' }}>
-                      {coldPredictionResult.salesVolume.toLocaleString('es-AR')} un.
-                    </span>
-                  </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Confianza</span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#38bdf8', display: 'block', marginTop: '0.15rem' }}>
-                      {coldPredictionResult.confidenceLevel}
-                    </span>
-                  </div>
-                </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '140px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <h5 style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Rampa de Lanzamiento Proyectada (6 Meses)
-                    </h5>
-                    <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.65rem' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#38bdf8' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8' }} />
-                        Ventas (un.)
-                      </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#34d399' }}>
-                        <span style={{ width: '6px', height: '2px', borderTop: '2px dashed #34d399' }} />
-                        Market Share (%)
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, minHeight: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={coldPredictionResult.predictedShares}
-                        margin={{ top: 10, right: -15, left: -25, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="colorColdSales" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorColdShare" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#34d399" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                        <XAxis dataKey="month" stroke="#475569" tick={{ fill: '#64748b', fontSize: 9 }} />
-                        
-                        <YAxis 
-                          yAxisId="left"
-                          stroke="#38bdf8" 
-                          tick={{ fill: '#64748b', fontSize: 9 }} 
-                          tickFormatter={(val) => val.toLocaleString('es-AR')}
-                          width={40}
-                        />
-                        <YAxis 
-                          yAxisId="right"
-                          orientation="right"
-                          stroke="#34d399" 
-                          tick={{ fill: '#64748b', fontSize: 9 }} 
-                          tickFormatter={(val) => `${val}%`}
-                          width={35}
-                        />
-                        
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '8px', fontSize: '0.75rem' }} 
-                          formatter={(value, name) => {
-                            if (name === 'sales') return [`${value.toLocaleString('es-AR')} un.`, 'Ventas Estimadas'];
-                            if (name === 'share') return [`${value}%`, 'Market Share'];
-                            return [value, name];
-                          }}
-                        />
-                        
-                        <Area 
-                          yAxisId="left"
-                          type="monotone" 
-                          dataKey="sales" 
-                          stroke="#38bdf8" 
-                          strokeWidth={2} 
-                          fillOpacity={1} 
-                          fill="url(#colorColdSales)" 
-                          activeDot={{ r: 4 }} 
-                        />
-                        
-                        <Area 
-                          yAxisId="right"
-                          type="monotone" 
-                          dataKey="share" 
-                          stroke="#34d399" 
-                          strokeWidth={2} 
-                          strokeDasharray="4 4"
-                          fillOpacity={1} 
-                          fill="url(#colorColdShare)" 
-                          activeDot={{ r: 4 }} 
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Welcome placeholder state */
-              <div className="prediction-placeholder" style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                color: '#64748b',
-                padding: '2rem',
-                border: '1px dashed rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
-                background: 'rgba(255, 255, 255, 0.01)'
-              }}>
-                <HelpCircle size={36} className="placeholder-icon" style={{ color: '#475569', marginBottom: '0.75rem' }} />
-                <p style={{ fontSize: '0.85rem', fontWeight: '600', color: '#cbd5e1', margin: 0 }}>Cargá los datos del nuevo producto</p>
-                <p style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.35rem', margin: 0, lineHeight: '1.4' }}>
-                  Completá el formulario a la izquierda con las especificaciones físicas y comerciales del SKU para agruparlo en un cluster de ventas histórico.
-                </p>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

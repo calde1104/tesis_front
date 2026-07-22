@@ -1,11 +1,11 @@
 import { apiRequest, getEmpresaId } from './api';
 
-export const uploadFile = async (file) => {
+export const uploadFile = async (file, frequency = 'MENSUAL') => {
   const empresaId = getEmpresaId();
   
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('granularidad', 'MENSUAL');
+  formData.append('granularidad', (frequency || 'MENSUAL').toUpperCase());
   formData.append('periodoDesde', '2026-06-01');
   formData.append('periodoHasta', '2026-06-30');
 
@@ -21,6 +21,7 @@ export const uploadFile = async (file) => {
       id: taskId,
       name: file.name,
       size: file.size,
+      frequency: (frequency || 'MENSUAL').toUpperCase(),
       date: new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
       records: Math.floor(5000 + Math.random() * 20000)
     }));
@@ -33,6 +34,7 @@ export const uploadFile = async (file) => {
       id: taskId,
       name: file.name || 'ventas.csv',
       size: file.size || 1048576,
+      frequency: (frequency || 'MENSUAL').toUpperCase(),
       date: new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
       records: Math.floor(5000 + Math.random() * 20000)
     }));
