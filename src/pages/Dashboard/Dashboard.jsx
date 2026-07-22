@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
-  Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle
+  Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle, Sparkles, SlidersHorizontal, Server, LineChart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
@@ -360,6 +360,7 @@ const Dashboard = () => {
                     title="Predicciones & Simulaciones"
                   >
                     <span className="sub-nav-dash" style={{ color: activeTab === 'forecast' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <LineChart size={16} className="sub-nav-icon" />
                     <span className="sub-nav-label">Predicciones y Simulaciones</span>
                   </button>
                   <button
@@ -368,6 +369,7 @@ const Dashboard = () => {
                     title="Pre-lanzamiento (Cold Start)"
                   >
                     <span className="sub-nav-dash" style={{ color: activeTab === 'cold-start' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <Sparkles size={16} className="sub-nav-icon" />
                     <span className="sub-nav-label">Pre-lanzamiento (Cold Start)</span>
                   </button>
                 </div>
@@ -407,6 +409,7 @@ const Dashboard = () => {
                     title="Umbrales por SKU"
                   >
                     <span className="sub-nav-dash" style={{ color: activeTab === 'settings' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <SlidersHorizontal size={16} className="sub-nav-icon" />
                     <span className="sub-nav-label">Umbrales por SKU</span>
                   </button>
                   <button
@@ -415,6 +418,7 @@ const Dashboard = () => {
                     title="Información del Sistema"
                   >
                     <span className="sub-nav-dash" style={{ color: activeTab === 'settings-info' ? '#38bdf8' : '#64748b' }}>-</span>
+                    <Server size={16} className="sub-nav-icon" />
                     <span className="sub-nav-label">Información del Sistema</span>
                   </button>
                 </div>
