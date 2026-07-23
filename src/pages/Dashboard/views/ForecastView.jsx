@@ -4,9 +4,9 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, LabelList, ReferenceLine, ReferenceDot
 } from 'recharts';
-import { getForecast, triggerSimulation, checkSimulationStatus } from '../../../services/forecast';
+import { getForecast, getFeatureImportance, triggerSimulation } from '../../../services/forecast';
 import { getMLModels } from '../../../services/settings';
-import { getSalesFilters } from '../../../services/sales';
+import { getSalesFilters, getSalesList } from '../../../services/sales';
 
 const getDepartmentIcon = (deptName) => {
   const name = deptName ? deptName.toLowerCase() : '';
@@ -16,43 +16,6 @@ const getDepartmentIcon = (deptName) => {
   if (name.includes('cuidado') || name.includes('personal') || name.includes('perfumer') || name.includes('cosmet')) return <User size={16} />;
   return <Folder size={16} />;
 };
-
-const deptBrands = {
-  'Alimentos': ['Molinos', 'Vicentin', 'Arcor'],
-  'Bebidas': ['Quilmes', 'Coca-Cola', 'Otros'],
-  'Limpieza': ['Unilever', 'Otros'],
-  'Cuidado Personal': []
-};
-
-const categoryBrands = {
-  'Aceites': ['Vicentin'],
-  'Fideos': ['Molinos'],
-  'Arroz': ['Molinos'],
-  'Salsas': ['Arcor'],
-  'Cervezas': ['Quilmes'],
-  'Vinos': ['Otros'],
-  'Gaseosas': ['Coca-Cola'],
-  'Aguas': ['Coca-Cola'],
-  'Jabón Líquido': ['Unilever'],
-  'Desinfectantes': ['Unilever'],
-  'Suavizantes': ['Unilever'],
-  'Limpiadores Multiuso': ['Otros']
-};
-
-const allProducts = [
-  { sku: 'SKU-001', name: 'Aceite de Girasol 1.5L', category: 'Aceites', brand: 'Vicentin', department: 'Alimentos', scale: 0.15, price: 350 },
-  { sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Fideos', brand: 'Molinos', department: 'Alimentos', scale: 0.12, price: 200 },
-  { sku: 'SKU-003', name: 'Arroz Largo Fino 1kg', category: 'Arroz', brand: 'Molinos', department: 'Alimentos', scale: 0.10, price: 180 },
-  { sku: 'SKU-004', name: 'Puré de Tomate 520g', category: 'Salsas', brand: 'Arcor', department: 'Alimentos', scale: 0.08, price: 150 },
-  { sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Cervezas', brand: 'Quilmes', department: 'Bebidas', scale: 0.25, price: 250 },
-  { sku: 'SKU-006', name: 'Vino Malbec Reserva 750ml', category: 'Vinos', brand: 'Otros', department: 'Bebidas', scale: 0.18, price: 800 },
-  { sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Gaseosas', brand: 'Coca-Cola', department: 'Bebidas', scale: 0.20, price: 300 },
-  { sku: 'SKU-008', name: 'Agua Mineral Sin Gas 1.5L', category: 'Aguas', brand: 'Coca-Cola', department: 'Bebidas', scale: 0.07, price: 150 },
-  { sku: 'SKU-009', name: 'Jabón Líquido Para Ropa 3L', category: 'Jabón Líquido', brand: 'Unilever', department: 'Limpieza', scale: 0.14, price: 1200 },
-  { sku: 'SKU-010', name: 'Desinfectante de Ambientes 360ml', category: 'Desinfectantes', brand: 'Unilever', department: 'Limpieza', scale: 0.11, price: 300 },
-  { sku: 'SKU-011', name: 'Suavizante Floral 3L', category: 'Suavizantes', brand: 'Unilever', department: 'Limpieza', scale: 0.13, price: 1000 },
-  { sku: 'SKU-012', name: 'Limpiador de Pisos 1L', category: 'Limpiadores Multiuso', brand: 'Otros', department: 'Limpieza', scale: 0.09, price: 200 }
-];
 
 // Componente selector personalizado para evitar barras de desplazamiento estándar de Windows
 const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down' }) => {
@@ -173,8 +136,8 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, formatCurrency
 
     if (filteredPayload.length === 0) return null;
 
-    const activeProd = selectedProduct && selectedProduct !== 'total' 
-      ? allProducts.find(p => p.sku === selectedProduct) 
+    const activeProd = selectedProduct && selectedProduct !== 'total' && productList
+      ? productList.find(p => p.sku === selectedProduct) 
       : null;
 
     const getHistoricalPrice = (basePrice, monthName) => {
@@ -384,14 +347,14 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     };
   }, [isDraggingLeft, isDraggingRight]);
 
+  const [productList, setProductList] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
-      const [forecastRes, modelsRes, filtersRes] = await Promise.all([
-        getForecast(),
+      const [modelsRes, filtersRes] = await Promise.all([
         getMLModels(),
         getSalesFilters()
       ]);
-      setForecastData(forecastRes);
       setFilterOptions(filtersRes);
 
       const active = modelsRes.find(m => m.activo || m.active);
@@ -400,6 +363,39 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const res = await getSalesList({ department, category, brand, search }, 1, 100);
+      const unique = [];
+      const seen = new Set();
+      if (res && res.data) {
+        res.data.forEach(item => {
+          if (item.sku && !seen.has(item.sku)) {
+            seen.add(item.sku);
+            unique.push({
+              sku: item.sku,
+              name: item.name || item.descripcionProducto,
+              category: item.category || item.categoriaNombre,
+              brand: item.brand || item.marcaNombre,
+              price: item.avgPrice || item.precioUnitario
+            });
+          }
+        });
+      }
+      setProductList(unique);
+    };
+    fetchProducts();
+  }, [department, category, brand, search]);
+
+  useEffect(() => {
+    const fetchForecastForSelection = async () => {
+      const sku = selectedProduct !== 'total' ? selectedProduct : null;
+      const res = await getForecast(sku);
+      setForecastData(res);
+    };
+    fetchForecastForSelection();
+  }, [selectedProduct]);
 
   useEffect(() => {
     if (initialSku) {
@@ -419,41 +415,19 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     setSimProgress(0);
     setSimStatus('RUNNING');
 
-    const { taskId } = await triggerSimulation({
-      priceChange,
-      marketingChange,
-      exchangeRateChange,
-      inflationChange
-    });
-    setSimTaskId(taskId);
-  };
-
-  useEffect(() => {
-    let intervalId;
-    if (simTaskId && simStatus === 'RUNNING') {
-      intervalId = setInterval(async () => {
-        const status = await checkSimulationStatus(simTaskId);
-        setSimProgress(status.progress);
-        if (status.status === 'SUCCESS') {
-          setSimStatus('SUCCESS');
-
-          const activeProd = allProducts.find(p => p.sku === selectedProduct);
-          const scale = activeProd ? activeProd.scale : 1.0;
-
-          const scaledResults = status.results.map(r => ({
-            ...r,
-            simulated: Math.round(r.simulated * scale),
-            original: Math.round(r.original * scale)
-          }));
-
-          setSimResults(scaledResults);
-          setSimMetrics(status.metrics);
-          setSimTaskId(null);
-        }
-      }, 1000);
+    try {
+      const response = await triggerSimulation({
+        sku: selectedProduct,
+        priceChange,
+        marketingChange,
+        exchangeRateChange,
+        inflationChange
+      });
+      console.log('Respuesta backend simulación:', response);
+    } catch (err) {
+      console.warn('Error al solicitar simulación:', err);
     }
-    return () => clearInterval(intervalId);
-  }, [simTaskId, simStatus, selectedProduct]);
+  };
 
 
   const handleDepartmentChange = (e) => {
@@ -506,55 +480,19 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     setSimResults(null);
   };
 
-  const filteredProducts = allProducts.filter(item => {
-    if (department && item.department !== department) return false;
-    if (category && item.category !== category) return false;
-    if (brand && item.brand !== brand) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return item.name.toLowerCase().includes(q) || item.sku.toLowerCase().includes(q);
-    }
-    return true;
-  });
-
-  const getScaledData = () => {
-    const activeProd = allProducts.find(p => p.sku === selectedProduct);
-    const scale = activeProd ? activeProd.scale : 1.0;
-
-    const scaled = forecastData.map(item => ({
-      ...item,
-      month: item.month,
-      historical: item.historical ? Math.round(item.historical * scale) : null,
-      forecast: item.forecast ? Math.round(item.forecast * scale) : null,
-    }));
-
-    const junIndex = scaled.findIndex(item => item.month === 'Jun 26');
-    const julIndex = scaled.findIndex(item => item.month === 'Jul 26');
-    if (junIndex !== -1 && julIndex !== -1) {
-      scaled[junIndex].forecast = scaled[junIndex].historical;
-    }
-
-    return scaled;
-  };
+  const filteredProducts = productList;
 
   const getCombinedData = () => {
-    const scaled = getScaledData();
-    if (!simResults) return scaled;
+    if (!forecastData || forecastData.length === 0) return [];
+    if (!simResults) return forecastData;
 
-    const combined = scaled.map(item => {
+    return forecastData.map(item => {
       const simItem = simResults.find(s => s.month === item.month);
       return {
         ...item,
         simulated: simItem ? simItem.simulated : null
       };
     });
-
-    const junIndex = combined.findIndex(item => item.month === 'Jun 26');
-    if (junIndex !== -1) {
-      combined[junIndex].simulated = combined[junIndex].historical;
-    }
-
-    return combined;
   };
 
   const transitionPoint = forecastData.find((item, idx) =>
@@ -563,7 +501,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     idx < forecastData.length - 1 &&
     forecastData[idx + 1].forecast !== null
   );
-  const transitionMonth = transitionPoint ? transitionPoint.month : 'Jun 26';
+  const transitionMonth = transitionPoint ? transitionPoint.month : 'Dic 25';
 
   const getTransitionValue = () => {
     if (!transitionPoint) return null;
@@ -881,7 +819,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
               <h3 style={{ fontSize: '1.15rem', color: '#f8fafc', fontWeight: '600' }}>
                 {selectedProduct === 'total'
                   ? 'Pronóstico de Demanda - Consolidado Total General'
-                  : `Pronóstico de Demanda - SKU: ${selectedProduct} (${allProducts.find(p => p.sku === selectedProduct)?.name})`
+                  : `Pronóstico de Demanda - SKU: ${selectedProduct} (${productList.find(p => p.sku === selectedProduct)?.name || ''})`
                 }
               </h3>
             </div>

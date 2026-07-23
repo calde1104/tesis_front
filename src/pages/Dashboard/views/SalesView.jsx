@@ -562,7 +562,7 @@ const SalesView = ({ formatCurrency }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <h3 style={{ margin: 0 }}>Ventas a Nivel de SKU</h3>
             <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '700' }}>
-              {totalItems} productos encontrados
+              {totalItems} registros encontrados
             </span>
           </div>
 

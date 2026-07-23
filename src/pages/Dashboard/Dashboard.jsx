@@ -80,15 +80,26 @@ const Dashboard = () => {
   const notifications = getNotifications();
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
     const fetchData = async () => {
       try {
-        const [kpiRes, salesRes, marketRes, contextRes, modelsRes] = await Promise.all([
-          getKPIs(),
-          getSalesEvolution(),
-          getMarketShareComposition(),
-          getContextVariables(),
+        const salesRes = await getSalesEvolution();
+        const lastHistPoint = salesRes.filter(p => p.historical !== null && p.rawAnio && p.rawMes).pop();
+        const targetAnio = lastHistPoint ? lastHistPoint.rawAnio : 2025;
+        const targetMes = lastHistPoint ? lastHistPoint.rawMes : 12;
+
+        const [kpiRes, marketRes, contextRes, modelsRes] = await Promise.all([
+          getKPIs(targetAnio, targetMes),
+          getMarketShareComposition(targetAnio, targetMes),
+          getContextVariables(targetAnio, targetMes),
           getMLModels()
         ]);
+
         setKpis(kpiRes);
         setSalesData(salesRes);
         setMarketShare(marketRes);
@@ -103,7 +114,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     const saved = localStorage.getItem('product_thresholds');
@@ -117,7 +128,8 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(value);
+    if (value === null || value === undefined || isNaN(value)) return '₲ 0';
+    return `₲ ${Math.round(Number(value)).toLocaleString('es-PY')}`;
   };
 
   if (loading) {
@@ -545,7 +557,7 @@ const Dashboard = () => {
                 onClick={async () => {
                   setShowLogoutModal(false);
                   await logout();
-                  navigate('/login');
+                  navigate('/login', { replace: true });
                 }}
                 style={{
                   flex: 1,

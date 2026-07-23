@@ -30,25 +30,32 @@ const getBrandId = (name) => brandNameToIdMap[name] || null;
 const getCategoryId = (name) => categoryNameToIdMap[name] || null;
 const getDeptId = (name) => deptNameToIdMap[name] || null;
 
-// Enrich backend sales data with product details from our local catalog
-// to prevent empty table columns in the UI since the backend currently doesn't return them.
-const enrichSaleItemWithProductDetails = (item, index) => {
-  const localProduct = baseProducts[index % baseProducts.length];
-  
+const getSelectedValues = (filterArr) => {
+  if (!filterArr || !Array.isArray(filterArr) || filterArr.length === 0) return [];
+  return filterArr.filter(v => v !== '' && v !== null && v !== undefined).map(v => Number(v));
+};
+
+const mapSaleItemToFrontend = (item) => {
+  const units = item.unidadesVendidas !== undefined ? Number(item.unidadesVendidas) : 0;
+  const revenue = item.montoFacturado !== undefined ? Number(item.montoFacturado) : 0;
+  const price = item.precioUnitario !== undefined ? Number(item.precioUnitario) : (units > 0 ? revenue / units : 0);
+
   return {
-    sku: item.sku || localProduct.sku,
-    name: item.descripcion || localProduct.name,
-    category: item.categoriaNombre || localProduct.category,
-    brand: item.marcaNombre || localProduct.brand,
-    netContent: item.contenidoNeto || localProduct.netContent,
-    unit: item.unidadMedida || localProduct.unit,
-    units: item.unidadesVendidas !== undefined ? Number(item.unidadesVendidas) : localProduct.baseUnits,
-    revenue: item.montoFacturado !== undefined ? Number(item.montoFacturado) : (item.unidadesVendidas * localProduct.avgPrice),
-    avgPrice: item.precioUnitario !== undefined ? Number(item.precioUnitario) : localProduct.avgPrice,
+    sku: item.sku || 'SKU-000',
+    name: item.descripcionProducto || item.descripcion || 'Producto',
+    category: item.categoriaNombre || 'Sin categoría',
+    brand: item.marcaNombre || 'Sin marca',
+    netContent: item.contenidoNeto || 1.0,
+    unit: item.unidadMedida || 'un',
+    units: units,
+    revenue: revenue,
+    avgPrice: Math.round(price),
     year: item.anio,
     month: item.mes
   };
 };
+
+let validDeptIds = new Set();
 
 export const getSalesFilters = async () => {
   const empresaId = getEmpresaId();
@@ -70,19 +77,20 @@ export const getSalesFilters = async () => {
       data.categorias.forEach(c => { categoryNameToIdMap[c.nombre] = c.id; });
     }
 
-    // Build grouped categories
-    // Since the backend doesn't return the department association for categories yet,
-    // we use our local department-category mapping as a fallback.
     const groupedCategories = {};
-    Object.entries(deptCats).forEach(([dept, cats]) => {
-      groupedCategories[dept] = cats;
-    });
+    if (data.departamentos && data.categorias) {
+      data.departamentos.forEach(d => {
+        groupedCategories[d.nombre] = data.categorias
+          .filter(c => String(c.departamentoId) === String(d.id))
+          .map(c => c.nombre);
+      });
+    }
 
     return {
-      departments: data.departamentos ? data.departamentos.map(d => d.nombre) : Object.keys(deptCats),
+      departments: data.departamentos ? data.departamentos.map(d => d.nombre) : [],
       categories: groupedCategories,
-      brands: data.marcas ? data.marcas.map(b => b.nombre) : ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'],
-      years: [2024, 2025, 2026],
+      brands: data.marcas ? data.marcas.map(b => b.nombre) : [],
+      years: [2021, 2022, 2023, 2024, 2025],
       months: [
         { value: 1, label: 'Enero' },
         { value: 2, label: 'Febrero' },
@@ -99,26 +107,13 @@ export const getSalesFilters = async () => {
       ]
     };
   } catch (error) {
-    console.warn('getSalesFilters failed. Falling back to mock data.', error);
+    console.warn('getSalesFilters failed.', error);
     return {
-      departments: ['Alimentos', 'Bebidas', 'Limpieza', 'Cuidado Personal'],
-      categories: deptCats,
-      brands: ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'],
-      years: [2024, 2025, 2026],
-      months: [
-        { value: 1, label: 'Enero' },
-        { value: 2, label: 'Febrero' },
-        { value: 3, label: 'Marzo' },
-        { value: 4, label: 'Abril' },
-        { value: 5, label: 'Mayo' },
-        { value: 6, label: 'Junio' },
-        { value: 7, label: 'Julio' },
-        { value: 8, label: 'Agosto' },
-        { value: 9, label: 'Septiembre' },
-        { value: 10, label: 'Octubre' },
-        { value: 11, label: 'Noviembre' },
-        { value: 12, label: 'Diciembre' }
-      ]
+      departments: [],
+      categories: {},
+      brands: [],
+      years: [2021, 2022, 2023, 2024, 2025],
+      months: []
     };
   }
 };
@@ -126,18 +121,45 @@ export const getSalesFilters = async () => {
 export const getSalesSummary = async (filters = {}) => {
   const empresaId = getEmpresaId();
   
-  const anio = filters.years && filters.years.length > 0 ? Number(filters.years[0]) : 2026;
-  const mes = filters.months && filters.months.length > 0 ? Number(filters.months[0]) : null;
+  const years = getSelectedValues(filters.years);
+  const months = getSelectedValues(filters.months);
+  const searchParam = filters.search && filters.search.trim() ? `&search=${encodeURIComponent(filters.search.trim())}` : '';
 
   try {
-    let url = `/v1/${empresaId}/sales/summary?anio=${anio}`;
-    if (mes) url += `&mes=${mes}`;
+    const isFilteredByYear = years.length > 0 && years.length < 5;
+    const isFilteredByMonth = months.length > 0 && months.length < 12;
 
-    const data = await apiRequest(url);
-    
-    const totalUnits = data.totalUnidades !== undefined ? Number(data.totalUnidades) : 0;
-    const totalRevenue = data.totalFacturado !== undefined ? Number(data.totalFacturado) : 0;
-    const averagePrice = totalUnits > 0 ? parseFloat((totalRevenue / totalUnits).toFixed(1)) : 0;
+    if (!isFilteredByYear && !isFilteredByMonth) {
+      let url = `/v1/${empresaId}/sales/summary`;
+      if (searchParam) url += `?${searchParam.substring(1)}`;
+
+      const data = await apiRequest(url);
+      const totalUnits = Number(data.totalUnidades) || 0;
+      const totalRevenue = Number(data.totalFacturado) || 0;
+      const averagePrice = totalUnits > 0 ? Math.round(totalRevenue / totalUnits) : 0;
+      return { totalRevenue, totalUnits, averagePrice };
+    }
+
+    const targetYears = isFilteredByYear ? years : [null];
+    const targetMonths = isFilteredByMonth ? months : [null];
+
+    const requests = [];
+    targetYears.forEach(y => {
+      targetMonths.forEach(m => {
+        let url = `/v1/${empresaId}/sales/summary`;
+        const params = [];
+        if (y !== null) params.push(`anio=${y}`);
+        if (m !== null) params.push(`mes=${m}`);
+        if (filters.search && filters.search.trim()) params.push(`search=${encodeURIComponent(filters.search.trim())}`);
+        if (params.length > 0) url += `?${params.join('&')}`;
+        requests.push(apiRequest(url));
+      });
+    });
+
+    const summaries = await Promise.all(requests);
+    const totalUnits = summaries.reduce((sum, s) => sum + (Number(s.totalUnidades) || 0), 0);
+    const totalRevenue = summaries.reduce((sum, s) => sum + (Number(s.totalFacturado) || 0), 0);
+    const averagePrice = totalUnits > 0 ? Math.round(totalRevenue / totalUnits) : 0;
 
     return {
       totalRevenue,
@@ -145,75 +167,85 @@ export const getSalesSummary = async (filters = {}) => {
       averagePrice
     };
   } catch (error) {
-    console.warn('getSalesSummary failed. Falling back to mock data.', error);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          totalRevenue: 28500 * 200 + 14200 * 350 + 22100 * 180,
-          totalUnits: 28500 + 14200 + 22100,
-          averagePrice: 220
-        });
-      }, 400);
-    });
+    console.warn('getSalesSummary failed.', error);
+    return {
+      totalRevenue: 0,
+      totalUnits: 0,
+      averagePrice: 0
+    };
   }
 };
 
-export const getSalesList = async (filters = {}, page = 1, limit = 8) => {
+export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
   const empresaId = getEmpresaId();
   
-  const anio = filters.years && filters.years.length > 0 ? Number(filters.years[0]) : 2026;
-  const mes = filters.months && filters.months.length > 0 ? Number(filters.months[0]) : null;
+  let years = getSelectedValues(filters.years);
+  if (years.length === 0) {
+    years = [2021, 2022, 2023, 2024, 2025];
+  }
+  
+  const months = getSelectedValues(filters.months);
   const brandId = getBrandId(filters.brand);
   const categoriaId = getCategoryId(filters.category);
   const departamentoId = getDeptId(filters.department);
 
   try {
-    let url = `/v1/${empresaId}/sales?anio=${anio}&page=${page - 1}&size=${limit}`;
-    if (mes) url += `&mes=${mes}`;
+    let sortQuery = '';
+    if (filters.sortBy) {
+      const sortFieldMap = {
+        revenue: 'montoFacturado',
+        units: 'unidadesVendidas',
+        avgPrice: 'precioUnitario',
+        sku: 'sku'
+      };
+      const fieldName = sortFieldMap[filters.sortBy] || filters.sortBy;
+      const order = filters.sortOrder === 'asc' ? 'asc' : 'desc';
+      sortQuery = `&sort=${fieldName},${order}`;
+    }
+
+    let url = `/v1/${empresaId}/sales?anios=${years.join(',')}&page=${page - 1}&size=${limit}${sortQuery}`;
+    if (months.length > 0) {
+      url += `&meses=${months.join(',')}`;
+    }
     if (brandId) url += `&marcaId=${brandId}`;
     if (categoriaId) url += `&categoriaId=${categoriaId}`;
     if (departamentoId) url += `&departamentoId=${departamentoId}`;
+    if (filters.search && filters.search.trim()) {
+      url += `&search=${encodeURIComponent(filters.search.trim())}`;
+    }
 
     const data = await apiRequest(url);
 
-    const list = data.content ? data.content.map((item, idx) => enrichSaleItemWithProductDetails(item, idx)) : [];
+    let list = data.content ? data.content.map(mapSaleItemToFrontend) : [];
+
+    if (filters.sortBy && list.length > 0) {
+      const isAsc = filters.sortOrder === 'asc';
+      list = [...list].sort((a, b) => {
+        let valA = a[filters.sortBy];
+        let valB = b[filters.sortBy];
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+
+        if (valA < valB) return isAsc ? -1 : 1;
+        if (valA > valB) return isAsc ? 1 : -1;
+        return 0;
+      });
+    }
     
     return {
       data: list,
-      totalItems: data.totalElements || 0,
-      totalPages: data.totalPages || 0,
+      totalItems: data.totalElements !== undefined ? data.totalElements : list.length,
+      totalPages: data.totalPages !== undefined ? data.totalPages : 1,
       currentPage: page
     };
   } catch (error) {
-    console.warn('getSalesList failed. Falling back to mock data.', error);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockList = baseProducts.map((p, idx) => ({
-          sku: p.sku,
-          name: p.name,
-          category: p.category,
-          brand: p.brand,
-          netContent: p.netContent,
-          unit: p.unit,
-          units: p.baseUnits,
-          revenue: p.baseUnits * p.avgPrice,
-          avgPrice: p.avgPrice,
-          year: anio,
-          month: mes || 6
-        }));
-        
-        const totalItems = mockList.length;
-        const startIndex = (page - 1) * limit;
-        const paginated = mockList.slice(startIndex, startIndex + limit);
-
-        resolve({
-          data: paginated,
-          totalItems,
-          totalPages: Math.ceil(totalItems / limit),
-          currentPage: page
-        });
-      }, 500);
-    });
+    console.warn('getSalesList failed.', error);
+    return {
+      data: [],
+      totalItems: 0,
+      totalPages: 0,
+      currentPage: page
+    };
   }
 };
 

@@ -29,15 +29,24 @@ const CustomTooltip = ({ active, payload, label }) => {
         textAlign: 'left'
       }}>
         <p style={{ margin: 0, fontWeight: '700', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
-        {filteredPayload.map((pld) => (
-          <div key={pld.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
-            <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name}:</span>
-            <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
-              {typeof pld.value === 'number' ? `${pld.value.toLocaleString('es-AR')} un.` : pld.value}
-            </span>
-          </div>
-        ))}
+        {filteredPayload.map((pld) => {
+          const isCurrency = pld.dataKey === 'historical';
+          const formattedValue = typeof pld.value === 'number'
+            ? (isCurrency 
+                ? `₲ ${Math.round(pld.value).toLocaleString('es-PY')}`
+                : `${Math.round(pld.value).toLocaleString('es-PY')} un.`)
+            : pld.value;
+
+          return (
+            <div key={pld.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
+              <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name}:</span>
+              <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
+                {formattedValue}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -266,10 +275,19 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
                   tick={{fill: '#64748b', fontSize: 11}} 
                   tickLine={false} 
                   axisLine={false} 
-                  tickFormatter={(value) => `${value/1000}k un.`}
+                  tickFormatter={(val) => {
+                    if (!val) return '₲ 0';
+                    if (Math.abs(val) >= 1_000_000_000) {
+                      return `₲ ${(val / 1_000_000_000).toFixed(1)}B`;
+                    }
+                    if (Math.abs(val) >= 1_000_000) {
+                      return `₲ ${(val / 1_000_000).toFixed(0)}M`;
+                    }
+                    return `₲ ${val}`;
+                  }}
                   domain={['auto', 'auto']}
                   padding={{ top: 15, bottom: 15 }}
-                  width={65}
+                  width={80}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={<CustomTooltipCursor />} />
                 
@@ -369,7 +387,9 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
               
               {marketShare && marketShare.length > 0 && (
                 (() => {
-                  const leader = marketShare.reduce((max, item) => item.value > max.value ? item : max, marketShare[0]);
+                  const realCompanies = marketShare.filter(item => item.name !== 'Otros');
+                  const leaderSource = realCompanies.length > 0 ? realCompanies : marketShare;
+                  const leader = leaderSource.reduce((max, item) => item.value > max.value ? item : max, leaderSource[0]);
                   return (
                     <div className="pie-center-label" style={{
                       position: 'absolute',
@@ -415,7 +435,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             </div>
             <div className="context-item">
               <span className="context-label">{contextVars.exchangeRate.label}</span>
-              <span className="context-value">${contextVars.exchangeRate.value}</span>
+              <span className="context-value">₲ {Number(contextVars.exchangeRate.value).toLocaleString('es-PY')}</span>
             </div>
             <div className="context-item">
               <span className="context-label">{contextVars.seasonality.label}</span>

@@ -23,6 +23,10 @@ export const apiRequest = async (endpoint, options = {}) => {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
     let errorMessage = 'Ocurrió un error en la solicitud';
     try {
       const errorData = await response.json();
@@ -37,5 +41,6 @@ export const apiRequest = async (endpoint, options = {}) => {
     return null;
   }
 
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 };

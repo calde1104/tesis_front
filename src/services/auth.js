@@ -27,7 +27,10 @@ export const logout = async () => {
     await apiRequest('/v1/auth/logout', {
       method: 'POST'
     });
+  } catch (error) {
+    console.warn('Logout endpoint error (continuing local cleanup):', error);
   } finally {
     localStorage.clear();
+    sessionStorage.clear();
   }
 };
