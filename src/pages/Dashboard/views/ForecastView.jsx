@@ -125,7 +125,7 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   );
 };
 
-const CustomTooltip = ({ active, payload, label, selectedProduct, formatCurrency, priceChange }) => {
+const CustomTooltip = ({ active, payload, label, selectedProduct, productList, formatCurrency, priceChange }) => {
   if (active && payload && payload.length) {
     const filteredPayload = payload.filter((pld) => {
       if (pld.dataKey === 'forecast' && pld.payload.historical !== null && pld.payload.historical !== undefined) {
@@ -136,26 +136,9 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, formatCurrency
 
     if (filteredPayload.length === 0) return null;
 
-    const activeProd = selectedProduct && selectedProduct !== 'total' && productList
+    const activeProd = selectedProduct && selectedProduct !== 'total' && Array.isArray(productList)
       ? productList.find(p => p.sku === selectedProduct) 
       : null;
-
-    const getHistoricalPrice = (basePrice, monthName) => {
-      const monthIndices = {
-        'Ene 26': 0,
-        'Feb 26': 1,
-        'Mar 26': 2,
-        'Abr 26': 3,
-        'May 26': 4,
-        'Jun 26': 5 // Último mes (base)
-      };
-      const idx = monthIndices[monthName];
-      if (idx !== undefined) {
-        const factors = [0.935, 0.948, 0.962, 0.975, 0.988, 1.0];
-        return Math.round(basePrice * factors[idx]);
-      }
-      return basePrice;
-    };
 
     return (
       <div className="custom-chart-tooltip" style={{
@@ -171,31 +154,37 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, formatCurrency
         {filteredPayload.map((pld) => {
           const isSimulated = pld.name === 'simulated' || pld.dataKey === 'simulated';
           const isHistorical = pld.name === 'historical' || pld.dataKey === 'historical';
+          const units = typeof pld.value === 'number' ? pld.value : 0;
           
-          let displayedPrice = null;
-          if (activeProd) {
-            if (isHistorical) {
-              displayedPrice = getHistoricalPrice(activeProd.price, label);
-            } else if (isSimulated) {
-              displayedPrice = activeProd.price * (1 + (priceChange || 0) / 100);
-            } else {
-              displayedPrice = activeProd.price;
-            }
+          const realHistoricalRevenue = pld.payload ? pld.payload.historicalRevenue : null;
+
+          let displayedPrice = activeProd ? activeProd.price : null;
+          if (activeProd && isSimulated && priceChange) {
+            displayedPrice = activeProd.price * (1 + (priceChange || 0) / 100);
           }
+
+          const estimatedMoney = displayedPrice ? units * displayedPrice : null;
+          const displayMoney = (isHistorical && realHistoricalRevenue !== null && realHistoricalRevenue !== undefined)
+            ? realHistoricalRevenue
+            : estimatedMoney;
+
+          const moneyLabel = isHistorical ? 'Facturación' : 'Monto Est.';
 
           return (
             <div key={pld.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.35rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
                 <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
-                <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name === 'historical' ? 'Ventas Históricas' : pld.name === 'forecast' ? 'Demanda Proyectada' : pld.name === 'simulated' ? 'Simulado' : pld.name}:</span>
+                <span style={{ color: '#cbd5e1', fontWeight: '500' }}>
+                  {isHistorical ? 'Ventas Históricas' : pld.name === 'forecast' ? 'Demanda Proyectada' : isSimulated ? 'Simulado' : pld.name}:
+                </span>
                 <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
-                  {typeof pld.value === 'number' ? `${pld.value.toLocaleString('es-AR')} un.` : pld.value}
+                  {units.toLocaleString('es-PY')} un.
                 </span>
               </div>
               
-              {activeProd && displayedPrice && (
-                <div style={{ paddingLeft: '1rem', fontSize: '0.72rem', color: '#38bdf8', opacity: 0.9 }}>
-                  <span>Precio Unitario: {formatCurrency(displayedPrice)}</span>
+              {displayMoney !== null && formatCurrency && (
+                <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#38bdf8', opacity: 0.9 }}>
+                  <span>{moneyLabel}: {formatCurrency(displayMoney)}</span>
                 </div>
               )}
             </div>
@@ -388,11 +377,15 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     fetchProducts();
   }, [department, category, brand, search]);
 
+  const [isFetchingForecast, setIsFetchingForecast] = useState(false);
+
   useEffect(() => {
     const fetchForecastForSelection = async () => {
+      setIsFetchingForecast(true);
       const sku = selectedProduct !== 'total' ? selectedProduct : null;
       const res = await getForecast(sku);
       setForecastData(res);
+      setIsFetchingForecast(false);
     };
     fetchForecastForSelection();
   }, [selectedProduct]);
@@ -435,22 +428,9 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     setDepartment(nextDept);
     setSelectedProduct('total');
     setSimResults(null);
-    let nextCat = category;
-    if (nextDept && category && filterOptions) {
+    if (nextDept && category && filterOptions && filterOptions.categories) {
       const allowedCats = filterOptions.categories[nextDept] || [];
-      if (!allowedCats.includes(category)) {
-        setCategory('');
-        nextCat = '';
-      }
-    }
-    if (brand) {
-      if (nextCat) {
-        const allowedBrands = categoryBrands[nextCat] || [];
-        if (!allowedBrands.includes(brand)) setBrand('');
-      } else if (nextDept) {
-        const allowedBrands = deptBrands[nextDept] || [];
-        if (!allowedBrands.includes(brand)) setBrand('');
-      }
+      if (!allowedCats.includes(category)) setCategory('');
     }
   };
 
@@ -459,10 +439,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     setCategory(nextCat);
     setSelectedProduct('total');
     setSimResults(null);
-    if (brand && nextCat) {
-      const allowedBrands = categoryBrands[nextCat] || [];
-      if (!allowedBrands.includes(brand)) setBrand('');
-    }
   };
 
   const handleBrandChange = (e) => {
@@ -496,18 +472,16 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
   };
 
   const transitionPoint = forecastData.find((item, idx) =>
-    item.historical !== null &&
-    (item.forecast === null || item.forecast === undefined) &&
+    item.historical !== null && item.historical !== undefined &&
     idx < forecastData.length - 1 &&
-    forecastData[idx + 1].forecast !== null
-  );
+    forecastData[idx + 1].historical === null
+  ) || (forecastData.length > 0 ? forecastData.find(item => item.historical !== null && item.historical !== undefined) : null);
+  
   const transitionMonth = transitionPoint ? transitionPoint.month : 'Dic 25';
 
   const getTransitionValue = () => {
     if (!transitionPoint) return null;
-    const activeProd = allProducts.find(p => p.sku === selectedProduct);
-    const scale = activeProd ? activeProd.scale : 1.0;
-    return Math.round(transitionPoint.historical * scale);
+    return transitionPoint.historical;
   };
   const transitionValue = getTransitionValue();
 
@@ -657,20 +631,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             placeholder="Todas las Marcas"
             options={[
               { value: '', label: 'Todas las Marcas' },
-              ...(filterOptions?.brands
-                .filter(b => {
-                  if (category) {
-                    const allowedBrands = categoryBrands[category] || [];
-                    return allowedBrands.includes(b);
-                  }
-                  if (department) {
-                    const allowedBrands = deptBrands[department] || [];
-                    return allowedBrands.includes(b);
-                  }
-                  return true;
-                })
-                .map(b => ({ value: b, label: b })) || []
-              )
+              ...(filterOptions?.brands?.map(b => ({ value: b, label: b })) || [])
             ]}
           />
         </div>
@@ -814,23 +775,55 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, paddingLeft: '0.25rem', paddingRight: '0.25rem' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', padding: 0, border: 'none', background: 'none' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <h3 style={{ fontSize: '1.15rem', color: '#f8fafc', fontWeight: '600' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '0.75rem', padding: 0, border: 'none', background: 'none' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, flex: 1 }}>
+              <h3 
+                style={{ 
+                  fontSize: '1.15rem', 
+                  color: '#f8fafc', 
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  margin: 0
+                }}
+                title={selectedProduct === 'total'
+                  ? 'Pronóstico de Demanda - Consolidado Total General'
+                  : `Pronóstico de Demanda - SKU: ${selectedProduct} (${productList.find(p => p.sku === selectedProduct)?.name || ''})`
+                }
+              >
                 {selectedProduct === 'total'
                   ? 'Pronóstico de Demanda - Consolidado Total General'
                   : `Pronóstico de Demanda - SKU: ${selectedProduct} (${productList.find(p => p.sku === selectedProduct)?.name || ''})`
                 }
               </h3>
             </div>
-            <div className="legend-pills">
+            <div className="legend-pills" style={{ flexShrink: 0 }}>
               <span className="legend-pill historical">Histórico</span>
               <span className="legend-pill forecast">Forecast (12 Meses)</span>
               {simResults && <span className="legend-pill simulated">Simulado</span>}
             </div>
           </div>
 
-          <div className="chart-container" style={{ flex: 1, marginTop: '1rem', minHeight: 0 }}>
+          <div className="chart-container" style={{ flex: 1, marginTop: '1rem', minHeight: 0, position: 'relative' }}>
+            {isFetchingForecast && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(11, 15, 25, 0.55)',
+                backdropFilter: 'blur(3px)',
+                zIndex: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.6rem',
+                color: '#38bdf8',
+                borderRadius: '12px'
+              }}>
+                <Loader2 className="spinner" size={22} />
+                <span style={{ fontSize: '0.85rem', fontWeight: '500' }}>Cargando serie del SKU...</span>
+              </div>
+            )}
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={combinedData} margin={{ top: 15, right: 15, left: 10, bottom: 5 }}>
                 <defs>
@@ -870,6 +863,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                   content={
                     <CustomTooltip 
                       selectedProduct={selectedProduct} 
+                      productList={productList}
                       formatCurrency={formatCurrency} 
                       priceChange={priceChange} 
                     />

@@ -37,13 +37,24 @@ const CustomTooltip = ({ active, payload, label }) => {
                 : `${Math.round(pld.value).toLocaleString('es-PY')} un.`)
             : pld.value;
 
+          const historicalUnits = pld.payload && pld.payload.historicalUnits !== null && pld.payload.historicalUnits !== undefined
+            ? Math.round(pld.payload.historicalUnits).toLocaleString('es-PY')
+            : null;
+
           return (
-            <div key={pld.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
-              <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name}:</span>
-              <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
-                {formattedValue}
-              </span>
+            <div key={pld.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
+                <span style={{ color: '#cbd5e1', fontWeight: '500' }}>{pld.name}:</span>
+                <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
+                  {formattedValue}
+                </span>
+              </div>
+              {isCurrency && historicalUnits !== null && (
+                <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#38bdf8', opacity: 0.9 }}>
+                  <span>Volumen físico: {historicalUnits} un.</span>
+                </div>
+              )}
             </div>
           );
         })}

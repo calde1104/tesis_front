@@ -26,11 +26,11 @@ let brandNameToIdMap = {};
 let categoryNameToIdMap = {};
 let deptNameToIdMap = {};
 
-const getBrandId = (name) => brandNameToIdMap[name] || null;
-const getCategoryId = (name) => categoryNameToIdMap[name] || null;
-const getDeptId = (name) => deptNameToIdMap[name] || null;
+export const getBrandId = (name) => brandNameToIdMap[name] || null;
+export const getCategoryId = (name) => categoryNameToIdMap[name] || null;
+export const getDeptId = (name) => deptNameToIdMap[name] || null;
 
-const getSelectedValues = (filterArr) => {
+export const getSelectedValues = (filterArr) => {
   if (!filterArr || !Array.isArray(filterArr) || filterArr.length === 0) return [];
   return filterArr.filter(v => v !== '' && v !== null && v !== undefined).map(v => Number(v));
 };
@@ -123,17 +123,24 @@ export const getSalesSummary = async (filters = {}) => {
   
   const years = getSelectedValues(filters.years);
   const months = getSelectedValues(filters.months);
-  const searchParam = filters.search && filters.search.trim() ? `&search=${encodeURIComponent(filters.search.trim())}` : '';
+  const hasProductFilters = (filters.search && filters.search.trim()) || filters.department || filters.category || filters.brand;
 
   try {
+    if (hasProductFilters) {
+      const salesRes = await getSalesList(filters, 1, 1000);
+      if (salesRes && salesRes.data) {
+        const totalUnits = salesRes.data.reduce((sum, item) => sum + (Number(item.units) || 0), 0);
+        const totalRevenue = salesRes.data.reduce((sum, item) => sum + (Number(item.revenue) || 0), 0);
+        const averagePrice = totalUnits > 0 ? Math.round(totalRevenue / totalUnits) : 0;
+        return { totalRevenue, totalUnits, averagePrice };
+      }
+    }
+
     const isFilteredByYear = years.length > 0 && years.length < 5;
     const isFilteredByMonth = months.length > 0 && months.length < 12;
 
     if (!isFilteredByYear && !isFilteredByMonth) {
-      let url = `/v1/${empresaId}/sales/summary`;
-      if (searchParam) url += `?${searchParam.substring(1)}`;
-
-      const data = await apiRequest(url);
+      const data = await apiRequest(`/v1/${empresaId}/sales/summary`);
       const totalUnits = Number(data.totalUnidades) || 0;
       const totalRevenue = Number(data.totalFacturado) || 0;
       const averagePrice = totalUnits > 0 ? Math.round(totalRevenue / totalUnits) : 0;
@@ -150,7 +157,6 @@ export const getSalesSummary = async (filters = {}) => {
         const params = [];
         if (y !== null) params.push(`anio=${y}`);
         if (m !== null) params.push(`mes=${m}`);
-        if (filters.search && filters.search.trim()) params.push(`search=${encodeURIComponent(filters.search.trim())}`);
         if (params.length > 0) url += `?${params.join('&')}`;
         requests.push(apiRequest(url));
       });

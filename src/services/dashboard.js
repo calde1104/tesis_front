@@ -47,6 +47,7 @@ const mapSalesEvolutionToFrontend = (points) => {
       rawAnio: p.anio,
       rawMes: p.mes,
       historical: hasForecast ? null : (p.montoFacturado ? Number(p.montoFacturado) : null),
+      historicalUnits: p.unidadesVendidas !== null && p.unidadesVendidas !== undefined ? Number(p.unidadesVendidas) : null,
       forecast: hasForecast ? Number(p.unidadesPronosticadas) : null,
       forecastLower: hasForecast ? Number(p.unidadesPronosticadas) * 0.96 : null,
       forecastUpper: hasForecast ? Number(p.unidadesPronosticadas) * 1.04 : null

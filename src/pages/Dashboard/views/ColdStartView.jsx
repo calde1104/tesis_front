@@ -13,27 +13,7 @@ const getDepartmentIcon = (deptName) => {
   return <Folder size={16} />;
 };
 
-const deptBrands = {
-  'Alimentos': ['Molinos', 'Vicentin', 'Arcor'],
-  'Bebidas': ['Quilmes', 'Coca-Cola', 'Otros'],
-  'Limpieza': ['Unilever', 'Otros'],
-  'Cuidado Personal': []
-};
 
-const categoryBrands = {
-  'Aceites': ['Vicentin'],
-  'Fideos': ['Molinos'],
-  'Arroz': ['Molinos'],
-  'Salsas': ['Arcor'],
-  'Cervezas': ['Quilmes'],
-  'Vinos': ['Otros'],
-  'Gaseosas': ['Coca-Cola'],
-  'Aguas': ['Coca-Cola'],
-  'Jabón Líquido': ['Unilever'],
-  'Desinfectantes': ['Unilever'],
-  'Suavizantes': ['Unilever'],
-  'Limpiadores Multiuso': ['Otros']
-};
 
 const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down' }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -142,25 +122,17 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   );
 };
 
-const defaultGroupedCategories = {
-  'Alimentos': ['Aceites', 'Fideos', 'Arroz', 'Salsas', 'Lácteos', 'Fiambres', 'Carnes'],
-  'Bebidas': ['Cervezas', 'Vinos', 'Aperitivos', 'Gaseosas', 'Aguas', 'Jugos'],
-  'Limpieza': ['Jabón Líquido', 'Suavizantes', 'Desinfectantes', 'Limpiadores Multiuso'],
-  'Cuidado Personal': ['Cabello', 'Higiene', 'Oral']
-};
 
-const defaultDepartments = ['Alimentos', 'Bebidas', 'Limpieza', 'Cuidado Personal'];
-const defaultBrands = ['Molinos', 'Vicentin', 'Arcor', 'Quilmes', 'Coca-Cola', 'Unilever', 'Otros'];
 
 const ColdStartView = () => {
   const [filterOptions, setFilterOptions] = useState({
-    departments: defaultDepartments,
-    categories: defaultGroupedCategories,
-    brands: defaultBrands
+    departments: [],
+    categories: {},
+    brands: []
   });
 
   const [coldProductName, setColdProductName] = useState('');
-  const [coldDepartment, setColdDepartment] = useState('Alimentos');
+  const [coldDepartment, setColdDepartment] = useState('');
   const [coldTargetCategory, setColdTargetCategory] = useState('');
   const [coldBrand, setColdBrand] = useState('');
   const [coldExpectedPrice, setColdExpectedPrice] = useState('');
@@ -175,6 +147,9 @@ const ColdStartView = () => {
         const filtersRes = await getSalesFilters();
         if (filtersRes) {
           setFilterOptions(filtersRes);
+          if (filtersRes.departments && filtersRes.departments.length > 0) {
+            setColdDepartment(filtersRes.departments[0]);
+          }
         }
       } catch (err) {
         console.error("Error al cargar filtros:", err);
@@ -213,35 +188,14 @@ const ColdStartView = () => {
 
   const handleColdCategoryChange = (catId) => {
     setColdTargetCategory(catId);
-    if (catId && coldBrand) {
-      const allowed = categoryBrands[catId] || [];
-      if (!allowed.includes(coldBrand)) {
-        setColdBrand('');
-      }
-    }
   };
 
   const handleColdBrandChange = (brandId) => {
     setColdBrand(brandId);
-    if (brandId && coldTargetCategory) {
-      const allowedCategories = (filterOptions?.categories[coldDepartment] || []).filter(cat => {
-        const allowed = categoryBrands[cat] || [];
-        return allowed.includes(brandId);
-      });
-      if (!allowedCategories.includes(coldTargetCategory)) {
-        setColdTargetCategory('');
-      }
-    }
   };
 
   const coldAllowedCategories = coldDepartment && filterOptions?.categories ? filterOptions.categories[coldDepartment] || [] : [];
-  
-  let coldAllowedBrands = [];
-  if (coldTargetCategory) {
-    coldAllowedBrands = categoryBrands[coldTargetCategory] || [];
-  } else if (coldDepartment) {
-    coldAllowedBrands = deptBrands[coldDepartment] || [];
-  }
+  const coldAllowedBrands = filterOptions?.brands || [];
 
   return (
     <div className="forecast-view" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, minHeight: '100%' }}>
