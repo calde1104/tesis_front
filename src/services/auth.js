@@ -8,8 +8,11 @@ export const login = async (email, password) => {
 
   if (data && data.token) {
     localStorage.setItem('token', data.token);
+    if (data.empresaId) {
+      localStorage.setItem('empresaId', data.empresaId);
+    }
     if (data.empresa) {
-      localStorage.setItem('empresaId', data.empresa.id);
+      localStorage.setItem('empresaId', data.empresa.id || data.empresaId);
       localStorage.setItem('empresaNombre', data.empresa.nombre);
     }
     if (data.usuarioId) {
