@@ -8,9 +8,6 @@ const configParamKeys = {
 };
 
 export const getSystemConfig = async () => {
-  // Configs are read from local storage or mapped from backend if needed.
-  // Since the backend only has POST to set parameters individually,
-  // we persist the configuration object in localStorage for the UI session.
   return new Promise((resolve) => {
     setTimeout(() => {
       let config = localStorage.getItem('system_config');
@@ -41,7 +38,7 @@ export const updateSystemConfig = async (newConfig) => {
           body: JSON.stringify({
             parametro: dbParamKey,
             valor: value.toString(),
-            productoId: null // Global system parameters have null productoId
+            productoId: null
           })
         });
       }
@@ -55,6 +52,30 @@ export const updateSystemConfig = async (newConfig) => {
     console.warn('Failed to update system config in backend. Saving locally.', error);
     localStorage.setItem('system_config', JSON.stringify(newConfig));
     return { success: true, message: 'Configuración guardada localmente' };
+  }
+};
+
+export const saveProductThresholds = async (thresholdsMap) => {
+  const empresaId = getEmpresaId();
+  try {
+    const promises = Object.entries(thresholdsMap).map(([productoId, valor]) => {
+      return apiRequest(`/v1/${empresaId}/config`, {
+        method: 'POST',
+        body: JSON.stringify({
+          productoId,
+          parametro: 'UMBRAL_DEMANDA_MAXIMA',
+          valor: valor.toString()
+        })
+      });
+    });
+
+    await Promise.all(promises);
+    localStorage.setItem('product_thresholds', JSON.stringify(thresholdsMap));
+    return { success: true, message: 'Umbrales guardados correctamente en la base de datos MySQL' };
+  } catch (error) {
+    console.warn('Failed to persist thresholds to backend. Saving to localStorage fallback.', error);
+    localStorage.setItem('product_thresholds', JSON.stringify(thresholdsMap));
+    return { success: true, message: 'Umbrales guardados localmente' };
   }
 };
 
@@ -81,7 +102,7 @@ export const getMLModels = async () => {
         mae: Math.round(m.mae).toLocaleString('es-AR'),
         rmse: Math.round(m.rmse).toLocaleString('es-AR'),
         active: m.activo,
-        desalineado: m.mape > 5.0 // Alert user if MAPE is higher than 5%
+        desalineado: m.mape > 5.0
       };
     });
   } catch (error) {

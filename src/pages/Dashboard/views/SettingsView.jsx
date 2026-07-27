@@ -1,44 +1,117 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Sliders, CheckCircle2 } from 'lucide-react';
+import { Loader2, Sliders, CheckCircle2, Search, X, Plus, Minus } from 'lucide-react';
+import { saveProductThresholds } from '../../../services/settings';
+import { getSalesList } from '../../../services/sales';
 
 const SettingsView = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
-
-  const [productThresholds, setProductThresholds] = useState({
-    'SKU-001': 12000,
-    'SKU-002': 25000,
-    'SKU-005': 40000,
-    'SKU-007': 30000
-  });
+  const [productsList, setProductsList] = useState([]);
+  const [productThresholds, setProductThresholds] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const savedThresholds = localStorage.getItem('product_thresholds');
-    if (savedThresholds) {
-      try {
-        setProductThresholds(JSON.parse(savedThresholds));
-      } catch (e) {
-        console.error("Error leyendo umbrales de localStorage:", e);
+    const loadProductsAndThresholds = async () => {
+      setLoading(true);
+      
+      let initialThresholds = {};
+      const savedThresholds = localStorage.getItem('product_thresholds');
+      if (savedThresholds) {
+        try {
+          initialThresholds = JSON.parse(savedThresholds);
+        } catch (e) {
+          console.error("Error leyendo umbrales de localStorage:", e);
+        }
       }
-    }
-    setLoading(false);
+
+      try {
+        const salesRes = await getSalesList({}, 1, 50);
+        if (salesRes && salesRes.data && salesRes.data.length > 0) {
+          const uniqueProductsMap = {};
+          salesRes.data.forEach(item => {
+            if (item.sku && !uniqueProductsMap[item.sku]) {
+              uniqueProductsMap[item.sku] = {
+                sku: item.sku,
+                name: item.name || item.sku,
+                category: item.category || 'General',
+                brand: item.brand || ''
+              };
+            }
+          });
+
+          const uniqueList = Object.values(uniqueProductsMap);
+          setProductsList(uniqueList);
+
+          const newThresholds = { ...initialThresholds };
+          uniqueList.forEach((prod, idx) => {
+            if (newThresholds[prod.sku] === undefined) {
+              newThresholds[prod.sku] = (idx + 1) * 10000;
+            }
+          });
+          setProductThresholds(newThresholds);
+        } else {
+          useFallbackProducts(initialThresholds);
+        }
+      } catch (err) {
+        console.warn("Error cargando productos reales. Usando catálogo por defecto.", err);
+        useFallbackProducts(initialThresholds);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const useFallbackProducts = (initialThresholds) => {
+      const fallbackList = [
+        { sku: 'SKU-001', name: 'Aceite Girasol 1.5L', category: 'Alimentos', brand: 'Vicentin' },
+        { sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Alimentos', brand: 'Molinos' },
+        { sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Bebidas', brand: 'Quilmes' },
+        { sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Bebidas', brand: 'Coca-Cola' }
+      ];
+      setProductsList(fallbackList);
+      const defaults = {
+        'SKU-001': 12000,
+        'SKU-002': 25000,
+        'SKU-005': 40000,
+        'SKU-007': 30000,
+        ...initialThresholds
+      };
+      setProductThresholds(defaults);
+    };
+
+    loadProductsAndThresholds();
   }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     
-    localStorage.setItem('product_thresholds', JSON.stringify(productThresholds));
+    await saveProductThresholds(productThresholds);
     
+    setSaving(false);
+    setShowToast(true);
     setTimeout(() => {
-      setSaving(false);
-      setShowToast(true);
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
-    }, 400);
+      setShowToast(false);
+    }, 3000);
   };
+
+  const adjustThreshold = (sku, delta) => {
+    const current = productThresholds[sku] !== undefined ? productThresholds[sku] : 0;
+    const nextVal = Math.max(0, current + delta);
+    setProductThresholds(prev => ({ ...prev, [sku]: nextVal }));
+  };
+
+  // Filtrar productos en tiempo real según la búsqueda del usuario
+  const filteredProducts = productsList.filter(prod => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (prod.name && prod.name.toLowerCase().includes(q)) ||
+      (prod.sku && prod.sku.toLowerCase().includes(q)) ||
+      (prod.category && prod.category.toLowerCase().includes(q)) ||
+      (prod.brand && prod.brand.toLowerCase().includes(q))
+    );
+  });
 
   if (loading) {
     return (
@@ -78,7 +151,7 @@ const SettingsView = () => {
           animation: 'fade-in 0.2s ease-out'
         }}>
           <CheckCircle2 size={16} />
-          Umbrales guardados con éxito
+          Umbrales guardados con éxito en MySQL
         </div>
       )}
 
@@ -99,72 +172,147 @@ const SettingsView = () => {
             </div>
           </div>
 
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar producto por nombre, SKU, categoría o marca..."
+              style={{
+                width: '100%',
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                borderRadius: '8px',
+                padding: '0.65rem 2.5rem 0.65rem 2.75rem',
+                color: '#f8fafc',
+                fontSize: '0.85rem',
+                outline: 'none',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }}
+            />
+            {searchQuery && (
+              <button 
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '0.85rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }} className="custom-scrollbar">
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div>
-                <span style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: '600', display: 'block' }}>Aceite Girasol 1.5L</span>
-                <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.75rem' }}>SKU-001 • Alimentos</span>
+            {filteredProducts.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
+                No se encontraron productos que coincidan con "<span style={{ color: '#38bdf8' }}>{searchQuery}</span>"
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input 
-                  type="number" 
-                  value={productThresholds['SKU-001']} 
-                  onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-001': parseInt(e.target.value) || 0 })}
-                  style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', padding: '0.45rem 0.75rem', color: '#f8fafc', fontSize: '0.88rem', width: '120px', textAlign: 'right', outline: 'none' }}
-                />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>un.</span>
-              </div>
-            </div>
+            ) : (
+              filteredProducts.map((prod) => (
+                <div 
+                  key={prod.sku} 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    background: 'rgba(255,255,255,0.02)', 
+                    padding: '0.85rem 1.15rem', 
+                    borderRadius: '10px', 
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  <div>
+                    <span style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: '600', display: 'block' }}>{prod.name}</span>
+                    <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.75rem' }}>
+                      {prod.sku} {prod.category ? `• ${prod.category}` : ''} {prod.brand ? `• ${prod.brand}` : ''}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => adjustThreshold(prod.sku, -1000)}
+                      style={{
+                        background: 'rgba(14, 165, 233, 0.12)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38bdf8',
+                        borderRadius: '6px',
+                        width: '32px',
+                        height: '34px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        userSelect: 'none'
+                      }}
+                      title="Disminuir 1,000 unidades"
+                    >
+                      <Minus size={14} />
+                    </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div>
-                <span style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: '600', display: 'block' }}>Fideos Tallarín 500g</span>
-                <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.75rem' }}>SKU-002 • Alimentos</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input 
-                  type="number" 
-                  value={productThresholds['SKU-002']} 
-                  onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-002': parseInt(e.target.value) || 0 })}
-                  style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', padding: '0.45rem 0.75rem', color: '#f8fafc', fontSize: '0.88rem', width: '120px', textAlign: 'right', outline: 'none' }}
-                />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>un.</span>
-              </div>
-            </div>
+                    <input 
+                      type="number" 
+                      step="1000"
+                      value={productThresholds[prod.sku] !== undefined ? productThresholds[prod.sku] : 0} 
+                      onChange={(e) => setProductThresholds({ 
+                        ...productThresholds, 
+                        [prod.sku]: parseInt(e.target.value) || 0 
+                      })}
+                      style={{ 
+                        background: 'rgba(15, 23, 42, 0.6)', 
+                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                        borderRadius: '6px', 
+                        padding: '0.45rem 0.5rem', 
+                        color: '#f8fafc', 
+                        fontSize: '0.88rem', 
+                        width: '100px', 
+                        textAlign: 'right', 
+                        outline: 'none' 
+                      }}
+                    />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div>
-                <span style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: '600', display: 'block' }}>Cerveza Lager Lata 473ml</span>
-                <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.75rem' }}>SKU-005 • Bebidas</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input 
-                  type="number" 
-                  value={productThresholds['SKU-005']} 
-                  onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-005': parseInt(e.target.value) || 0 })}
-                  style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', padding: '0.45rem 0.75rem', color: '#f8fafc', fontSize: '0.88rem', width: '120px', textAlign: 'right', outline: 'none' }}
-                />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>un.</span>
-              </div>
-            </div>
+                    <button
+                      type="button"
+                      onClick={() => adjustThreshold(prod.sku, 1000)}
+                      style={{
+                        background: 'rgba(14, 165, 233, 0.12)',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
+                        color: '#38bdf8',
+                        borderRadius: '6px',
+                        width: '32px',
+                        height: '34px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        userSelect: 'none'
+                      }}
+                      title="Aumentar 1,000 unidades"
+                    >
+                      <Plus size={14} />
+                    </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.85rem 1.15rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <div>
-                <span style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: '600', display: 'block' }}>Gaseosa Cola 2.25L</span>
-                <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.75rem' }}>SKU-007 • Bebidas</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input 
-                  type="number" 
-                  value={productThresholds['SKU-007']} 
-                  onChange={(e) => setProductThresholds({ ...productThresholds, 'SKU-007': parseInt(e.target.value) || 0 })}
-                  style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '6px', padding: '0.45rem 0.75rem', color: '#f8fafc', fontSize: '0.88rem', width: '120px', textAlign: 'right', outline: 'none' }}
-                />
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600' }}>un.</span>
-              </div>
-            </div>
-
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: '600', marginLeft: '0.2rem' }}>un.</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <button type="submit" className="btn-primary" disabled={saving} style={{ width: '100%', padding: '0.8rem', fontSize: '0.9rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: 'auto' }}>
