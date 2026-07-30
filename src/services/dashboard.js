@@ -4,33 +4,59 @@ const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep',
 
 // Helper to map backend KPIs to frontend expected structure
 // Helper to map backend KPIs to frontend expected structure
-const mapBackendKpisToFrontend = (kpis, modelAccuracy = 94.2) => {
+const mapBackendKpisToFrontend = (kpis, prevKpis = null, modelAccuracy = null) => {
+  let salesTrend = null;
+  if (kpis && prevKpis && prevKpis.ventasFacturado > 0 && kpis.ventasFacturado !== null && kpis.ventasFacturado !== undefined) {
+    const currentVal = Number(kpis.ventasFacturado);
+    const prevVal = Number(prevKpis.ventasFacturado);
+    salesTrend = parseFloat((((currentVal - prevVal) / prevVal) * 100).toFixed(1));
+  }
+
+  let marginTrend = null;
+  const currentSoa = kpis && kpis.shareOfAssortmentPct !== undefined && kpis.shareOfAssortmentPct !== null
+    ? kpis.shareOfAssortmentPct
+    : (kpis && kpis.marketShareUnidadesPromedio !== undefined && kpis.marketShareUnidadesPromedio !== null
+      ? kpis.marketShareUnidadesPromedio * 100
+      : null);
+
+  const prevSoa = prevKpis && prevKpis.shareOfAssortmentPct !== undefined && prevKpis.shareOfAssortmentPct !== null
+    ? prevKpis.shareOfAssortmentPct
+    : (prevKpis && prevKpis.marketShareUnidadesPromedio !== undefined && prevKpis.marketShareUnidadesPromedio !== null
+      ? prevKpis.marketShareUnidadesPromedio * 100
+      : null);
+
+  if (currentSoa !== null && prevSoa !== null) {
+    marginTrend = parseFloat((currentSoa - prevSoa).toFixed(1));
+  }
+
+  let priceGapTrend = null;
+  if (kpis && kpis.priceGapPctPromedio !== null && kpis.priceGapPctPromedio !== undefined &&
+      prevKpis && prevKpis.priceGapPctPromedio !== null && prevKpis.priceGapPctPromedio !== undefined) {
+    priceGapTrend = parseFloat((kpis.priceGapPctPromedio - prevKpis.priceGapPctPromedio).toFixed(1));
+  }
+
   return {
     sales: {
-      value: kpis.ventasFacturado || 0,
+      value: kpis ? kpis.ventasFacturado || 0 : 0,
       label: 'Ventas del Mes',
-      trend: 12.5
+      trend: salesTrend
     },
     margin: {
-      value: kpis.shareOfAssortmentPct !== undefined && kpis.shareOfAssortmentPct !== null
-        ? parseFloat(kpis.shareOfAssortmentPct.toFixed(1))
-        : (kpis.marketShareUnidadesPromedio !== undefined && kpis.marketShareUnidadesPromedio !== null
-          ? parseFloat((kpis.marketShareUnidadesPromedio * 100).toFixed(1))
-          : 0),
+      value: currentSoa !== null ? parseFloat(currentSoa.toFixed(1)) : 0,
       label: 'Share of Assortment (SOA)',
-      trend: 1.5
+      trend: marginTrend
     },
     priceGap: {
-      value: kpis.priceGapPctPromedio !== undefined && kpis.priceGapPctPromedio !== null
+      value: kpis && kpis.priceGapPctPromedio !== undefined && kpis.priceGapPctPromedio !== null
         ? parseFloat(kpis.priceGapPctPromedio.toFixed(1))
         : 0,
       label: 'Price Gap vs Promedio (%)',
-      trend: 0.8
+      trend: priceGapTrend
     },
     accuracy: {
-      value: parseFloat(modelAccuracy.toFixed(1)),
+      value: modelAccuracy !== null && modelAccuracy !== undefined ? parseFloat(modelAccuracy.toFixed(1)) : null,
       label: 'Precisión del Modelo',
-      trend: 0.8
+      trend: null
     }
   };
 };
@@ -38,7 +64,7 @@ const mapBackendKpisToFrontend = (kpis, modelAccuracy = 94.2) => {
 const mapSalesEvolutionToFrontend = (points) => {
   if (!points || points.length === 0) return [];
   
-  const mappedPoints = points.map(p => {
+  return points.map(p => {
     const monthLabel = `${monthsEs[p.mes - 1]} ${String(p.anio).slice(-2)}`;
     const hasForecast = p.unidadesPronosticadas !== null && p.unidadesPronosticadas !== undefined;
     
@@ -53,37 +79,6 @@ const mapSalesEvolutionToFrontend = (points) => {
       forecastUpper: hasForecast ? Number(p.unidadesPronosticadas) * 1.04 : null
     };
   });
-
-  const hasFutureForecast = mappedPoints.some(p => p.forecast !== null);
-
-  if (!hasFutureForecast && mappedPoints.length > 0) {
-    const lastHistorical = points[points.length - 1];
-    let currentAnio = lastHistorical.anio;
-    let currentMes = lastHistorical.mes;
-    const baseValue = Number(lastHistorical.montoFacturado) || 3000000000;
-
-    const seasonalFactors = [1.05, 1.08, 1.15, 1.22, 1.30, 1.25, 1.18, 1.12, 1.08, 1.15, 1.28, 1.35];
-
-    for (let i = 0; i < 12; i++) {
-      currentMes += 1;
-      if (currentMes > 12) {
-        currentMes = 1;
-        currentAnio += 1;
-      }
-      const monthLabel = `${monthsEs[currentMes - 1]} ${String(currentAnio).slice(-2)}`;
-      const forecastVal = Math.round(baseValue * (seasonalFactors[i % 12] || 1.1));
-
-      mappedPoints.push({
-        month: monthLabel,
-        historical: null,
-        forecast: forecastVal,
-        forecastLower: Math.round(forecastVal * 0.96),
-        forecastUpper: Math.round(forecastVal * 1.04)
-      });
-    }
-  }
-
-  return mappedPoints;
 };
 
 const mapMarketShareToFrontend = (compositionList, currentEmpresaId) => {
@@ -134,14 +129,14 @@ const mapMarketShareToFrontend = (compositionList, currentEmpresaId) => {
 };
 
 const mapContextVariablesToFrontend = (context) => {
-  const inflationValue = context && context.macro ? context.macro.ipcVarInteranual : 4.2;
-  const exchangeRateValue = context && context.macro ? context.macro.tipoCambioPygUsd : 1050;
-  const mes = context && context.macro ? context.macro.mes : 12;
+  const inflationValue = context && context.macro ? context.macro.ipcVarInteranual : null;
+  const exchangeRateValue = context && context.macro ? context.macro.tipoCambioPygUsd : null;
+  const mes = context && context.macro ? context.macro.mes : null;
   
-  const seasonalityLabel = [12, 1, 2, 7].includes(mes) ? 'Alta' : 'Media';
+  const seasonalityLabel = mes ? ([12, 1, 2, 7].includes(mes) ? 'Alta' : 'Media') : 'Sin datos';
 
   return {
-    inflation: { value: inflationValue, label: 'Inflación Mensual (%)' },
+    inflation: { value: inflationValue, label: 'Inflación Interanual (%)' },
     exchangeRate: { value: exchangeRateValue, label: 'Tipo de Cambio (USD)' },
     seasonality: { value: seasonalityLabel, label: 'Estacionalidad' },
   };
@@ -152,12 +147,25 @@ export const getKPIs = async (anio = 2025, mes = 12) => {
   try {
     const data = await apiRequest(`/v1/${empresaId}/dashboard/kpis?anio=${anio}&mes=${mes}`);
     
-    let accuracy = 94.2;
+    let prevData = null;
+    try {
+      let prevAnio = anio;
+      let prevMes = mes - 1;
+      if (prevMes < 1) {
+        prevMes = 12;
+        prevAnio = anio - 1;
+      }
+      prevData = await apiRequest(`/v1/${empresaId}/dashboard/kpis?anio=${prevAnio}&mes=${prevMes}`);
+    } catch (e) {
+      // Previous month might not exist in database, prevData stays null
+    }
+
+    let accuracy = null;
     try {
       const models = await apiRequest(`/v1/${empresaId}/models`);
       if (models && models.length > 0) {
         const active = models.find(m => m.activo || m.active) || models[0];
-        if (active && active.mape !== undefined) {
+        if (active && active.mape !== undefined && active.mape !== null) {
           const mapeVal = typeof active.mape === 'string' ? parseFloat(active.mape) : active.mape;
           accuracy = 100 - mapeVal;
         }
@@ -166,15 +174,10 @@ export const getKPIs = async (anio = 2025, mes = 12) => {
       // Fallback if models endpoint is unavailable
     }
 
-    return mapBackendKpisToFrontend(data, accuracy);
+    return mapBackendKpisToFrontend(data, prevData, accuracy);
   } catch (error) {
-    console.warn('getKPIs failed. Falling back to mock data.', error);
-    return {
-      sales: { value: 682500, label: 'Ventas del Mes', trend: 12.5 },
-      margin: { value: 32.8, label: 'Share of Assortment (SOA)', trend: 1.5 },
-      accuracy: { value: 94.2, label: 'Precisión del Modelo', trend: 0.8 },
-      priceGap: { value: -4.5, label: 'Price Gap vs Promedio (%)', trend: 0.8 }
-    };
+    console.error('Error al obtener KPIs:', error);
+    throw error;
   }
 };
 
@@ -184,15 +187,8 @@ export const getSalesEvolution = async () => {
     const data = await apiRequest(`/v1/${empresaId}/dashboard/sales-evolution`);
     return mapSalesEvolutionToFrontend(data);
   } catch (error) {
-    console.warn('getSalesEvolution failed. Falling back to mock data.', error);
-    return [
-      { month: 'Ene 26', historical: 400000, forecast: null },
-      { month: 'Feb 26', historical: 450000, forecast: null },
-      { month: 'Mar 26', historical: 420000, forecast: null },
-      { month: 'Abr 26', historical: 480000, forecast: null },
-      { month: 'May 26', historical: 510000, forecast: null },
-      { month: 'Jun 26', historical: 682500, forecast: null }
-    ];
+    console.error('Error al obtener evolución de ventas:', error);
+    return [];
   }
 };
 
@@ -202,13 +198,8 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12) => {
     const data = await apiRequest(`/v1/${empresaId}/dashboard/market-share-composition?anio=${anio}&mes=${mes}`);
     return mapMarketShareToFrontend(data, empresaId);
   } catch (error) {
-    console.warn('getMarketShareComposition failed. Falling back to mock data.', error);
-    return [
-      { name: 'Nuestra Empresa', value: 34.5, fill: '#38bdf8' },
-      { name: 'Competidor A', value: 25.0, fill: '#cbd5e1' },
-      { name: 'Competidor B', value: 20.5, fill: '#94a3b8' },
-      { name: 'Otros', value: 20.0, fill: '#475569' }
-    ];
+    console.error('Error al obtener composición de mercado:', error);
+    return [];
   }
 };
 
@@ -218,11 +209,11 @@ export const getContextVariables = async (anio = 2025, mes = 12) => {
     const data = await apiRequest(`/v1/${empresaId}/dashboard/context-variables?anio=${anio}&mes=${mes}`);
     return mapContextVariablesToFrontend(data);
   } catch (error) {
-    console.warn('getContextVariables failed. Falling back to mock data.', error);
+    console.error('Error al obtener variables de contexto:', error);
     return {
-      inflation: { value: 4.2, label: 'Inflación Mensual (%)' },
-      exchangeRate: { value: 1050, label: 'Tipo de Cambio (USD)' },
-      seasonality: { value: 'Alta', label: 'Estacionalidad' }
+      inflation: { value: null, label: 'Inflación Mensual (%)' },
+      exchangeRate: { value: null, label: 'Tipo de Cambio (USD)' },
+      seasonality: { value: 'Sin datos', label: 'Estacionalidad' }
     };
   }
 };

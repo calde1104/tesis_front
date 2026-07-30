@@ -44,22 +44,48 @@ export const getForecast = async (sku = null) => {
     if (sku) {
       url += `?sku=${encodeURIComponent(sku)}`;
     }
-    const forecastRes = await apiRequest(url);
+    
+    let rawForecastRes = [];
+    try {
+      rawForecastRes = await apiRequest(url);
+    } catch (err) {
+      console.warn('Endpoint forecast sin datos o inactivo, generando grilla:', err);
+    }
 
-    const forecastPoints = (forecastRes && Array.isArray(forecastRes))
-      ? forecastRes.map(p => ({
-          month: p.mes && p.anio ? `${monthsEs[p.mes - 1]} ${String(p.anio).slice(-2)}` : '',
-          year: p.anio,
-          monthNum: p.mes,
-          historical: null,
-          forecast: p.unidadesPredichas !== null && p.unidadesPredichas !== undefined ? Number(p.unidadesPredichas) : null,
-          forecastLower: p.intervaloInf !== null && p.intervaloInf !== undefined ? Number(p.intervaloInf) : null,
-          forecastUpper: p.intervaloSup !== null && p.intervaloSup !== undefined ? Number(p.intervaloSup) : null
-        }))
-      : [];
+    const lastHist = historicalPoints.length > 0 ? historicalPoints[historicalPoints.length - 1] : null;
+    let currYear = lastHist ? lastHist.year : 2025;
+    let currMonth = lastHist ? lastHist.monthNum : 2;
 
-    if (historicalPoints.length > 0 && forecastPoints.length > 0) {
-      const lastHist = historicalPoints[historicalPoints.length - 1];
+    const forecastPoints = [];
+    for (let i = 0; i < 12; i++) {
+      currMonth++;
+      if (currMonth > 12) {
+        currMonth = 1;
+        currYear++;
+      }
+      
+      const rawMatch = Array.isArray(rawForecastRes) 
+        ? rawForecastRes.find(p => p.anio === currYear && p.mes === currMonth) || rawForecastRes[i]
+        : null;
+
+      forecastPoints.push({
+        month: `${monthsEs[currMonth - 1]} ${String(currYear).slice(-2)}`,
+        year: currYear,
+        monthNum: currMonth,
+        historical: null,
+        forecast: rawMatch && rawMatch.unidadesPredichas !== null && rawMatch.unidadesPredichas !== undefined 
+          ? Number(rawMatch.unidadesPredichas) 
+          : null,
+        forecastLower: rawMatch && rawMatch.intervaloInf !== null && rawMatch.intervaloInf !== undefined 
+          ? Number(rawMatch.intervaloInf) 
+          : null,
+        forecastUpper: rawMatch && rawMatch.intervaloSup !== null && rawMatch.intervaloSup !== undefined 
+          ? Number(rawMatch.intervaloSup) 
+          : null
+      });
+    }
+
+    if (lastHist) {
       lastHist.forecast = lastHist.historical;
     }
 

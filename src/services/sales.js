@@ -86,11 +86,82 @@ export const getSalesFilters = async () => {
       });
     }
 
+    const categoryBrandsSet = {};
+    const brandCategoriesSet = {};
+    const brandDepartmentsSet = {};
+    const deptBrandsSet = {};
+    const availableYearsSet = new Set();
+    const yearMonthsSet = {};
+
+    try {
+      const allSales = await getSalesList({}, 1, 1000);
+      if (allSales && allSales.data) {
+        allSales.data.forEach(item => {
+          if (item.year) availableYearsSet.add(item.year);
+          if (item.year && item.month) {
+            if (!yearMonthsSet[item.year]) yearMonthsSet[item.year] = new Set();
+            yearMonthsSet[item.year].add(item.month);
+          }
+
+          if (item.category && item.brand) {
+            if (!categoryBrandsSet[item.category]) categoryBrandsSet[item.category] = new Set();
+            categoryBrandsSet[item.category].add(item.brand);
+
+            if (!brandCategoriesSet[item.brand]) brandCategoriesSet[item.brand] = new Set();
+            brandCategoriesSet[item.brand].add(item.category);
+          }
+          if (item.department && item.brand) {
+            if (!brandDepartmentsSet[item.brand]) brandDepartmentsSet[item.brand] = new Set();
+            brandDepartmentsSet[item.brand].add(item.department);
+
+            if (!deptBrandsSet[item.department]) deptBrandsSet[item.department] = new Set();
+            deptBrandsSet[item.department].add(item.brand);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error al mapear filtros bidireccionales:', e);
+    }
+
+    const categoryBrandsMap = {};
+    Object.keys(categoryBrandsSet).forEach(cat => {
+      categoryBrandsMap[cat] = Array.from(categoryBrandsSet[cat]).sort();
+    });
+
+    const brandCategoriesMap = {};
+    Object.keys(brandCategoriesSet).forEach(b => {
+      brandCategoriesMap[b] = Array.from(brandCategoriesSet[b]).sort();
+    });
+
+    const brandDepartmentsMap = {};
+    Object.keys(brandDepartmentsSet).forEach(b => {
+      brandDepartmentsMap[b] = Array.from(brandDepartmentsSet[b]).sort();
+    });
+
+    const deptBrandsMap = {};
+    Object.keys(deptBrandsSet).forEach(d => {
+      deptBrandsMap[d] = Array.from(deptBrandsSet[d]).sort();
+    });
+
+    const yearMonthsMap = {};
+    Object.keys(yearMonthsSet).forEach(yr => {
+      yearMonthsMap[yr] = Array.from(yearMonthsSet[yr]).sort((a, b) => a - b);
+    });
+
+    const realYears = availableYearsSet.size > 0 
+      ? Array.from(availableYearsSet).sort((a, b) => a - b)
+      : [2022, 2023, 2024, 2025];
+
     return {
       departments: data.departamentos ? data.departamentos.map(d => d.nombre) : [],
       categories: groupedCategories,
+      categoryBrands: categoryBrandsMap,
+      brandCategories: brandCategoriesMap,
+      brandDepartments: brandDepartmentsMap,
+      deptBrands: deptBrandsMap,
+      yearMonths: yearMonthsMap,
       brands: data.marcas ? data.marcas.map(b => b.nombre) : [],
-      years: [2021, 2022, 2023, 2024, 2025],
+      years: realYears,
       months: [
         { value: 1, label: 'Enero' },
         { value: 2, label: 'Febrero' },
@@ -187,7 +258,7 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
   
   let years = getSelectedValues(filters.years);
   if (years.length === 0) {
-    years = [2021, 2022, 2023, 2024, 2025];
+    years = [2022, 2023, 2024, 2025];
   }
   
   const months = getSelectedValues(filters.months);

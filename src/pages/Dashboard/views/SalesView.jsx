@@ -2,27 +2,6 @@ import { useState, useEffect } from 'react';
 import { Download, Loader2, ArrowLeft, ArrowRight, Coins, Target, Scale, X } from 'lucide-react';
 import { getSalesFilters, getSalesSummary, getSalesList, triggerSalesExport, checkExportStatus } from '../../../services/sales';
 
-const deptBrands = {
-  'Alimentos': ['Molinos', 'Vicentin', 'Arcor'],
-  'Bebidas': ['Quilmes', 'Coca-Cola', 'Otros'],
-  'Limpieza': ['Unilever', 'Otros'],
-  'Cuidado Personal': []
-};
-
-const categoryBrands = {
-  'Aceites': ['Vicentin'],
-  'Fideos': ['Molinos'],
-  'Arroz': ['Molinos'],
-  'Salsas': ['Arcor'],
-  'Cervezas': ['Quilmes'],
-  'Vinos': ['Otros'],
-  'Gaseosas': ['Coca-Cola'],
-  'Aguas': ['Coca-Cola'],
-  'Jabón Líquido': ['Unilever'],
-  'Desinfectantes': ['Unilever'],
-  'Suavizantes': ['Unilever'],
-  'Limpiadores Multiuso': ['Otros']
-};
 
 // Componente selector personalizado para evitar barras de desplazamiento estándar
 const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down', isMulti = false }) => {
@@ -249,37 +228,19 @@ const SalesView = ({ formatCurrency }) => {
   const handleDepartmentChange = (e) => {
     const nextDept = e.target.value;
     setDepartment(nextDept);
-    let nextCat = category;
     if (nextDept && category && filterOptions) {
       const allowedCats = filterOptions.categories[nextDept] || [];
       if (!allowedCats.includes(category)) {
         setCategory('');
-        nextCat = '';
       }
     }
-    
-    if (brand) {
-      if (nextCat) {
-        const allowedBrands = categoryBrands[nextCat] || [];
-        if (!allowedBrands.includes(brand)) setBrand('');
-      } else if (nextDept) {
-        const allowedBrands = deptBrands[nextDept] || [];
-        if (!allowedBrands.includes(brand)) setBrand('');
-      }
-    }
-    
+    setBrand('');
     setPage(1);
   };
 
   const handleCategoryChange = (e) => {
-    const nextCat = e.target.value;
-    setCategory(nextCat);
-    
-    if (brand && nextCat) {
-      const allowedBrands = categoryBrands[nextCat] || [];
-      if (!allowedBrands.includes(brand)) setBrand('');
-    }
-    
+    setCategory(e.target.value);
+    setBrand('');
     setPage(1);
   };
 
@@ -290,6 +251,7 @@ const SalesView = ({ formatCurrency }) => {
 
   const handleYearsChange = (e) => {
     setYears(e.target.value);
+    setMonths([]);
     setPage(1);
   };
 
@@ -462,7 +424,21 @@ const SalesView = ({ formatCurrency }) => {
             placeholder="Todos los Meses"
             options={[
               { value: '', label: 'Todos los Meses' },
-              ...(filterOptions?.months.map(m => ({ value: m.value.toString(), label: m.label })) || [])
+              ...((() => {
+                let allowedMonthNums = null;
+                if (years && years.length > 0 && filterOptions?.yearMonths) {
+                  const allowedSet = new Set();
+                  years.forEach(yr => {
+                    const mList = filterOptions.yearMonths[yr] || [];
+                    mList.forEach(m => allowedSet.add(m));
+                  });
+                  allowedMonthNums = Array.from(allowedSet);
+                }
+                const allMonths = filterOptions?.months || [];
+                return allowedMonthNums
+                  ? allMonths.filter(m => allowedMonthNums.includes(m.value))
+                  : allMonths;
+              })().map(m => ({ value: m.value.toString(), label: m.label })))
             ]}
           />
 
@@ -473,7 +449,13 @@ const SalesView = ({ formatCurrency }) => {
             placeholder="Todos los Departamentos"
             options={[
               { value: '', label: 'Todos los Departamentos' },
-              ...(filterOptions?.departments.map(dept => ({ value: dept, label: dept })) || [])
+              ...((category && filterOptions?.categories
+                ? [Object.keys(filterOptions.categories).find(d => filterOptions.categories[d]?.includes(category))].filter(Boolean)
+                : (brand && filterOptions?.brandDepartments?.[brand]
+                  ? filterOptions.brandDepartments[brand]
+                  : (filterOptions?.departments || [])
+                )
+              ).map(dept => ({ value: dept, label: dept })))
             ]}
           />
 
@@ -484,10 +466,13 @@ const SalesView = ({ formatCurrency }) => {
             placeholder="Todas las Categorías"
             options={[
               { value: '', label: 'Todas las Categorías' },
-              ...(department 
-                ? (filterOptions?.categories[department]?.map(cat => ({ value: cat, label: cat })) || [])
-                : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => ({ value: cat, label: cat })) : [])
-              )
+              ...((brand && filterOptions?.brandCategories?.[brand]
+                ? filterOptions.brandCategories[brand]
+                : (department && filterOptions?.categories?.[department]
+                  ? filterOptions.categories[department]
+                  : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())) : [])
+                )
+              ).map(cat => ({ value: cat, label: cat })))
             ]}
           />
 
@@ -498,20 +483,13 @@ const SalesView = ({ formatCurrency }) => {
             placeholder="Todas las Marcas"
             options={[
               { value: '', label: 'Todas las Marcas' },
-              ...(filterOptions?.brands
-                .filter(b => {
-                  if (category) {
-                    const allowedBrands = categoryBrands[category] || [];
-                    return allowedBrands.includes(b);
-                  }
-                  if (department) {
-                    const allowedBrands = deptBrands[department] || [];
-                    return allowedBrands.includes(b);
-                  }
-                  return true;
-                })
-                .map(b => ({ value: b, label: b })) || []
-              )
+              ...((category && filterOptions?.categoryBrands?.[category]
+                ? filterOptions.categoryBrands[category]
+                : (department && filterOptions?.deptBrands?.[department]
+                  ? filterOptions.deptBrands[department]
+                  : (filterOptions?.brands || [])
+                )
+              ).map(b => ({ value: b, label: b })))
             ]}
           />
         </div>

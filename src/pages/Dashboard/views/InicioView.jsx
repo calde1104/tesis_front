@@ -194,10 +194,16 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             {formatCurrency(kpis.sales.value)}
           </div>
           <div className="kpi-footer">
-            <div className={`kpi-trend ${kpis.sales.trend >= 0 ? 'positive' : 'negative'}`}>
-              {kpis.sales.trend >= 0 ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
-              <span>{Math.abs(kpis.sales.trend)}%</span>
-            </div>
+            {kpis.sales.trend !== null && kpis.sales.trend !== undefined ? (
+              <div className={`kpi-trend ${kpis.sales.trend >= 0 ? 'positive' : 'negative'}`}>
+                {kpis.sales.trend >= 0 ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
+                <span>{kpis.sales.trend >= 0 ? `+${kpis.sales.trend}` : kpis.sales.trend}% vs mes anterior</span>
+              </div>
+            ) : (
+              <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem' }}>
+                Sin mes anterior
+              </span>
+            )}
           </div>
         </div>
 
@@ -210,10 +216,16 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             {kpis.margin.value}%
           </div>
           <div className="kpi-footer">
-            <div className={`kpi-trend ${kpis.margin.trend >= 0 ? 'positive' : 'negative'}`}>
-              {kpis.margin.trend >= 0 ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
-              <span>{Math.abs(kpis.margin.trend)}%</span>
-            </div>
+            {kpis.margin.trend !== null && kpis.margin.trend !== undefined ? (
+              <div className={`kpi-trend ${kpis.margin.trend >= 0 ? 'positive' : 'negative'}`}>
+                {kpis.margin.trend >= 0 ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
+                <span>{kpis.margin.trend >= 0 ? `+${kpis.margin.trend}` : kpis.margin.trend}% vs mes anterior</span>
+              </div>
+            ) : (
+              <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem' }}>
+                Período actual
+              </span>
+            )}
           </div>
         </div>
 
@@ -226,9 +238,16 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             {kpis.priceGap.value}%
           </div>
           <div className="kpi-footer">
-            <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
-              Competitivo
-            </span>
+            {kpis.priceGap.trend !== null && kpis.priceGap.trend !== undefined ? (
+              <div className={`kpi-trend ${kpis.priceGap.trend <= 0 ? 'positive' : 'negative'}`}>
+                {kpis.priceGap.trend <= 0 ? <ArrowDownRight size={12}/> : <ArrowUpRight size={12}/>}
+                <span>{kpis.priceGap.trend >= 0 ? `+${kpis.priceGap.trend}` : kpis.priceGap.trend}% vs mes anterior</span>
+              </div>
+            ) : (
+              <span className="badge" style={{ background: kpis.priceGap.value <= 0 ? 'rgba(56, 189, 248, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: kpis.priceGap.value <= 0 ? '#38bdf8' : '#ef4444', border: kpis.priceGap.value <= 0 ? '1px solid rgba(56, 189, 248, 0.15)' : '1px solid rgba(239, 68, 68, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
+                {kpis.priceGap.value <= 0 ? 'Competitivo' : 'Por encima'}
+              </span>
+            )}
           </div>
         </div>
 
@@ -238,11 +257,11 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             <LineChart size={18} className="kpi-icon" />
           </div>
           <div className="kpi-value">
-            {kpis.accuracy.value}%
+            {kpis.accuracy.value !== null && kpis.accuracy.value !== undefined ? `${kpis.accuracy.value}%` : 'N/A'}
           </div>
           <div className="kpi-footer">
             <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
-              Modelo Activo
+              {kpis.accuracy.value !== null ? 'Modelo Activo' : 'Sin Modelo Activo'}
             </span>
           </div>
         </div>
@@ -442,11 +461,19 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           <div className="context-list">
             <div className="context-item">
               <span className="context-label">{contextVars.inflation.label}</span>
-              <span className="context-value">{contextVars.inflation.value}%</span>
+              <span className="context-value">
+                {contextVars.inflation.value !== null && contextVars.inflation.value !== undefined 
+                  ? `${contextVars.inflation.value}%` 
+                  : 'N/A'}
+              </span>
             </div>
             <div className="context-item">
               <span className="context-label">{contextVars.exchangeRate.label}</span>
-              <span className="context-value">₲ {Number(contextVars.exchangeRate.value).toLocaleString('es-PY')}</span>
+              <span className="context-value">
+                {contextVars.exchangeRate.value !== null && contextVars.exchangeRate.value !== undefined 
+                  ? `₲ ${Number(contextVars.exchangeRate.value).toLocaleString('es-PY')}` 
+                  : 'N/A'}
+              </span>
             </div>
             <div className="context-item">
               <span className="context-label">{contextVars.seasonality.label}</span>

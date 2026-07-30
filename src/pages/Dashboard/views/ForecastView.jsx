@@ -432,13 +432,14 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
       const allowedCats = filterOptions.categories[nextDept] || [];
       if (!allowedCats.includes(category)) setCategory('');
     }
+    setBrand('');
   };
 
   const handleCategoryChange = (e) => {
-    const nextCat = e.target.value;
-    setCategory(nextCat);
+    setCategory(e.target.value);
     setSelectedProduct('total');
     setSimResults(null);
+    setBrand('');
   };
 
   const handleBrandChange = (e) => {
@@ -606,7 +607,13 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             placeholder="Todos los Departamentos"
             options={[
               { value: '', label: 'Todos los Departamentos' },
-              ...(filterOptions?.departments.map(dept => ({ value: dept, label: dept })) || [])
+              ...((category && filterOptions?.categories
+                ? [Object.keys(filterOptions.categories).find(d => filterOptions.categories[d]?.includes(category))].filter(Boolean)
+                : (brand && filterOptions?.brandDepartments?.[brand]
+                  ? filterOptions.brandDepartments[brand]
+                  : (filterOptions?.departments || [])
+                )
+              ).map(dept => ({ value: dept, label: dept })))
             ]}
           />
 
@@ -617,10 +624,13 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             placeholder="Todas las Categorías"
             options={[
               { value: '', label: 'Todas las Categorías' },
-              ...(department
-                ? (filterOptions?.categories[department]?.map(cat => ({ value: cat, label: cat })) || [])
-                : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())).map(cat => ({ value: cat, label: cat })) : [])
-              )
+              ...((brand && filterOptions?.brandCategories?.[brand]
+                ? filterOptions.brandCategories[brand]
+                : (department && filterOptions?.categories?.[department]
+                  ? filterOptions.categories[department]
+                  : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())) : [])
+                )
+              ).map(cat => ({ value: cat, label: cat })))
             ]}
           />
 
@@ -631,7 +641,13 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             placeholder="Todas las Marcas"
             options={[
               { value: '', label: 'Todas las Marcas' },
-              ...(filterOptions?.brands?.map(b => ({ value: b, label: b })) || [])
+              ...((category && filterOptions?.categoryBrands?.[category]
+                ? filterOptions.categoryBrands[category]
+                : (department && filterOptions?.deptBrands?.[department]
+                  ? filterOptions.deptBrands[department]
+                  : (filterOptions?.brands || [])
+                )
+              ).map(b => ({ value: b, label: b })))
             ]}
           />
         </div>
@@ -645,8 +661,9 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
           gridTemplateColumns: `${leftWidth}px 14px 1fr 14px ${rightWidth}px`, 
           gap: '0.25rem', 
           padding: '1.25rem 0.75rem', 
-          height: '610px', 
-          marginBottom: '1.25rem',
+          height: 'calc(100vh - 305px)',
+          minHeight: '500px', 
+          marginBottom: '0',
           position: 'relative'
         }}
       >
@@ -1012,29 +1029,29 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                 <div className="preset-buttons" style={{ display: 'flex', gap: '0.25rem', width: '100%', flexWrap: 'nowrap' }}>
                   <button
                     type="button"
-                    onClick={() => { setPriceChange(0); setMarketingChange(0); setExchangeRateChange(0); setInflationChange(0); }}
-                    style={presetStyle(priceChange === 0 && marketingChange === 0 && exchangeRateChange === 0 && inflationChange === 0)}
+                    onClick={() => { setPriceChange(0); setExchangeRateChange(0); setInflationChange(0); }}
+                    style={presetStyle(priceChange === 0 && exchangeRateChange === 0 && inflationChange === 0)}
                   >
                     Base
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setPriceChange(-5); setMarketingChange(30); setExchangeRateChange(-5); setInflationChange(2); }}
-                    style={presetStyle(priceChange === -5 && marketingChange === 30 && exchangeRateChange === -5 && inflationChange === 2)}
+                    onClick={() => { setPriceChange(-5); setExchangeRateChange(-5); setInflationChange(2); }}
+                    style={presetStyle(priceChange === -5 && exchangeRateChange === -5 && inflationChange === 2)}
                   >
                     Optimista
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setPriceChange(5); setMarketingChange(10); setExchangeRateChange(2); setInflationChange(4); }}
-                    style={presetStyle(priceChange === 5 && marketingChange === 10 && exchangeRateChange === 2 && inflationChange === 4)}
+                    onClick={() => { setPriceChange(5); setExchangeRateChange(2); setInflationChange(4); }}
+                    style={presetStyle(priceChange === 5 && exchangeRateChange === 2 && inflationChange === 4)}
                   >
                     Precio
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setPriceChange(0); setMarketingChange(-15); setExchangeRateChange(8); setInflationChange(8); }}
-                    style={presetStyle(priceChange === 0 && marketingChange === -15 && exchangeRateChange === 8 && inflationChange === 8)}
+                    onClick={() => { setPriceChange(0); setExchangeRateChange(8); setInflationChange(8); }}
+                    style={presetStyle(priceChange === 0 && exchangeRateChange === 8 && inflationChange === 8)}
                   >
                     Recorte
                   </button>
@@ -1058,27 +1075,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     max="10"
                     value={priceChange}
                     onChange={(e) => setPriceChange(parseInt(e.target.value))}
-                    className="range-input"
-                    style={{ height: '4px' }}
-                  />
-                </div>
-
-                <div className="slider-group">
-                  <div className="slider-label-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Megaphone size={13} style={{ color: '#94a3b8' }} />
-                      <label style={{ fontSize: '0.78rem' }}>Marketing</label>
-                    </div>
-                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${marketingChange > 0 ? 'positive' : marketingChange < 0 ? 'negative' : ''}`}>
-                      {marketingChange > 0 ? `+${marketingChange}` : marketingChange}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="-20"
-                    max="50"
-                    value={marketingChange}
-                    onChange={(e) => setMarketingChange(parseInt(e.target.value))}
                     className="range-input"
                     style={{ height: '4px' }}
                   />
