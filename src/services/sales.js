@@ -41,6 +41,7 @@ const mapSaleItemToFrontend = (item) => {
   const price = item.precioUnitario !== undefined ? Number(item.precioUnitario) : (units > 0 ? revenue / units : 0);
 
   return {
+    id: item.idProducto || item.id_producto || item.productoId || item.id || item.sku,
     sku: item.sku || 'SKU-000',
     name: item.descripcionProducto || item.descripcion || 'Producto',
     category: item.categoriaNombre || 'Sin categoría',

@@ -27,7 +27,7 @@ export const getMarketShareOverview = async (filters = {}) => {
     return data.map(p => {
       const monthLabel = `${monthsEs[p.mes - 1]} ${String(p.anio).slice(-2)}`;
       const rawShare = Number(p.marketShareUnidadesPromedio) || 0;
-      const ourShare = parseFloat((rawShare * 100).toFixed(2));
+      const ourShare = parseFloat(rawShare.toFixed(2));
 
       return {
         month: monthLabel,
@@ -101,8 +101,8 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12, filters =
       const rawShare = Number(item.marketShareUnidadesPromedio) || 0;
       return {
         empresaId: item.empresaId,
-        name: item.empresaNombre || 'Otra Empresa',
-        share: parseFloat((rawShare * 100).toFixed(2))
+        name: item.marcaNombre || item.empresaNombre || 'Otra Marca',
+        share: parseFloat(rawShare.toFixed(2))
       };
     });
   } catch (error) {
@@ -132,7 +132,7 @@ export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) 
     if (Array.isArray(data)) {
       return data.map(item => ({
         empresaId: item.empresaId,
-        name: item.empresaNombre || 'Otra Empresa',
+        name: item.marcaNombre || item.empresaNombre || 'Otra Marca',
         share: parseFloat((Number(item.shareOfAssortmentPct) || 0).toFixed(2))
       }));
     }

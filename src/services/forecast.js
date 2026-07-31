@@ -45,12 +45,29 @@ export const getForecast = async (sku = null) => {
       url += `?sku=${encodeURIComponent(sku)}`;
     }
     
-    let rawForecastRes = [];
+    let rawForecastRes = null;
     try {
       rawForecastRes = await apiRequest(url);
     } catch (err) {
-      console.warn('Endpoint forecast sin datos o inactivo, generando grilla:', err);
+      console.warn('Endpoint forecast sin datos o inactivo:', err);
     }
+
+    let forecastList = [];
+    if (Array.isArray(rawForecastRes)) {
+      forecastList = rawForecastRes;
+    } else if (rawForecastRes && Array.isArray(rawForecastRes.data)) {
+      forecastList = rawForecastRes.data;
+    } else if (rawForecastRes && Array.isArray(rawForecastRes.content)) {
+      forecastList = rawForecastRes.content;
+    }
+
+    const getVal = (obj, keys) => {
+      if (!obj) return null;
+      for (const k of keys) {
+        if (obj[k] !== undefined && obj[k] !== null) return Number(obj[k]);
+      }
+      return null;
+    };
 
     const lastHist = historicalPoints.length > 0 ? historicalPoints[historicalPoints.length - 1] : null;
     let currYear = lastHist ? lastHist.year : 2025;
@@ -64,28 +81,26 @@ export const getForecast = async (sku = null) => {
         currYear++;
       }
       
-      const rawMatch = Array.isArray(rawForecastRes) 
-        ? rawForecastRes.find(p => p.anio === currYear && p.mes === currMonth) || rawForecastRes[i]
+      const rawMatch = forecastList.length > 0 
+        ? (forecastList.find(p => Number(p.anio) === currYear && Number(p.mes) === currMonth) || forecastList[i])
         : null;
+
+      const predicted = getVal(rawMatch, ['unidadesPredichas', 'unidades_predichas', 'unidades', 'montoPredicho', 'monto_predicho', 'cantidad', 'valor', 'forecast', 'prediccion']);
+      const lower = getVal(rawMatch, ['intervaloConfianzaInf', 'intervalo_confianza_inf', 'intervaloInf', 'inf']);
+      const upper = getVal(rawMatch, ['intervaloConfianzaSup', 'intervalo_confianza_sup', 'intervaloSup', 'sup']);
 
       forecastPoints.push({
         month: `${monthsEs[currMonth - 1]} ${String(currYear).slice(-2)}`,
         year: currYear,
         monthNum: currMonth,
         historical: null,
-        forecast: rawMatch && rawMatch.unidadesPredichas !== null && rawMatch.unidadesPredichas !== undefined 
-          ? Number(rawMatch.unidadesPredichas) 
-          : null,
-        forecastLower: rawMatch && rawMatch.intervaloInf !== null && rawMatch.intervaloInf !== undefined 
-          ? Number(rawMatch.intervaloInf) 
-          : null,
-        forecastUpper: rawMatch && rawMatch.intervaloSup !== null && rawMatch.intervaloSup !== undefined 
-          ? Number(rawMatch.intervaloSup) 
-          : null
+        forecast: predicted,
+        forecastLower: lower,
+        forecastUpper: upper
       });
     }
 
-    if (lastHist) {
+    if (lastHist && forecastPoints.length > 0 && lastHist.forecast === null) {
       lastHist.forecast = lastHist.historical;
     }
 
@@ -116,9 +131,16 @@ export const getFeatureImportance = async () => {
 export const triggerSimulation = async (params = {}) => {
   const empresaId = getEmpresaId();
   try {
+    const payload = {
+      id_producto: String(params.id_producto || params.idProducto || params.sku || 'SKU-001'),
+      precio_pct: Number(params.precio_pct !== undefined ? params.precio_pct : (params.priceChange || 0)),
+      usd_pct: Number(params.usd_pct !== undefined ? params.usd_pct : (params.exchangeRateChange || 0)),
+      ipc_pct: Number(params.ipc_pct !== undefined ? params.ipc_pct : (params.inflationChange || 0))
+    };
+
     const response = await apiRequest(`/v1/${empresaId}/forecast/simulate`, {
       method: 'POST',
-      body: JSON.stringify({ parametros: params })
+      body: JSON.stringify(payload)
     });
     return response;
   } catch (error) {

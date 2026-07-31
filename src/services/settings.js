@@ -7,6 +7,17 @@ const configParamKeys = {
   currency: 'MONEDA_VISUALIZACION'
 };
 
+export const getSystemInfo = async () => {
+  const empresaId = getEmpresaId();
+  try {
+    const data = await apiRequest(`/v1/${empresaId}/system-info`);
+    return data;
+  } catch (error) {
+    console.warn('getSystemInfo API call failed:', error);
+    return null;
+  }
+};
+
 export const getSystemConfig = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {

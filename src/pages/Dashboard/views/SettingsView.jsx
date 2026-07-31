@@ -30,9 +30,11 @@ const SettingsView = () => {
         if (salesRes && salesRes.data && salesRes.data.length > 0) {
           const uniqueProductsMap = {};
           salesRes.data.forEach(item => {
-            if (item.sku && !uniqueProductsMap[item.sku]) {
-              uniqueProductsMap[item.sku] = {
-                sku: item.sku,
+            const prodId = item.id || item.id_producto || item.idProducto || item.sku;
+            if (prodId && !uniqueProductsMap[prodId]) {
+              uniqueProductsMap[prodId] = {
+                id: prodId,
+                sku: item.sku || 'SKU-000',
                 name: item.name || item.sku,
                 category: item.category || 'General',
                 brand: item.brand || ''
@@ -45,8 +47,8 @@ const SettingsView = () => {
 
           const newThresholds = { ...initialThresholds };
           uniqueList.forEach((prod, idx) => {
-            if (newThresholds[prod.sku] === undefined) {
-              newThresholds[prod.sku] = (idx + 1) * 10000;
+            if (newThresholds[prod.id] === undefined) {
+              newThresholds[prod.id] = (idx + 1) * 10000;
             }
           });
           setProductThresholds(newThresholds);
@@ -63,10 +65,10 @@ const SettingsView = () => {
 
     const useFallbackProducts = (initialThresholds) => {
       const fallbackList = [
-        { sku: 'SKU-001', name: 'Aceite Girasol 1.5L', category: 'Alimentos', brand: 'Vicentin' },
-        { sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Alimentos', brand: 'Molinos' },
-        { sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Bebidas', brand: 'Quilmes' },
-        { sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Bebidas', brand: 'Coca-Cola' }
+        { id: 'SKU-001', sku: 'SKU-001', name: 'Aceite Girasol 1.5L', category: 'Alimentos', brand: 'Vicentin' },
+        { id: 'SKU-002', sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Alimentos', brand: 'Molinos' },
+        { id: 'SKU-005', sku: 'SKU-005', name: 'Cerveza Lager Lata 473ml', category: 'Bebidas', brand: 'Quilmes' },
+        { id: 'SKU-007', sku: 'SKU-007', name: 'Gaseosa Cola 2.25L', category: 'Bebidas', brand: 'Coca-Cola' }
       ];
       setProductsList(fallbackList);
       const defaults = {
@@ -95,10 +97,10 @@ const SettingsView = () => {
     }, 3000);
   };
 
-  const adjustThreshold = (sku, delta) => {
-    const current = productThresholds[sku] !== undefined ? productThresholds[sku] : 0;
+  const adjustThreshold = (prodId, delta) => {
+    const current = productThresholds[prodId] !== undefined ? productThresholds[prodId] : 0;
     const nextVal = Math.max(0, current + delta);
-    setProductThresholds(prev => ({ ...prev, [sku]: nextVal }));
+    setProductThresholds(prev => ({ ...prev, [prodId]: nextVal }));
   };
 
   // Filtrar productos en tiempo real según la búsqueda del usuario
@@ -223,7 +225,7 @@ const SettingsView = () => {
             ) : (
               filteredProducts.map((prod) => (
                 <div 
-                  key={prod.sku} 
+                  key={prod.id || prod.sku} 
                   style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -245,7 +247,7 @@ const SettingsView = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <button
                       type="button"
-                      onClick={() => adjustThreshold(prod.sku, -1000)}
+                      onClick={() => adjustThreshold(prod.id, -1000)}
                       style={{
                         background: 'rgba(14, 165, 233, 0.12)',
                         border: '1px solid rgba(56, 189, 248, 0.3)',
@@ -268,10 +270,10 @@ const SettingsView = () => {
                     <input 
                       type="number" 
                       step="1000"
-                      value={productThresholds[prod.sku] !== undefined ? productThresholds[prod.sku] : 0} 
+                      value={productThresholds[prod.id] !== undefined ? productThresholds[prod.id] : 0} 
                       onChange={(e) => setProductThresholds({ 
                         ...productThresholds, 
-                        [prod.sku]: parseInt(e.target.value) || 0 
+                        [prod.id]: parseInt(e.target.value) || 0 
                       })}
                       style={{ 
                         background: 'rgba(15, 23, 42, 0.6)', 
@@ -288,7 +290,7 @@ const SettingsView = () => {
 
                     <button
                       type="button"
-                      onClick={() => adjustThreshold(prod.sku, 1000)}
+                      onClick={() => adjustThreshold(prod.id, 1000)}
                       style={{
                         background: 'rgba(14, 165, 233, 0.12)',
                         border: '1px solid rgba(56, 189, 248, 0.3)',
