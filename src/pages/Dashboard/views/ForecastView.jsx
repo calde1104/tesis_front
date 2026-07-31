@@ -276,7 +276,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
   const [selectedProduct, setSelectedProduct] = useState(initialSku || 'total');
 
   const [priceChange, setPriceChange] = useState(0);
-  const [marketingChange, setMarketingChange] = useState(0);
   const [exchangeRateChange, setExchangeRateChange] = useState(0);
   const [inflationChange, setInflationChange] = useState(0);
 
@@ -412,7 +411,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
       const response = await triggerSimulation({
         sku: selectedProduct,
         priceChange,
-        marketingChange,
         exchangeRateChange,
         inflationChange
       });
@@ -1022,7 +1020,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             </div>
           ) : (
             /* Active Simulator controls */
-            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '0.35rem', marginTop: '0.5rem' }}>
+            <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.75rem', paddingRight: '0.35rem', marginTop: '0.35rem' }}>
 
               <div>
                 <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', display: 'block', marginBottom: '0.35rem' }}>Escenarios</span>
@@ -1058,14 +1056,14 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div className="slider-group">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'center' }}>
+                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
                   <div className="slider-label-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Coins size={13} style={{ color: '#94a3b8' }} />
-                      <label style={{ fontSize: '0.78rem' }}>Precio Unitario</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <Coins size={14} style={{ color: '#38bdf8' }} />
+                      <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Precio Unitario</label>
                     </div>
-                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}`}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700' }} className={`slider-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}`}>
                       {priceChange > 0 ? `+${priceChange}` : priceChange}%
                     </span>
                   </div>
@@ -1076,17 +1074,17 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     value={priceChange}
                     onChange={(e) => setPriceChange(parseInt(e.target.value))}
                     className="range-input"
-                    style={{ height: '4px' }}
+                    style={{ height: '4px', marginTop: '0.4rem' }}
                   />
                 </div>
 
-                <div className="slider-group">
+                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
                   <div className="slider-label-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <DollarSign size={13} style={{ color: '#94a3b8' }} />
-                      <label style={{ fontSize: '0.78rem' }}>Dólar (USD)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <DollarSign size={14} style={{ color: '#38bdf8' }} />
+                      <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Dólar (USD)</label>
                     </div>
-                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${exchangeRateChange > 0 ? 'negative' : exchangeRateChange < 0 ? 'positive' : ''}`}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700' }} className={`slider-value ${exchangeRateChange > 0 ? 'negative' : exchangeRateChange < 0 ? 'positive' : ''}`}>
                       {exchangeRateChange > 0 ? `+${exchangeRateChange}` : exchangeRateChange}%
                     </span>
                   </div>
@@ -1097,17 +1095,17 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     value={exchangeRateChange}
                     onChange={(e) => setExchangeRateChange(parseInt(e.target.value))}
                     className="range-input"
-                    style={{ height: '4px' }}
+                    style={{ height: '4px', marginTop: '0.4rem' }}
                   />
                 </div>
 
-                <div className="slider-group">
+                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
                   <div className="slider-label-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <TrendingUp size={13} style={{ color: '#94a3b8' }} />
-                      <label style={{ fontSize: '0.78rem' }}>Inflación (IPC)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <TrendingUp size={14} style={{ color: '#38bdf8' }} />
+                      <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Inflación (IPC)</label>
                     </div>
-                    <span style={{ fontSize: '0.85rem' }} className={`slider-value ${inflationChange > 0 ? 'negative' : inflationChange < 0 ? 'positive' : ''}`}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700' }} className={`slider-value ${inflationChange > 0 ? 'negative' : inflationChange < 0 ? 'positive' : ''}`}>
                       {inflationChange > 0 ? `+${inflationChange}` : inflationChange}%
                     </span>
                   </div>
@@ -1118,31 +1116,31 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     value={inflationChange}
                     onChange={(e) => setInflationChange(parseInt(e.target.value))}
                     className="range-input"
-                    style={{ height: '4px' }}
+                    style={{ height: '4px', marginTop: '0.4rem' }}
                   />
                 </div>
               </div>
 
               <div style={{ marginTop: '0.25rem' }}>
                 {simStatus === 'RUNNING' ? (
-                  <div className="simulation-running-card" style={{ padding: '0.4rem 0.75rem', borderRadius: '6px' }}>
-                    <div className="running-label" style={{ fontSize: '0.75rem' }}>
-                      <Loader2 size={13} className="spinner" />
+                  <div className="simulation-running-card" style={{ padding: '0.5rem 0.85rem', borderRadius: '8px' }}>
+                    <div className="running-label" style={{ fontSize: '0.78rem' }}>
+                      <Loader2 size={14} className="spinner" />
                       <span>Simulando ML ({simProgress}%)</span>
                     </div>
-                    <div className="progress-bar-mini" style={{ height: '3px', marginTop: '0.25rem' }}>
+                    <div className="progress-bar-mini" style={{ height: '4px', marginTop: '0.35rem' }}>
                       <div className="progress-fill-mini" style={{ width: `${simProgress}%` }}></div>
                     </div>
                   </div>
                 ) : (
-                  <button className="btn-primary simulate-btn" onClick={handleSimulate} style={{ width: '100%', padding: '0.5rem', fontSize: '0.82rem', borderRadius: '6px' }}>
-                    <Play size={13} /> Correr Simulación
+                  <button className="btn-primary simulate-btn" onClick={handleSimulate} style={{ width: '100%', padding: '0.6rem', fontSize: '0.85rem', fontWeight: '600', borderRadius: '8px' }}>
+                    <Play size={14} /> Correr Simulación
                   </button>
                 )}
               </div>
 
               {simStatus === 'SUCCESS' && simMetrics && (
-                <div className="simulator-results-panel" style={{ marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div className="simulator-results-panel" style={{ marginTop: '0.25rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <h4 style={{ fontSize: '0.82rem', margin: 0, color: '#38bdf8' }}>Métricas de Impacto</h4>
                   <div className="results-grid" style={{ gap: '0.4rem' }}>
                     <div className="result-metric" style={{ padding: '0.35rem', borderRadius: '4px' }}>

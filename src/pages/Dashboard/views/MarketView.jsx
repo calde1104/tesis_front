@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts';
-import { getMarketShareOverview, getPriceGap, getMarketShareComposition } from '../../../services/marketShare';
+import { getMarketShareOverview, getPriceGap, getMarketShareComposition, getShareOfAssortment } from '../../../services/marketShare';
 import { getSalesFilters } from '../../../services/sales';
 import { getEmpresaId } from '../../../services/api';
 
@@ -75,7 +75,7 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   };
 
   return (
-    <div className="filter-group" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+    <div className="filter-group" style={{ position: 'relative', zIndex: isOpen ? 9999 : 1 }} onClick={(e) => e.stopPropagation()}>
       <label>{label}</label>
       <div
         onClick={() => setIsOpen(!isOpen)}
@@ -119,13 +119,13 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
             right: 0,
             marginBottom: direction === 'up' ? '0.35rem' : undefined,
             marginTop: direction === 'down' ? '0.35rem' : undefined,
-            background: 'rgba(15, 23, 42, 0.95)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'rgba(15, 23, 42, 0.98)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(14, 165, 233, 0.3)',
             borderRadius: '8px',
             maxHeight: '200px',
             overflowY: 'auto',
-            zIndex: 100,
+            zIndex: 10000,
             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
           }}
         >
@@ -190,6 +190,8 @@ const MarketView = () => {
   const [shareData, setShareData] = useState([]);
   const [priceGap, setPriceGap] = useState([]);
   const [composition, setComposition] = useState([]);
+  const [soaComposition, setSoaComposition] = useState([]);
+  const [soaValue, setSoaValue] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [department, setDepartment] = useState('');
@@ -215,28 +217,106 @@ const MarketView = () => {
     const fetchData = async () => {
       setLoading(true);
       const shareRes = await getMarketShareOverview({ department, category, brand, years, months });
-      const priceRes = await getPriceGap({ department, category, brand, years, months });
+      const priceRes = await getPriceGap({ department, category, brand });
 
       const lastPoint = shareRes && shareRes.length > 0 ? shareRes[shareRes.length - 1] : null;
       const targetAnio = years.length > 0 ? parseInt(years[years.length - 1]) : (lastPoint ? lastPoint.year : 2025);
       const targetMes = months.length > 0 ? parseInt(months[months.length - 1]) : (lastPoint ? lastPoint.monthNum : 12);
 
-      const compRes = await getMarketShareComposition(targetAnio, targetMes, { department, category, brand });
+      const targetCategory = category || (brand && filterOptions?.brandCategories?.[brand]?.[0] ? filterOptions.brandCategories[brand][0] : '');
+      const compFilters = { department, category: targetCategory };
+
+      let calculatedSoa = null;
+      let compRes = [];
+      let soaCompRes = [];
+
+      if (shareRes && shareRes.length > 0) {
+        const periodsToQuery = shareRes.slice(-12); // tomar hasta los 12 períodos filtrados más recientes
+        
+        const [soaList, compList] = await Promise.all([
+          Promise.all(periodsToQuery.map(p => getShareOfAssortment(p.year, p.monthNum, compFilters))),
+          Promise.all(periodsToQuery.map(p => getMarketShareComposition(p.year, p.monthNum, compFilters)))
+        ]);
+
+        if (soaList.length > 0) {
+          const soaMap = {};
+          soaList.forEach(monthSoa => {
+            if (Array.isArray(monthSoa) && monthSoa.length > 0) {
+              monthSoa.forEach(item => {
+                const key = item.empresaId || item.name;
+                if (!soaMap[key]) {
+                  soaMap[key] = { empresaId: item.empresaId, name: item.name, totalShare: 0, count: 0 };
+                }
+                soaMap[key].totalShare += (item.share || 0);
+                soaMap[key].count += 1;
+              });
+            }
+          });
+
+          soaCompRes = Object.values(soaMap).map(c => ({
+            empresaId: c.empresaId,
+            name: c.name,
+            share: parseFloat((c.totalShare / (c.count || 1)).toFixed(2))
+          })).sort((a, b) => b.share - a.share);
+        }
+
+        if (compList.length > 0) {
+          const compMap = {};
+          compList.forEach(monthComp => {
+            if (Array.isArray(monthComp) && monthComp.length > 0) {
+              monthComp.forEach(item => {
+                const key = item.empresaId || item.name;
+                if (!compMap[key]) {
+                  compMap[key] = { empresaId: item.empresaId, name: item.name, totalShare: 0, count: 0 };
+                }
+                compMap[key].totalShare += (item.share || 0);
+                compMap[key].count += 1;
+              });
+            }
+          });
+
+          compRes = Object.values(compMap).map(c => ({
+            empresaId: c.empresaId,
+            name: c.name,
+            share: parseFloat((c.totalShare / (c.count || 1)).toFixed(2))
+          })).sort((a, b) => b.share - a.share);
+        }
+      } else {
+        compRes = await getMarketShareComposition(targetAnio, targetMes, compFilters);
+        const rawSoaData = await getShareOfAssortment(targetAnio, targetMes, compFilters);
+        if (Array.isArray(rawSoaData)) {
+          soaCompRes = rawSoaData;
+        }
+      }
+
+      const currentEmpresaId = getEmpresaId();
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const currentEmpresaNombre = storedUser.empresaNombre || storedUser.nombre || storedUser.empresa || 'A.G.DEHEZA';
+
+      if (soaCompRes.length > 0) {
+        const ourEntry = soaCompRes.find(c => 
+          (c.empresaId && String(c.empresaId) === String(currentEmpresaId)) ||
+          (c.name && c.name.toUpperCase() === currentEmpresaNombre.toUpperCase())
+        );
+        if (ourEntry) calculatedSoa = ourEntry.share;
+      }
 
       const catSharesMap = {};
       const catGapsMap = {};
 
       const catsToFetch = category 
         ? [category] 
-        : (filterOptions && filterOptions.categories
-            ? (department ? (filterOptions.categories[department] || []) : Array.from(new Set(Object.values(filterOptions.categories).flat())))
-            : ['ACEITES', 'MAYONESAS']);
+        : (brand && filterOptions?.brandCategories?.[brand]
+            ? filterOptions.brandCategories[brand]
+            : (filterOptions && filterOptions.categories
+                ? (department ? (filterOptions.categories[department] || []) : Array.from(new Set(Object.values(filterOptions.categories).flat())))
+                : ['ACEITES', 'MAYONESAS']));
 
       if (!category && catsToFetch.length > 0) {
         await Promise.all(catsToFetch.map(async (catName) => {
           const [catOverview, catPrice] = await Promise.all([
             getMarketShareOverview({ department, category: catName, brand, years, months }),
-            getPriceGap({ department, category: catName, brand, years, months })
+            getPriceGap({ department, category: catName, brand })
           ]);
           if (catOverview && catOverview.length > 0) {
             catSharesMap[catName] = catOverview[catOverview.length - 1]['Nuestra Empresa'];
@@ -251,6 +331,8 @@ const MarketView = () => {
         setShareData(shareRes);
         setPriceGap(priceRes);
         setComposition(compRes);
+        setSoaComposition(soaCompRes);
+        setSoaValue(calculatedSoa);
         setCategoryShares(catSharesMap);
         setCategoryPriceGaps(catGapsMap);
         setLoading(false);
@@ -291,22 +373,56 @@ const MarketView = () => {
     setMonths([]);
   };
 
-  const deptOptions = [
+  const departmentOptions = [
     { value: '', label: 'Todos los departamentos' },
-    ...(filterOptions?.departments?.map(d => ({ value: d, label: d })) || [])
+    ...((category && filterOptions?.categories
+      ? [Object.keys(filterOptions.categories).find(d => filterOptions.categories[d]?.includes(category))].filter(Boolean)
+      : (brand && filterOptions?.brandDepartments?.[brand]
+        ? filterOptions.brandDepartments[brand]
+        : (filterOptions?.departments || [])
+      )
+    ).map(dept => ({ value: dept, label: dept })))
   ];
 
   const categoryOptions = [
     { value: '', label: 'Todas las categorías' },
-    ...(department
-      ? (filterOptions?.categories[department]?.map(c => ({ value: c, label: c })) || [])
-      : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())).map(c => ({ value: c, label: c })) : [])
-    )
+    ...((brand && filterOptions?.brandCategories?.[brand]
+      ? filterOptions.brandCategories[brand]
+      : (department && filterOptions?.categories?.[department]
+        ? filterOptions.categories[department]
+        : (filterOptions ? Array.from(new Set(Object.values(filterOptions.categories).flat())) : [])
+      )
+    ).map(cat => ({ value: cat, label: cat })))
   ];
 
   const brandOptions = [
     { value: '', label: 'Todas las marcas' },
-    ...(filterOptions?.brands?.map(b => ({ value: b, label: b })) || [])
+    ...((category && filterOptions?.categoryBrands?.[category]
+      ? filterOptions.categoryBrands[category]
+      : (department && filterOptions?.deptBrands?.[department]
+        ? filterOptions.deptBrands[department]
+        : (filterOptions?.brands || [])
+      )
+    ).map(b => ({ value: b, label: b })))
+  ];
+
+  const monthOptions = [
+    { value: '', label: 'Todos los Meses' },
+    ...((() => {
+      let allowedMonthNums = null;
+      if (years && years.length > 0 && filterOptions?.yearMonths) {
+        const allowedSet = new Set();
+        years.forEach(yr => {
+          const mList = filterOptions.yearMonths[yr] || [];
+          mList.forEach(m => allowedSet.add(m));
+        });
+        allowedMonthNums = Array.from(allowedSet);
+      }
+      const allMonths = filterOptions?.months || [];
+      return allowedMonthNums
+        ? allMonths.filter(m => allowedMonthNums.includes(m.value))
+        : allMonths;
+    })().map(m => ({ value: m.value.toString(), label: m.label })))
   ];
 
   const lastPoint = shareData.length > 0 ? shareData[shareData.length - 1] : null;
@@ -319,9 +435,10 @@ const MarketView = () => {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const currentEmpresaNombre = storedUser.empresaNombre || storedUser.nombre || storedUser.empresa || 'A.G.DEHEZA';
 
+  const sourceComposition = soaComposition.length > 0 ? soaComposition : composition;
   let processedComposition = [];
-  if (composition.length > 0) {
-    const mappedComp = composition.map((comp) => {
+  if (sourceComposition.length > 0) {
+    const mappedComp = sourceComposition.map((comp) => {
       const isOurCompany = (comp.empresaId && String(comp.empresaId) === String(currentEmpresaId)) ||
                            (comp.name && comp.name.toUpperCase() === currentEmpresaNombre.toUpperCase());
       return {
@@ -355,9 +472,11 @@ const MarketView = () => {
 
   const activeCategories = category 
     ? [category] 
-    : (filterOptions && filterOptions.categories
-        ? (department ? (filterOptions.categories[department] || []) : Array.from(new Set(Object.values(filterOptions.categories).flat())))
-        : ['WHISKYS']);
+    : (brand && filterOptions?.brandCategories?.[brand]
+        ? filterOptions.brandCategories[brand]
+        : (filterOptions && filterOptions.categories
+            ? (department ? (filterOptions.categories[department] || []) : Array.from(new Set(Object.values(filterOptions.categories).flat())))
+            : ['ACEITES']));
 
   const leaderCompany = composition.length > 0 ? composition[0] : null;
 
@@ -383,15 +502,6 @@ const MarketView = () => {
       trend: shareDiff >= 0 ? 'up' : 'down'
     };
   });
-
-  if (loading) {
-    return (
-      <div className="view-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '600px', color: '#94a3b8' }}>
-        <Loader2 className="spinner" size={32} style={{ animation: 'spin 1s linear infinite', color: '#38bdf8', marginBottom: '1rem' }} />
-        <p>Cargando información competitiva del mercado...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="view-container market-view" style={{ 
@@ -451,17 +561,14 @@ const MarketView = () => {
             value={months}
             onChange={handleMonthsChange}
             placeholder="Todos los Meses"
-            options={[
-              { value: '', label: 'Todos los Meses' },
-              ...(filterOptions?.months.map(m => ({ value: m.value.toString(), label: m.label })) || [])
-            ]}
+            options={monthOptions}
           />
           <CustomSelect
             label="Departamento"
             value={department}
             onChange={handleDepartmentChange}
             placeholder="Todos los departamentos"
-            options={deptOptions}
+            options={departmentOptions}
           />
           <CustomSelect
             label="Categoría"
@@ -480,13 +587,19 @@ const MarketView = () => {
         </div>
       </div>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '4.2fr 5.8fr', 
-        gap: '1.25rem',
-        flex: 1,
-        minHeight: 0
-      }}>
+      {loading ? (
+        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', color: '#94a3b8' }}>
+          <Loader2 className="spinner" size={32} style={{ animation: 'spin 1s linear infinite', color: '#38bdf8', marginBottom: '1rem' }} />
+          <p style={{ margin: 0, fontSize: '0.88rem' }}>Cargando información competitiva del mercado...</p>
+        </div>
+      ) : (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '4.2fr 5.8fr', 
+          gap: '1.25rem',
+          flex: 1,
+          minHeight: 0
+        }}>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', height: '100%' }}>
           
@@ -533,26 +646,42 @@ const MarketView = () => {
           </div>
 
           <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem', flex: 1, minHeight: 0 }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Share of Assortment (SOA)</h3>
-              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Distribución de referencias (SKUs) en el catálogo total del mercado</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Share of Assortment (SOA)</h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>Porcentaje de referencias activas (SKUs) en el catálogo total del mercado</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: '800', color: '#38bdf8', display: 'block', lineHeight: 1 }}>
+                  {soaValue !== null ? `${soaValue}%` : (rankingList.find(i => i.isOurCompany)?.share !== undefined ? `${rankingList.find(i => i.isOurCompany).share}%` : 'N/D')}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block', marginTop: '0.2rem' }}>
+                  Cuota de Surtido ({currentEmpresaNombre})
+                </span>
+              </div>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.85rem' }}>
-              {rankingList.map((item) => (
-                <div key={item.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: item.isOurCompany ? '700' : '400' }}>
-                    <span style={{ color: item.isOurCompany ? '#38bdf8' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      {item.icon}
-                      {item.displayName || item.name}
-                    </span>
-                    <span style={{ color: item.isOurCompany ? '#f8fafc' : '#94a3b8', fontWeight: '600' }}>{item.share}%</span>
-                  </div>
-                  <div style={{ height: '5px', background: 'rgba(255,255,255,0.03)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, item.share * 100)}%`, height: '100%', background: item.color, borderRadius: '3px' }} />
-                  </div>
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
+              {(() => {
+                const maxShare = Math.max(...rankingList.map(r => r.share || 0), 1);
+                return rankingList.map((item) => {
+                  const barWidthPct = maxShare > 0 ? Math.min(100, (item.share / maxShare) * 100) : 0;
+                  return (
+                    <div key={item.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: item.isOurCompany ? '700' : '400' }}>
+                        <span style={{ color: item.isOurCompany ? '#38bdf8' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          {item.icon}
+                          {item.displayName || item.name}
+                        </span>
+                        <span style={{ color: item.isOurCompany ? '#f8fafc' : '#94a3b8', fontWeight: '600' }}>{item.share}%</span>
+                      </div>
+                      <div style={{ height: '5px', background: 'rgba(255,255,255,0.03)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: `${barWidthPct}%`, height: '100%', background: item.color, borderRadius: '3px', transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
 
             <div style={{
@@ -567,10 +696,10 @@ const MarketView = () => {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', fontWeight: '700', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <Award size={13} />
-                Insight de Mercado
+                Insight de Catálogo y Mercado
               </div>
               <span>
-                Nuestra Empresa posee un <strong>{currentShare}%</strong> de cuota de mercado promedio. Se posiciona como <strong>{rankingList.length > 0 && rankingList[0].isOurCompany ? 'Líder absoluto de la categoría' : `Seguidor de ${leaderCompany?.name || 'Mercado'} (${leaderCompany?.share || 0}%)`}</strong>.
+                Nuestra Empresa posee un <strong>{soaValue !== null ? `${soaValue}%` : 'N/D'}</strong> de Share of Assortment (SOA) en SKUs activos del catálogo. En cuota de mercado se posiciona como <strong>{rankingList.length > 0 && rankingList[0].isOurCompany ? 'Líder absoluto' : `Seguidor de ${leaderCompany?.name || 'Mercado'} (${leaderCompany?.share || 0}%)`}</strong>.
               </span>
             </div>
           </div>
@@ -582,19 +711,19 @@ const MarketView = () => {
           <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Price Gap vs Competidores</h3>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Variación de Precio por Producto (%)</h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
-                  Brecha porcentual de precio unitario por producto frente al promedio del mercado
+                  Variación porcentual del precio unitario del producto respecto al período anterior
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.65rem' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#34d399' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34d399' }} />
-                  Más Competitivo (-%)
+                  Rebaja / Descuento (-%)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#f43f5e' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f43f5e' }} />
-                  Más Caro / Premium (+%)
+                  Aumento de Precio (+%)
                 </span>
               </div>
             </div>
@@ -616,7 +745,7 @@ const MarketView = () => {
                               <span style={{ color: data.gap > 0 ? '#f43f5e' : '#34d399', fontWeight: '700', fontSize: '0.85rem' }}>
                                 {data.gap > 0 ? `+${data.gap}%` : `${data.gap}%`}
                               </span>
-                              <span style={{ color: '#64748b', fontSize: '0.7rem' }}>vs Promedio Mercado</span>
+                              <span style={{ color: '#64748b', fontSize: '0.7rem' }}>vs Período Anterior</span>
                             </div>
                             {data.unitPrice > 0 && (
                               <p style={{ margin: '0.25rem 0 0 0', color: '#94a3b8', fontSize: '0.7rem' }}>
@@ -654,7 +783,7 @@ const MarketView = () => {
                     <th style={{ textAlign: 'left', padding: '0.5rem 0.25rem', fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase' }}>Categoría</th>
                     <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem', fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase' }}>Nuestra Cuota</th>
                     <th style={{ textAlign: 'left', padding: '0.5rem 0.25rem', fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase' }}>Líder de Categoría</th>
-                    <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem', fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase' }}>Price Gap Promedio</th>
+                    <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem', fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase' }}>Variación de Precio Promedio</th>
                     <th style={{ textAlign: 'center', padding: '0.5rem 0.25rem', fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase' }}>Estado</th>
                   </tr>
                 </thead>
@@ -710,8 +839,8 @@ const MarketView = () => {
           </div>
 
         </div>
-
       </div>
+      )}
 
     </div>
   );

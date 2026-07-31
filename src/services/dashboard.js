@@ -86,12 +86,20 @@ const mapMarketShareToFrontend = (compositionList, currentEmpresaId) => {
   
   const colors = ['#cbd5e1', '#94a3b8', '#64748b', '#475569'];
 
-  const items = compositionList.map(c => ({
-    empresaId: c.empresaId,
-    name: c.empresaId === currentEmpresaId ? 'Nuestra Empresa' : c.empresaNombre,
-    isOurCompany: c.empresaId === currentEmpresaId,
-    value: (c.marketShareUnidadesPromedio || 0) * 100
-  })).sort((a, b) => b.value - a.value);
+  const rawItems = compositionList.map(c => {
+    const pctVal = Number(c.marketShareUnidadesPromedio || 0);
+    return {
+      empresaId: c.empresaId,
+      name: c.empresaId === currentEmpresaId ? 'Nuestra Empresa' : c.empresaNombre,
+      isOurCompany: c.empresaId === currentEmpresaId,
+      value: pctVal
+    };
+  }).sort((a, b) => b.value - a.value);
+
+  const totalMarketVal = rawItems.reduce((sum, item) => sum + item.value, 0);
+  const items = totalMarketVal > 0 
+    ? rawItems.map(item => ({ ...item, value: (item.value / totalMarketVal) * 100 }))
+    : rawItems;
 
   const topLeaders = items.slice(0, 3);
   const isInTopLeaders = topLeaders.some(item => item.isOurCompany);

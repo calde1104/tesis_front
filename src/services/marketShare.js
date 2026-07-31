@@ -111,6 +111,40 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12, filters =
   }
 };
 
+export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) => {
+  const empresaId = getEmpresaId();
+  try {
+    const params = new URLSearchParams();
+    params.append('anio', anio);
+    params.append('mes', mes);
+
+    const brandId = getBrandId(filters.brand);
+    const categoriaId = getCategoryId(filters.category);
+    const departamentoId = getDeptId(filters.department);
+
+    if (brandId) params.append('marcaId', brandId);
+    if (categoriaId) params.append('categoriaId', categoriaId);
+    if (departamentoId) params.append('departamentoId', departamentoId);
+
+    const data = await apiRequest(`/v1/${empresaId}/dashboard/share-of-assortment?${params.toString()}`);
+    if (!data) return [];
+
+    if (Array.isArray(data)) {
+      return data.map(item => ({
+        empresaId: item.empresaId,
+        name: item.empresaNombre || 'Otra Empresa',
+        share: parseFloat((Number(item.shareOfAssortmentPct) || 0).toFixed(2))
+      }));
+    }
+
+    const rawPct = Number(data.shareOfAssortmentPct) || 0;
+    return parseFloat(rawPct.toFixed(2));
+  } catch (error) {
+    console.warn('getShareOfAssortment API call failed:', error);
+    return [];
+  }
+};
+
 export const predictColdStart = async (productData = {}) => {
   const empresaId = getEmpresaId();
   try {
