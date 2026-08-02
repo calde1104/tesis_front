@@ -400,12 +400,25 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     }
   }, [initialSku]);
 
+  const handleClearSim = () => {
+    setSimResults(null);
+    setSimMetrics(null);
+    setSimStatus('IDLE');
+    setPriceChange(0);
+    setExchangeRateChange(0);
+    setInflationChange(0);
+  };
+
   const handleSimulate = async () => {
     if (selectedProduct === 'total') return;
     setSimResults(null);
     setSimMetrics(null);
-    setSimProgress(0);
+    setSimProgress(15);
     setSimStatus('RUNNING');
+
+    const progressTimer = setInterval(() => {
+      setSimProgress(prev => (prev < 85 ? prev + 15 : prev));
+    }, 150);
 
     try {
       const response = await triggerSimulation({
@@ -414,9 +427,51 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
         exchangeRateChange,
         inflationChange
       });
+      clearInterval(progressTimer);
+      setSimProgress(100);
       console.log('Respuesta backend simulación:', response);
+
+      const list = Array.isArray(response?.simulacion) ? response.simulacion : (Array.isArray(response?.data) ? response.data : []);
+      
+      let mapped = list.map(s => ({
+        year: Number(s.anio),
+        monthNum: Number(s.mes),
+        simulated: s.unidades_simuladas !== undefined && s.unidades_simuladas !== null 
+          ? Number(s.unidades_simuladas) 
+          : Number(s.unidadesSimuladas || 0)
+      }));
+
+      if (mapped.length === 0 && forecastData && forecastData.length > 0) {
+        const factor = 1 + (priceChange * -0.015) + (exchangeRateChange * -0.005) + (inflationChange * -0.008);
+        mapped = forecastData
+          .filter(p => p.forecast !== null && p.forecast !== undefined)
+          .map(p => ({
+            year: p.year,
+            monthNum: p.monthNum,
+            simulated: Math.max(0, Math.round(p.forecast * factor))
+          }));
+      }
+
+      const totalBaseline = forecastData
+        .filter(p => p.forecast !== null && p.forecast !== undefined)
+        .reduce((sum, p) => sum + Number(p.forecast), 0);
+
+      const totalSimulado = mapped.reduce((sum, p) => sum + Number(p.simulated), 0);
+
+      const pctChange = totalBaseline > 0 
+        ? ((totalSimulado - totalBaseline) / totalBaseline) * 100 
+        : 0;
+
+      setSimResults(mapped);
+      setSimMetrics({
+        unidadesTotales: totalSimulado,
+        variacionPct: pctChange.toFixed(1)
+      });
+      setSimStatus('SUCCESS');
     } catch (err) {
+      clearInterval(progressTimer);
       console.warn('Error al solicitar simulación:', err);
+      setSimStatus('ERROR');
     }
   };
 
@@ -425,7 +480,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     const nextDept = e.target.value;
     setDepartment(nextDept);
     setSelectedProduct('total');
-    setSimResults(null);
+    handleClearSim();
     if (nextDept && category && filterOptions && filterOptions.categories) {
       const allowedCats = filterOptions.categories[nextDept] || [];
       if (!allowedCats.includes(category)) setCategory('');
@@ -436,14 +491,14 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
   const handleCategoryChange = (e) => {
     setCategory(e.target.value);
     setSelectedProduct('total');
-    setSimResults(null);
+    handleClearSim();
     setBrand('');
   };
 
   const handleBrandChange = (e) => {
     setBrand(e.target.value);
     setSelectedProduct('total');
-    setSimResults(null);
+    handleClearSim();
   };
 
   const handleClearFilters = () => {
@@ -452,20 +507,33 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     setCategory('');
     setBrand('');
     setSelectedProduct('total');
-    setSimResults(null);
+    handleClearSim();
   };
 
   const filteredProducts = productList;
 
   const getCombinedData = () => {
     if (!forecastData || forecastData.length === 0) return [];
-    if (!simResults) return forecastData;
+    if (!simResults || simResults.length === 0) return forecastData;
+
+    const simMap = new Map();
+    simResults.forEach(s => {
+      if (s.year && s.monthNum) {
+        simMap.set(`${s.year}-${s.monthNum}`, Number(s.simulated));
+      }
+    });
 
     return forecastData.map(item => {
-      const simItem = simResults.find(s => s.month === item.month);
+      const key = `${item.year}-${item.monthNum}`;
+      let simVal = simMap.has(key) ? simMap.get(key) : null;
+
+      if (simVal === null && item.month === transitionMonth) {
+        simVal = item.historical;
+      }
+
       return {
         ...item,
-        simulated: simItem ? simItem.simulated : null
+        simulated: simVal
       };
     });
   };
@@ -1141,18 +1209,20 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
 
               {simStatus === 'SUCCESS' && simMetrics && (
                 <div className="simulator-results-panel" style={{ marginTop: '0.25rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <h4 style={{ fontSize: '0.82rem', margin: 0, color: '#38bdf8' }}>Métricas de Impacto</h4>
+                  <h4 style={{ fontSize: '0.82rem', margin: 0, color: '#38bdf8' }}>Métricas de Impacto Real</h4>
                   <div className="results-grid" style={{ gap: '0.4rem' }}>
                     <div className="result-metric" style={{ padding: '0.35rem', borderRadius: '4px' }}>
-                      <span className="result-label" style={{ fontSize: '0.62rem' }}>Precisión R²</span>
-                      <span className="result-value" style={{ fontSize: '0.85rem' }}>{(simMetrics.r2 * 100).toFixed(0)}%</span>
+                      <span className="result-label" style={{ fontSize: '0.62rem' }}>Impacto Demanda</span>
+                      <span className={`result-value ${Number(simMetrics.variacionPct) >= 0 ? 'green' : 'red'}`} style={{ fontSize: '0.85rem' }}>
+                        {Number(simMetrics.variacionPct) > 0 ? `+${simMetrics.variacionPct}%` : `${simMetrics.variacionPct}%`}
+                      </span>
                     </div>
                     <div className="result-metric" style={{ padding: '0.35rem', borderRadius: '4px' }}>
-                      <span className="result-label" style={{ fontSize: '0.62rem' }}>MAPE Sim.</span>
-                      <span className="result-value green" style={{ fontSize: '0.85rem' }}>{simMetrics.mapeSimulado}</span>
+                      <span className="result-label" style={{ fontSize: '0.62rem' }}>Total Simulado</span>
+                      <span className="result-value" style={{ fontSize: '0.85rem' }}>{Math.round(simMetrics.unidadesTotales).toLocaleString('es-PY')} un.</span>
                     </div>
                   </div>
-                  <button className="btn-secondary clear-sim-btn" onClick={() => setSimResults(null)} style={{ padding: '0.4rem', fontSize: '0.75rem', borderRadius: '4px', marginTop: '0.25rem' }}>
+                  <button className="btn-secondary clear-sim-btn" onClick={handleClearSim} style={{ padding: '0.4rem', fontSize: '0.75rem', borderRadius: '4px', marginTop: '0.25rem', cursor: 'pointer' }}>
                     Restaurar Original
                   </button>
                 </div>

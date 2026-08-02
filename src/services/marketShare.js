@@ -3,6 +3,18 @@ import { getBrandId, getCategoryId, getDeptId, getSelectedValues } from './sales
 
 const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+const cacheOverview = new Map();
+const cachePriceGap = new Map();
+const cacheComposition = new Map();
+const cacheSoa = new Map();
+
+export const clearMarketShareCache = () => {
+  cacheOverview.clear();
+  cachePriceGap.clear();
+  cacheComposition.clear();
+  cacheSoa.clear();
+};
+
 export const getMarketShareOverview = async (filters = {}) => {
   const empresaId = getEmpresaId();
   try {
@@ -21,10 +33,16 @@ export const getMarketShareOverview = async (filters = {}) => {
     if (months.length > 0) params.append('meses', months.join(','));
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
+    const cacheKey = `${empresaId}_overview_${queryString}`;
+
+    if (cacheOverview.has(cacheKey)) {
+      return cacheOverview.get(cacheKey);
+    }
+
     const data = await apiRequest(`/v1/${empresaId}/market-share/overview${queryString}`);
     if (!data || !Array.isArray(data)) return [];
 
-    return data.map(p => {
+    const result = data.map(p => {
       const monthLabel = `${monthsEs[p.mes - 1]} ${String(p.anio).slice(-2)}`;
       const rawShare = Number(p.marketShareUnidadesPromedio) || 0;
       const ourShare = parseFloat(rawShare.toFixed(2));
@@ -36,6 +54,9 @@ export const getMarketShareOverview = async (filters = {}) => {
         monthNum: p.mes
       };
     });
+
+    cacheOverview.set(cacheKey, result);
+    return result;
   } catch (error) {
     console.warn('getMarketShareOverview API call failed:', error);
     return [];
@@ -60,10 +81,16 @@ export const getPriceGap = async (filters = {}) => {
     if (months.length > 0) params.append('meses', months.join(','));
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
+    const cacheKey = `${empresaId}_pricegap_${queryString}`;
+
+    if (cachePriceGap.has(cacheKey)) {
+      return cachePriceGap.get(cacheKey);
+    }
+
     const data = await apiRequest(`/v1/${empresaId}/market-share/price-gap${queryString}`);
     if (!data || !Array.isArray(data)) return [];
 
-    return data.map((p, idx) => ({
+    const result = data.map((p, idx) => ({
       id: p.productoId,
       shortLabel: `P${idx + 1}`,
       productName: p.nombreProducto || `Producto ${idx + 1}`,
@@ -73,6 +100,9 @@ export const getPriceGap = async (filters = {}) => {
       year: p.anio,
       month: p.mes
     }));
+
+    cachePriceGap.set(cacheKey, result);
+    return result;
   } catch (error) {
     console.warn('getPriceGap API call failed:', error);
     return [];
@@ -83,8 +113,8 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12, filters =
   const empresaId = getEmpresaId();
   try {
     const params = new URLSearchParams();
-    params.append('anio', anio);
-    params.append('mes', mes);
+    if (anio) params.append('anio', anio);
+    if (mes !== null && mes !== undefined && mes !== '') params.append('mes', mes);
 
     const brandId = getBrandId(filters.brand);
     const categoriaId = getCategoryId(filters.category);
@@ -94,10 +124,17 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12, filters =
     if (categoriaId) params.append('categoriaId', categoriaId);
     if (departamentoId) params.append('departamentoId', departamentoId);
 
-    const data = await apiRequest(`/v1/${empresaId}/dashboard/market-share-composition?${params.toString()}`);
+    const queryString = params.toString();
+    const cacheKey = `${empresaId}_comp_${queryString}`;
+
+    if (cacheComposition.has(cacheKey)) {
+      return cacheComposition.get(cacheKey);
+    }
+
+    const data = await apiRequest(`/v1/${empresaId}/dashboard/market-share-composition?${queryString}`);
     if (!data || !Array.isArray(data)) return [];
 
-    return data.map(item => {
+    const result = data.map(item => {
       const rawShare = Number(item.marketShareUnidadesPromedio) || 0;
       return {
         empresaId: item.empresaId,
@@ -105,6 +142,9 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12, filters =
         share: parseFloat(rawShare.toFixed(2))
       };
     });
+
+    cacheComposition.set(cacheKey, result);
+    return result;
   } catch (error) {
     console.warn('getMarketShareComposition API call failed:', error);
     return [];
@@ -115,8 +155,8 @@ export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) 
   const empresaId = getEmpresaId();
   try {
     const params = new URLSearchParams();
-    params.append('anio', anio);
-    params.append('mes', mes);
+    if (anio) params.append('anio', anio);
+    if (mes !== null && mes !== undefined && mes !== '') params.append('mes', mes);
 
     const brandId = getBrandId(filters.brand);
     const categoriaId = getCategoryId(filters.category);
@@ -126,19 +166,30 @@ export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) 
     if (categoriaId) params.append('categoriaId', categoriaId);
     if (departamentoId) params.append('departamentoId', departamentoId);
 
-    const data = await apiRequest(`/v1/${empresaId}/dashboard/share-of-assortment?${params.toString()}`);
+    const queryString = params.toString();
+    const cacheKey = `${empresaId}_soa_${queryString}`;
+
+    if (cacheSoa.has(cacheKey)) {
+      return cacheSoa.get(cacheKey);
+    }
+
+    const data = await apiRequest(`/v1/${empresaId}/dashboard/share-of-assortment?${queryString}`);
     if (!data) return [];
 
+    let result;
     if (Array.isArray(data)) {
-      return data.map(item => ({
+      result = data.map(item => ({
         empresaId: item.empresaId,
         name: item.marcaNombre || item.empresaNombre || 'Otra Marca',
         share: parseFloat((Number(item.shareOfAssortmentPct) || 0).toFixed(2))
       }));
+    } else {
+      const rawPct = Number(data.shareOfAssortmentPct) || 0;
+      result = parseFloat(rawPct.toFixed(2));
     }
 
-    const rawPct = Number(data.shareOfAssortmentPct) || 0;
-    return parseFloat(rawPct.toFixed(2));
+    cacheSoa.set(cacheKey, result);
+    return result;
   } catch (error) {
     console.warn('getShareOfAssortment API call failed:', error);
     return [];
@@ -158,3 +209,4 @@ export const predictColdStart = async (productData = {}) => {
     return null;
   }
 };
+

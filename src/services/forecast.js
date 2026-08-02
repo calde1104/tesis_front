@@ -24,7 +24,7 @@ export const getForecast = async (sku = null) => {
         }));
       }
     } else {
-      const salesRes = await apiRequest(`/v1/${empresaId}/sales?search=${encodeURIComponent(sku)}&anios=2021,2022,2023,2024,2025&page=0&size=100`);
+      const salesRes = await apiRequest(`/v1/${empresaId}/sales?search=${encodeURIComponent(sku)}&anios=2021,2022,2023,2024,2025,2026,2027,2028,2029,2030&page=0&size=100`);
       if (salesRes && salesRes.content && Array.isArray(salesRes.content)) {
         const skuItems = salesRes.content.filter(item => String(item.sku).trim() === String(sku).trim());
         skuItems.sort((a, b) => (a.anio - b.anio) || (a.mes - b.mes));
@@ -71,7 +71,7 @@ export const getForecast = async (sku = null) => {
 
     const lastHist = historicalPoints.length > 0 ? historicalPoints[historicalPoints.length - 1] : null;
     let currYear = lastHist ? lastHist.year : 2025;
-    let currMonth = lastHist ? lastHist.monthNum : 2;
+    let currMonth = lastHist ? lastHist.monthNum : 12;
 
     const forecastPoints = [];
     for (let i = 0; i < 12; i++) {
@@ -82,7 +82,7 @@ export const getForecast = async (sku = null) => {
       }
       
       const rawMatch = forecastList.length > 0 
-        ? (forecastList.find(p => Number(p.anio) === currYear && Number(p.mes) === currMonth) || forecastList[i])
+        ? forecastList.find(p => Number(p.anio) === currYear && Number(p.mes) === currMonth)
         : null;
 
       const predicted = getVal(rawMatch, ['unidadesPredichas', 'unidades_predichas', 'unidades', 'montoPredicho', 'monto_predicho', 'cantidad', 'valor', 'forecast', 'prediccion']);
@@ -100,11 +100,13 @@ export const getForecast = async (sku = null) => {
       });
     }
 
-    if (lastHist && forecastPoints.length > 0 && lastHist.forecast === null) {
+    const validForecastPoints = forecastPoints.filter(p => p.forecast !== null && p.forecast !== undefined);
+
+    if (lastHist && validForecastPoints.length > 0 && (lastHist.forecast === null || lastHist.forecast === undefined)) {
       lastHist.forecast = lastHist.historical;
     }
 
-    return [...historicalPoints, ...forecastPoints];
+    return [...historicalPoints, ...validForecastPoints];
   } catch (error) {
     console.warn('getForecast API call failed:', error);
     return [];

@@ -218,70 +218,87 @@ const MarketView = () => {
       setLoading(true);
 
       const targetCategory = category || (brand && filterOptions?.brandCategories?.[brand]?.[0] ? filterOptions.brandCategories[brand][0] : '');
-      const compFilters = { department, category: targetCategory };
+      const compFilters = { department, category: targetCategory, brand };
 
-      // Al filtrar por Marca, la composición de mercado y SOA se consultan dentro de la Categoría perteneciente para poder comparar contra las marcas competidoras
-      const [shareRes, priceRes, rawSoaData, rawCompRes] = await Promise.all([
-        getMarketShareOverview({ department, category: targetCategory, years, months }),
-        getPriceGap({ department, category: targetCategory, brand, years, months }),
-        getShareOfAssortment(2025, 12, compFilters),
-        getMarketShareComposition(2025, 12, compFilters)
-      ]);
+      const shareRes = await getMarketShareOverview({ department, category: targetCategory, brand, years, months });
+      if (!isMounted) return;
 
-      const lastPoint = shareRes && shareRes.length > 0 ? shareRes[shareRes.length - 1] : null;
-      const targetAnio = years.length > 0 ? parseInt(years[years.length - 1]) : (lastPoint ? lastPoint.year : 2025);
-      const targetMes = months.length > 0 ? parseInt(months[months.length - 1]) : (lastPoint ? lastPoint.monthNum : 12);
-
-      let compRes = Array.isArray(rawCompRes) ? rawCompRes : [];
-      let soaCompRes = Array.isArray(rawSoaData) ? rawSoaData : [];
-      let calculatedSoa = typeof rawSoaData === 'number' ? rawSoaData : null;
-
-      const currentEmpresaId = getEmpresaId();
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const currentEmpresaNombre = storedUser.empresaNombre || storedUser.nombre || storedUser.empresa || 'A.G.DEHEZA';
-
-      if (soaCompRes.length > 0 && calculatedSoa === null) {
-        const ourEntry = soaCompRes.find(c => 
-          (c.empresaId && String(c.empresaId) === String(currentEmpresaId)) ||
-          (c.name && c.name.toUpperCase() === currentEmpresaNombre.toUpperCase())
-        );
-        if (ourEntry) calculatedSoa = ourEntry.share;
+      const validShareRes = Array.isArray(shareRes) ? shareRes : [];
+      setShareData(validShareRes);
+      if (validShareRes.length > 0) {
+        const currentCatName = category || (brand ? 'Marca Filtrada' : 'General');
+        setCategoryShares(prev => ({ ...prev, [currentCatName]: validShareRes[validShareRes.length - 1]['Nuestra Empresa'] }));
       }
 
-      const catSharesMap = {};
-      const catGapsMap = {};
+      const numericYears = years ? years.map(y => Number(y)).filter(Boolean) : [];
+      const numericMonths = months ? months.map(m => Number(m)).filter(Boolean) : [];
 
-      const catsToFetch = category 
-        ? [category] 
-        : (brand && filterOptions?.brandCategories?.[brand]
-            ? filterOptions.brandCategories[brand]
-            : (filterOptions && filterOptions.categories
-                ? (department ? (filterOptions.categories[department] || []).slice(0, 4) : Array.from(new Set(Object.values(filterOptions.categories).flat())).slice(0, 4))
-                : ['ACEITES', 'MAYONESAS']));
+      const latestDataYear = validShareRes.length > 0 && validShareRes[validShareRes.length - 1].year
+        ? validShareRes[validShareRes.length - 1].year
+        : 2025;
+      const latestDataMonth = validShareRes.length > 0 && validShareRes[validShareRes.length - 1].monthNum
+        ? validShareRes[validShareRes.length - 1].monthNum
+        : 12;
 
-      if (!category && catsToFetch.length > 0) {
-        await Promise.all(catsToFetch.map(async (catName) => {
-          const catOverview = await getMarketShareOverview({ department, category: catName, brand, years, months });
-          if (catOverview && catOverview.length > 0) {
-            catSharesMap[catName] = catOverview[catOverview.length - 1]['Nuestra Empresa'];
+      const selYear = numericYears.length > 0 ? Math.max(...numericYears) : latestDataYear;
+      const selMonth = numericMonths.length > 0 ? Math.max(...numericMonths) : latestDataMonth;
+
+      const pPrice = getPriceGap({ department, category: targetCategory, brand, years, months }).then(res => {
+        if (isMounted) {
+          setPriceGap(res || []);
+          if (res && res.length > 0) {
+            const currentCatName = category || (brand ? 'Marca Filtrada' : 'General');
+            const avgGap = parseFloat((res.reduce((acc, curr) => acc + curr.gap, 0) / res.length).toFixed(1));
+            setCategoryPriceGaps(prev => ({ ...prev, [currentCatName]: avgGap }));
           }
-          if (priceRes && priceRes.length > 0) {
-            catGapsMap[catName] = parseFloat((priceRes.reduce((acc, curr) => acc + curr.gap, 0) / priceRes.length).toFixed(1));
-          }
-        }));
-      }
+        }
+      });
 
+      const pSoa = getShareOfAssortment(selYear, selMonth, compFilters).then(rawSoaData => {
+        if (isMounted) {
+          let soaCompRes = Array.isArray(rawSoaData) ? rawSoaData : [];
+          let calculatedSoa = typeof rawSoaData === 'number' ? rawSoaData : null;
+
+          const currentEmpresaId = getEmpresaId();
+          const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const currentEmpresaNombre = storedUser.empresaNombre || storedUser.nombre || storedUser.empresa || 'A.G.DEHEZA';
+
+          const isMatchingOurCompany = (entry) => {
+            if (!entry) return false;
+            if (entry.empresaId && String(entry.empresaId) === String(currentEmpresaId)) return true;
+            if (!entry.name) return false;
+            const entryUpper = entry.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const targetUpper = currentEmpresaNombre.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (entryUpper === targetUpper) return true;
+            if (entryUpper.includes('DEHEZA') && targetUpper.includes('DEHEZA')) return true;
+            return false;
+          };
+
+          if (brand) {
+            let ourEntry = soaCompRes.find(c => c.name && c.name.toUpperCase() === brand.toUpperCase());
+            calculatedSoa = ourEntry ? ourEntry.share : 0;
+          } else {
+            let ourEntry = soaCompRes.find(isMatchingOurCompany);
+            calculatedSoa = ourEntry ? ourEntry.share : 0;
+          }
+
+          setSoaComposition(soaCompRes);
+          setSoaValue(calculatedSoa);
+        }
+      });
+
+      const pComp = getMarketShareComposition(selYear, selMonth, compFilters).then(res => {
+        if (isMounted) {
+          setComposition(Array.isArray(res) ? res : []);
+        }
+      });
+
+      await Promise.allSettled([pPrice, pSoa, pComp]);
       if (isMounted) {
-        setShareData(shareRes);
-        setPriceGap(priceRes);
-        setComposition(compRes);
-        setSoaComposition(soaCompRes);
-        setSoaValue(calculatedSoa);
-        setCategoryShares(catSharesMap);
-        setCategoryPriceGaps(catGapsMap);
         setLoading(false);
       }
     };
+
     fetchData();
     return () => { isMounted = false; };
   }, [department, category, brand, years, months, filterOptions]);
@@ -379,17 +396,19 @@ const MarketView = () => {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const currentEmpresaNombre = storedUser.empresaNombre || storedUser.nombre || storedUser.empresa || 'A.G.DEHEZA';
 
-  const rawSourceComp = soaComposition.length > 0 ? soaComposition : composition;
+  const rawSourceComp = soaComposition;
   
   let processedComposition = rawSourceComp.map((comp) => {
-    const isOurCompany = (comp.empresaId && String(comp.empresaId) === String(currentEmpresaId)) ||
-                         (comp.name && comp.name.toUpperCase() === currentEmpresaNombre.toUpperCase()) ||
-                         comp.isOurCompany;
+    const isTarget = brand
+      ? (comp.name && comp.name.toUpperCase() === brand.toUpperCase())
+      : ((comp.empresaId && String(comp.empresaId) === String(currentEmpresaId)) ||
+         (comp.name && comp.name.toUpperCase() === currentEmpresaNombre.toUpperCase()) ||
+         comp.isOurCompany);
     return {
       empresaId: comp.empresaId,
       name: comp.name || 'Empresa Competidora',
       share: comp.share !== undefined ? comp.share : 0,
-      isOurCompany
+      isOurCompany: Boolean(isTarget)
     };
   }).sort((a, b) => b.share - a.share);
 
@@ -399,16 +418,22 @@ const MarketView = () => {
     const top4 = processedComposition.slice(0, 4);
     const ourCompEntry = ourCompIndex !== -1 
       ? processedComposition[ourCompIndex] 
-      : { empresaId: currentEmpresaId, name: currentEmpresaNombre, share: currentShare, isOurCompany: true };
+      : { empresaId: currentEmpresaId, name: brand || currentEmpresaNombre, share: soaValue || 0, isOurCompany: true };
     processedComposition = [...top4, ourCompEntry];
   }
 
-  const rankingList = processedComposition.map((comp, idx) => ({
-    ...comp,
-    displayName: comp.name,
-    color: comp.isOurCompany ? 'linear-gradient(90deg, #0284c7, #38bdf8)' : idx === 0 ? '#94a3b8' : '#64748b',
-    icon: comp.isOurCompany ? <Award size={14} style={{ color: '#38bdf8' }} /> : <Building2 size={14} style={{ color: '#cbd5e1' }} />
-  }));
+  const rankingList = processedComposition.map((comp, idx) => {
+    const brandDisplayName = (brand && comp.isOurCompany)
+      ? brand 
+      : (comp.brandName || comp.nombreMarca || comp.marcaNombre || comp.name);
+
+    return {
+      ...comp,
+      displayName: brandDisplayName,
+      color: comp.isOurCompany ? 'linear-gradient(90deg, #0284c7, #38bdf8)' : idx === 0 ? '#94a3b8' : '#64748b',
+      icon: comp.isOurCompany ? <Award size={14} style={{ color: '#38bdf8' }} /> : <Building2 size={14} style={{ color: '#cbd5e1' }} />
+    };
+  });
 
   const activeCategories = category 
     ? [category] 
@@ -594,10 +619,10 @@ const MarketView = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    {brand ? 'Share of Assortment por Marca (SOA)' : 'Share of Assortment (SOA)'}
+                    {brand ? 'Share of Assortment por Marca (SOA)' : category ? `SOA por Marca en ${category}` : 'Share of Assortment (SOA)'}
                   </h3>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>
-                    {brand ? 'Referencias activas (SKUs) por marca en el catálogo del mercado' : 'Referencias activas (SKUs) en el catálogo del mercado'}
+                    {brand || category ? 'Referencias activas (SKUs) por marca en el catálogo del mercado' : 'Referencias activas (SKUs) en el catálogo del mercado'}
                   </p>
                   <div style={{ marginTop: '0.2rem', fontSize: '0.65rem', display: 'flex', alignItems: 'center' }}>
                     <span style={{ 
@@ -608,21 +633,36 @@ const MarketView = () => {
                       padding: '0.1rem 0.4rem',
                       fontWeight: '600'
                     }}>
-                      {months.length === 1 && years.length === 1 
-                        ? `Surtido exacto en ${monthOptions.find(o => o.value === months[0])?.label || `Mes ${months[0]}`} ${years[0]}`
-                        : (years.length > 0 || months.length > 0)
-                          ? `Promedio del período (${years.join(', ') || 'Global'})`
-                          : 'Snapshot del surtido más reciente'
-                      }
+                      {(() => {
+                        const monthLabel = months.length > 0
+                          ? months.map(m => monthOptions.find(o => o.value.toString() === m.toString())?.label || `Mes ${m}`).join(', ')
+                          : '';
+                        const yearLabel = years.length > 0 ? years.join(', ') : '';
+                        
+                        const realLatestYear = shareData.length > 0 && shareData[shareData.length - 1].year
+                          ? shareData[shareData.length - 1].year
+                          : (filterOptions?.years && filterOptions.years.length > 0 
+                              ? filterOptions.years[filterOptions.years.length - 1] 
+                              : 2025);
+
+                        if (monthLabel && yearLabel) {
+                          return `Surtido en ${monthLabel} ${yearLabel}`;
+                        } else if (monthLabel) {
+                          return `Surtido en ${monthLabel} ${realLatestYear} (Último disponible)`;
+                        } else if (yearLabel) {
+                          return `Surtido promedio en ${yearLabel}`;
+                        }
+                        return `Snapshot más reciente (${realLatestYear})`;
+                      })()}
                     </span>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#38bdf8', display: 'block', lineHeight: 1 }}>
-                    {soaValue !== null ? `${soaValue}%` : (rankingList.find(i => i.isOurCompany)?.share !== undefined ? `${rankingList.find(i => i.isOurCompany).share}%` : 'N/D')}
+                    {soaValue !== null ? `${soaValue}%` : '0%'}
                   </span>
                   <span style={{ fontSize: '0.62rem', color: '#94a3b8', display: 'block', marginTop: '0.15rem' }}>
-                    Surtido ({currentEmpresaNombre})
+                    Surtido ({brand || (category ? `${currentEmpresaNombre} en ${category}` : currentEmpresaNombre)})
                   </span>
                 </div>
               </div>
@@ -700,6 +740,10 @@ const MarketView = () => {
                     <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#34d399' }} />
                     Rebaja (-%)
                   </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#64748b' }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#64748b' }} />
+                    Sin cambio (0%)
+                  </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', color: '#f43f5e' }}>
                     <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#f43f5e' }} />
                     Aumento (+%)
@@ -707,43 +751,65 @@ const MarketView = () => {
                 </div>
               </div>
               
-              <div className="chart-container" style={{ flex: 1, minHeight: '110px', height: '120px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={priceGap.slice(0, 12)} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                    <XAxis dataKey="shortLabel" stroke="#475569" tick={{fill: '#38bdf8', fontSize: 9, fontWeight: '600'}} interval={0} />
-                    <YAxis stroke="#475569" tick={{fill: '#94a3b8', fontSize: 8}} tickFormatter={(val) => `${val}%`} />
-                    <Tooltip 
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.5rem 0.7rem', borderRadius: '6px', fontSize: '0.7rem', color: '#f8fafc', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
-                              <p style={{ margin: 0, fontWeight: '700', color: '#38bdf8', fontSize: '0.75rem' }}>{data.productName || data.label}</p>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem' }}>
-                                <span style={{ color: data.gap > 0 ? '#f43f5e' : '#34d399', fontWeight: '700', fontSize: '0.8rem' }}>
-                                  {data.gap > 0 ? `+${data.gap}%` : `${data.gap}%`}
-                                </span>
-                                <span style={{ color: '#64748b', fontSize: '0.65rem' }}>vs Período Anterior</span>
+              <div className="chart-container" style={{ flex: 1, minHeight: '110px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {priceGap && priceGap.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={priceGap.slice(0, 12)} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                      <XAxis dataKey="shortLabel" stroke="#475569" tick={{fill: '#38bdf8', fontSize: 9, fontWeight: '600'}} interval={0} />
+                      <YAxis stroke="#475569" tick={{fill: '#94a3b8', fontSize: 8}} tickFormatter={(val) => `${val}%`} />
+                      <Tooltip 
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const gapColor = data.gap > 0 ? '#f43f5e' : data.gap < 0 ? '#34d399' : '#94a3b8';
+                            return (
+                              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.5rem 0.7rem', borderRadius: '6px', fontSize: '0.7rem', color: '#f8fafc', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)' }}>
+                                <p style={{ margin: 0, fontWeight: '700', color: '#38bdf8', fontSize: '0.75rem' }}>{data.productName || data.label}</p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem' }}>
+                                  <span style={{ color: gapColor, fontWeight: '700', fontSize: '0.8rem' }}>
+                                    {data.gap > 0 ? `+${data.gap}%` : `${data.gap}%`}
+                                  </span>
+                                  <span style={{ color: '#64748b', fontSize: '0.65rem' }}>
+                                    {data.gap === 0 ? 'Sin cambio vs Período Anterior' : 'vs Período Anterior'}
+                                  </span>
+                                </div>
+                                {data.unitPrice > 0 && (
+                                  <p style={{ margin: '0.2rem 0 0 0', color: '#94a3b8', fontSize: '0.65rem' }}>
+                                    Precio Unitario: <strong style={{ color: '#cbd5e1' }}>₲ {data.unitPrice.toLocaleString('es-PY')}</strong>
+                                  </p>
+                                )}
                               </div>
-                              {data.unitPrice > 0 && (
-                                <p style={{ margin: '0.2rem 0 0 0', color: '#94a3b8', fontSize: '0.65rem' }}>
-                                  Precio Unitario: <strong style={{ color: '#cbd5e1' }}>₲ {data.unitPrice.toLocaleString('es-PY')}</strong>
-                                </p>
-                              )}
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar dataKey="gap" radius={[2, 2, 0, 0]}>
-                      {priceGap.slice(0, 12).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.gap > 0 ? '#f43f5e' : '#34d399'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar dataKey="gap" minPointSize={2} radius={[2, 2, 0, 0]}>
+                        {priceGap.slice(0, 12).map((entry, index) => {
+                          const barFill = entry.gap > 0 ? '#f43f5e' : entry.gap < 0 ? '#34d399' : '#64748b';
+                          return <Cell key={`cell-${index}`} fill={barFill} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ 
+                    padding: '0.6rem 0.8rem', 
+                    borderRadius: '6px', 
+                    background: 'rgba(56, 189, 248, 0.04)', 
+                    border: '1px dashed rgba(56, 189, 248, 0.2)', 
+                    color: '#cbd5e1', 
+                    fontSize: '0.7rem', 
+                    textAlign: 'center', 
+                    lineHeight: '1.4' 
+                  }}>
+                    <span style={{ color: '#38bdf8', fontWeight: '700', display: 'block', marginBottom: '0.2rem' }}>
+                      Sin variación de precio calculable
+                    </span>
+                    Se requieren al menos 2 meses consecutivos de ventas por producto para comparar variaciones.
+                  </div>
+                )}
               </div>
             </div>
 

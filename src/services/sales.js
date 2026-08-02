@@ -57,8 +57,17 @@ const mapSaleItemToFrontend = (item) => {
 };
 
 let validDeptIds = new Set();
+let cachedFiltersResult = null;
+
+export const clearSalesFiltersCache = () => {
+  cachedFiltersResult = null;
+};
 
 export const getSalesFilters = async () => {
+  if (cachedFiltersResult) {
+    return cachedFiltersResult;
+  }
+
   const empresaId = getEmpresaId();
   try {
     const data = await apiRequest(`/v1/${empresaId}/sales/filters/options`);
@@ -151,9 +160,9 @@ export const getSalesFilters = async () => {
 
     const realYears = availableYearsSet.size > 0 
       ? Array.from(availableYearsSet).sort((a, b) => a - b)
-      : [2022, 2023, 2024, 2025];
+      : [2021, 2022, 2023, 2024, 2025, 2026];
 
-    return {
+    const result = {
       departments: data.departamentos ? data.departamentos.map(d => d.nombre) : [],
       categories: groupedCategories,
       categoryBrands: categoryBrandsMap,
@@ -178,13 +187,16 @@ export const getSalesFilters = async () => {
         { value: 12, label: 'Diciembre' }
       ]
     };
+
+    cachedFiltersResult = result;
+    return result;
   } catch (error) {
     console.warn('getSalesFilters failed.', error);
     return {
       departments: [],
       categories: {},
       brands: [],
-      years: [2021, 2022, 2023, 2024, 2025],
+      years: [2021, 2022, 2023, 2024, 2025, 2026],
       months: []
     };
   }
@@ -208,7 +220,7 @@ export const getSalesSummary = async (filters = {}) => {
       }
     }
 
-    const isFilteredByYear = years.length > 0 && years.length < 5;
+    const isFilteredByYear = years.length > 0;
     const isFilteredByMonth = months.length > 0 && months.length < 12;
 
     if (!isFilteredByYear && !isFilteredByMonth) {
@@ -259,7 +271,7 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
   
   let years = getSelectedValues(filters.years);
   if (years.length === 0) {
-    years = [2022, 2023, 2024, 2025];
+    years = [2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
   }
   
   const months = getSelectedValues(filters.months);

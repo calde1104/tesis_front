@@ -113,8 +113,11 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [navigate]);
+
+    if (activeTab === 'inicio') {
+      fetchData();
+    }
+  }, [navigate, activeTab]);
 
   useEffect(() => {
     const saved = localStorage.getItem('product_thresholds');

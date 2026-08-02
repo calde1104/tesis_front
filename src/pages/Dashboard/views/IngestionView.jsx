@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { UploadCloud, CheckCircle2, RefreshCw, Loader2, Download, FileSpreadsheet, Info, Trash2, AlertTriangle, Calendar, MoreVertical } from 'lucide-react';
 import { uploadFile, checkPipelineStatus, getIngestionHistory, retryFailedIngestion, deleteIngestionHistory } from '../../../services/ingestion';
+import { clearSalesFiltersCache } from '../../../services/sales';
+import { clearMarketShareCache } from '../../../services/marketShare';
 
 const IngestionView = () => {
   const fileInputRef = useRef(null);
@@ -21,6 +23,8 @@ const IngestionView = () => {
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSuccessCelebration, setShowSuccessCelebration] = useState(false);
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [fileToDelete, setFileToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState("");
@@ -36,6 +40,8 @@ const IngestionView = () => {
   }, []);
 
   const fetchHistory = async () => {
+    clearSalesFiltersCache();
+    clearMarketShareCache();
     const historyRes = await getIngestionHistory();
     setHistory(historyRes);
     setLoading(false);
@@ -58,18 +64,21 @@ const IngestionView = () => {
 
   const handleDownloadTemplate = () => {
     const headers = [
-      'Año', 'Mes', 'Canal', 'Departamento', 'Categoria', 'Sku', 'Descripcion',
-      'Empresa', 'Marca', 'Unidades Vendidas', 'Facturación'
+      'sku', 'anio', 'mes', 'unidades_vendidas', 'monto_facturado'
     ];
     
-    const sampleRow = [
-      '2026', '6', 'Autoservicio', 'Bebidas', 'Gaseosas', '7790070411122', 'Gaseosa Cola 2.25L',
-      'Coca-Cola Company', 'Coca-Cola', '1500', '450000.00'
+    const sampleRow1 = [
+      '7790272000022', '2026', '6', '2800', '980000.00'
+    ];
+
+    const sampleRow2 = [
+      '7791866001913', '2026', '6', '5100', '459000.00'
     ];
     
     const csvContent = [
       headers.join(','),
-      sampleRow.map(field => `"${field}"`).join(',')
+      sampleRow1.join(','),
+      sampleRow2.join(',')
     ].join('\n');
     
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -89,23 +98,61 @@ const IngestionView = () => {
   useEffect(() => {
     let intervalId;
     if (pipelineTaskId) {
+      setUploadProgress(25);
+      setPipelineStages({ validation: 'RUNNING', hashing: 'PENDING', insertion: 'PENDING' });
+
+      const t1 = setTimeout(() => {
+        setUploadProgress(65);
+        setPipelineStages({ validation: 'SUCCESS', hashing: 'RUNNING', insertion: 'PENDING' });
+      }, 500);
+
+      const t2 = setTimeout(() => {
+        setUploadProgress(90);
+        setPipelineStages({ validation: 'SUCCESS', hashing: 'SUCCESS', insertion: 'RUNNING' });
+      }, 1000);
+
       intervalId = setInterval(async () => {
         const res = await checkPipelineStatus(pipelineTaskId);
-        setUploadProgress(res.progress);
-        setPipelineState(res.stage);
-        setPipelineStages(res.stages);
-        
         if (res.status === 'SUCCESS' || res.status === 'FAILED') {
           clearInterval(intervalId);
-          setUploading(false);
-          setSelectedFile(null);
-          setPipelineTaskId(null);
-          setShowSuccessCelebration(res.status === 'SUCCESS');
-          fetchHistory();
+          clearTimeout(t1);
+          clearTimeout(t2);
+
+          if (res.status === 'SUCCESS') {
+            setUploadProgress(100);
+            setPipelineStages({ validation: 'SUCCESS', hashing: 'SUCCESS', insertion: 'SUCCESS' });
+            
+            setTimeout(() => {
+              setUploading(false);
+              setSelectedFile(null);
+              setPipelineTaskId(null);
+              setShowSuccessCelebration(true);
+              setShowErrorAlert(false);
+              fetchHistory();
+            }, 600);
+          } else {
+            setUploadProgress(100);
+            setPipelineStages({ validation: 'SUCCESS', hashing: 'SUCCESS', insertion: 'FAILED' });
+            
+            setTimeout(() => {
+              setUploading(false);
+              setSelectedFile(null);
+              setPipelineTaskId(null);
+              setShowSuccessCelebration(false);
+              setShowErrorAlert(true);
+              setErrorMessage('La ingesta fue rechazada por el servidor. Verificá que los SKUs existan o que las ventas de ese período no hayan sido cargadas previamente.');
+              fetchHistory();
+            }, 1000);
+          }
         }
       }, 1200);
+
+      return () => {
+        clearInterval(intervalId);
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
     }
-    return () => clearInterval(intervalId);
   }, [pipelineTaskId]);
 
   const handleDragOver = (e) => {
@@ -125,8 +172,10 @@ const IngestionView = () => {
     if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
       setSelectedFile(file);
       setFrequencyError(false);
+      setShowErrorAlert(false);
     } else {
-      alert("Por favor, suba únicamente archivos CSV o de Excel.");
+      setShowErrorAlert(true);
+      setErrorMessage("Por favor, suba únicamente archivos CSV o de Excel (.csv, .xlsx, .xls).");
     }
   };
 
@@ -135,6 +184,7 @@ const IngestionView = () => {
     if (file) {
       setSelectedFile(file);
       setFrequencyError(false);
+      setShowErrorAlert(false);
     }
   };
 
@@ -150,6 +200,8 @@ const IngestionView = () => {
       return;
     }
 
+    setShowErrorAlert(false);
+    setShowSuccessCelebration(false);
     setUploading(true);
     setUploadProgress(0);
     setPipelineState('VALIDATING');
@@ -160,7 +212,8 @@ const IngestionView = () => {
       setPipelineTaskId(taskId);
     } catch (err) {
       setUploading(false);
-      alert(err.message || "Ocurrió un error al enviar el archivo al backend.");
+      setShowErrorAlert(true);
+      setErrorMessage(err.message || "Ocurrió un error al enviar el archivo al servidor.");
     }
   };
 
@@ -486,6 +539,31 @@ const IngestionView = () => {
           <button 
             onClick={() => setShowSuccessCelebration(false)} 
             style={{ background: 'transparent', border: 'none', color: '#34d399', cursor: 'pointer', fontWeight: '700' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {showErrorAlert && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '8px',
+          padding: '0.75rem 1.25rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: '#f87171',
+          fontSize: '0.85rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
+            <AlertTriangle size={18} />
+            <span>{errorMessage || 'La ingesta falló. Podés consultar el historial para ver detalles o reintentar.'}</span>
+          </div>
+          <button 
+            onClick={() => setShowErrorAlert(false)} 
+            style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', fontWeight: '700' }}
           >
             ✕
           </button>
