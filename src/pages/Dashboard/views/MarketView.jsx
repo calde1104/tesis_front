@@ -445,24 +445,33 @@ const MarketView = () => {
 
   const leaderCompany = rankingList.length > 0 ? rankingList[0] : null;
 
+  const somLeader = composition && composition.length > 0 
+    ? [...composition].sort((a, b) => b.share - a.share)[0] 
+    : null;
+
   const tableData = activeCategories.map((cat) => {
-    const rowShare = categoryShares[cat] !== undefined ? categoryShares[cat] : currentShare;
-    const isLider = leaderCompany ? (leaderCompany.isOurCompany || rowShare >= leaderCompany.share) : false;
+    const isCurrentFilter = category === cat || (brand && filterOptions?.brandCategories?.[brand]?.includes(cat));
+    const hasRealData = categoryShares[cat] !== undefined || (isCurrentFilter && activeCategories.length === 1);
+
+    const rowShare = hasRealData ? (categoryShares[cat] !== undefined ? categoryShares[cat] : currentShare) : null;
+    const isLider = hasRealData && somLeader ? ((somLeader.empresaId && somLeader.empresaId === currentEmpresaId) || rowShare >= somLeader.share) : false;
 
     const defaultAvgGap = Array.isArray(priceGap) && priceGap.length > 0 
       ? parseFloat((priceGap.reduce((acc, curr) => acc + curr.gap, 0) / priceGap.length).toFixed(1))
       : 0;
-    const rowGap = categoryPriceGaps[cat] !== undefined ? categoryPriceGaps[cat] : defaultAvgGap;
+    const rowGap = hasRealData ? (categoryPriceGaps[cat] !== undefined ? categoryPriceGaps[cat] : defaultAvgGap) : null;
 
     return {
       category: cat,
-      ourShare: rowShare,
-      leaderShare: isLider 
-        ? `${currentEmpresaNombre} (${rowShare}%)` 
-        : (leaderCompany && leaderCompany.name ? `${leaderCompany.name} (${leaderCompany.share}%)` : 'Sin datos'),
-      priceGap: rowGap,
-      status: isLider ? 'Líder' : 'Seguidor',
-      trend: shareDiff >= 0 ? 'up' : 'down'
+      ourShare: rowShare !== null ? rowShare : '-',
+      leaderShare: hasRealData && somLeader
+        ? (isLider 
+          ? `${currentEmpresaNombre} (${rowShare}%)` 
+          : (somLeader.name ? `${somLeader.name} (${somLeader.share}%)` : 'Sin datos'))
+        : 'Ver Detalles',
+      priceGap: rowGap !== null ? rowGap : '-',
+      status: hasRealData ? (isLider ? 'Líder' : 'Seguidor') : '-',
+      trend: hasRealData ? (shareDiff >= 0 ? 'up' : 'down') : 'none'
     };
   });
 
@@ -619,10 +628,10 @@ const MarketView = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    {brand ? 'Share of Assortment por Marca (SOA)' : category ? `SOA por Marca en ${category}` : 'Share of Assortment (SOA)'}
+                    {brand ? 'Share of Assortment por Marca (SOA)' : 'Share of Assortment (SOA)'}
                   </h3>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>
-                    {brand || category ? 'Referencias activas (SKUs) por marca en el catálogo del mercado' : 'Referencias activas (SKUs) en el catálogo del mercado'}
+                    {brand ? 'Referencias activas (SKUs) por marca en el catálogo del mercado' : 'Referencias activas (SKUs) en el catálogo del mercado'}
                   </p>
                   <div style={{ marginTop: '0.2rem', fontSize: '0.65rem', display: 'flex', alignItems: 'center' }}>
                     <span style={{ 

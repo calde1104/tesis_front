@@ -25,6 +25,9 @@ export const login = async (email, password) => {
   return data;
 };
 
+import { clearSalesFiltersCache } from './sales';
+import { clearMarketShareCache } from './marketShare';
+
 export const logout = async () => {
   try {
     await apiRequest('/v1/auth/logout', {
@@ -33,7 +36,10 @@ export const logout = async () => {
   } catch (error) {
     console.warn('Logout endpoint error (continuing local cleanup):', error);
   } finally {
+    clearSalesFiltersCache();
+    clearMarketShareCache();
     localStorage.clear();
     sessionStorage.clear();
   }
 };
+
