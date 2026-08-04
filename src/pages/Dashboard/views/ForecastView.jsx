@@ -286,8 +286,8 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
   const [simMetrics, setSimMetrics] = useState(null);
 
   const containerRef = useRef(null);
-  const [leftWidth, setLeftWidth] = useState(280);
-  const [rightWidth, setRightWidth] = useState(320);
+  const [leftWidth, setLeftWidth] = useState(() => window.innerWidth < 1400 ? 210 : 280);
+  const [rightWidth, setRightWidth] = useState(() => window.innerWidth < 1400 ? 260 : 320);
   const [isDraggingLeft, setIsDraggingLeft] = useState(false);
   const [isDraggingRight, setIsDraggingRight] = useState(false);
 
@@ -728,7 +728,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
           gap: '0.25rem', 
           padding: '1.25rem 0.75rem', 
           height: 'calc(100vh - 305px)',
-          minHeight: '500px', 
+          minHeight: '400px', 
           marginBottom: '0',
           position: 'relative'
         }}

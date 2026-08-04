@@ -272,7 +272,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           <div className="card-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <LucideAreaChart size={18} className="icon-blue" />
-              <h3>Evolución de Ventas vs Forecast</h3>
+              <h3>Evolución de Ventas</h3>
             </div>
             <div className="card-actions">
               <span className="badge">Consolidado Mensual</span>

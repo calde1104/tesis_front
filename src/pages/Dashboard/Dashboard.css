@@ -2430,3 +2430,42 @@ input::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* ==========================================
+   Responsive Adjustments for Laptop Viewports
+   ========================================== */
+.market-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  min-height: 0;
+}
+
+.settings-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  flex: 1;
+}
+
+@media (max-width: 1280px) {
+  .market-grid-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1100px) {
+  .settings-info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1400px) {
+  .dashboard-layout {
+    grid-template-columns: 220px 1fr;
+    column-gap: 1rem;
+    padding: 1.25rem 1.5rem 1rem 1.5rem;
+  }
+}
+

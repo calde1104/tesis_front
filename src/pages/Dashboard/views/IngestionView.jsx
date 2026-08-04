@@ -247,7 +247,7 @@ const IngestionView = () => {
       flexDirection: 'column',
       gap: '1.25rem',
       height: 'calc(100vh - 175px)',
-      minHeight: '550px',
+      minHeight: '430px', 
       padding: '0 0.5rem 0.5rem 0.5rem'
     }}>
 

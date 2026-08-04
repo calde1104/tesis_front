@@ -398,34 +398,60 @@ const MarketView = () => {
 
   const rawSourceComp = soaComposition;
   
-  let processedComposition = rawSourceComp.map((comp) => {
+  const mappedComp = rawSourceComp.map((comp) => {
+    const compName = comp.name || comp.brandName || comp.nombreMarca || comp.marcaNombre || 'Empresa Competidora';
     const isTarget = brand
-      ? (comp.name && comp.name.toUpperCase() === brand.toUpperCase())
+      ? (compName.toUpperCase().trim() === brand.toUpperCase().trim())
       : ((comp.empresaId && String(comp.empresaId) === String(currentEmpresaId)) ||
-         (comp.name && comp.name.toUpperCase() === currentEmpresaNombre.toUpperCase()) ||
+         (compName.toUpperCase().trim() === currentEmpresaNombre.toUpperCase().trim()) ||
          comp.isOurCompany);
     return {
       empresaId: comp.empresaId,
-      name: comp.name || 'Empresa Competidora',
+      name: compName,
       share: comp.share !== undefined ? comp.share : 0,
       isOurCompany: Boolean(isTarget)
     };
-  }).sort((a, b) => b.share - a.share);
+  });
+
+  const compMap = new Map();
+  mappedComp.forEach(item => {
+    const normKey = item.name.toUpperCase().trim();
+    if (compMap.has(normKey)) {
+      const existing = compMap.get(normKey);
+      if (item.isOurCompany) existing.isOurCompany = true;
+      existing.share = Math.max(existing.share, item.share);
+    } else {
+      compMap.set(normKey, { ...item });
+    }
+  });
+
+  let processedComposition = Array.from(compMap.values()).sort((a, b) => b.share - a.share);
 
   const isOurCompanyInTop5 = processedComposition.slice(0, 5).some(c => c.isOurCompany);
   if (processedComposition.length > 0 && !isOurCompanyInTop5) {
     const ourCompIndex = processedComposition.findIndex(c => c.isOurCompany);
-    const top4 = processedComposition.slice(0, 4);
-    const ourCompEntry = ourCompIndex !== -1 
-      ? processedComposition[ourCompIndex] 
-      : { empresaId: currentEmpresaId, name: brand || currentEmpresaNombre, share: soaValue || 0, isOurCompany: true };
-    processedComposition = [...top4, ourCompEntry];
+    if (ourCompIndex !== -1) {
+      const ourEntry = processedComposition.splice(ourCompIndex, 1)[0];
+      processedComposition.splice(4, 0, ourEntry);
+    } else {
+      const targetName = brand || currentEmpresaNombre;
+      const existingTopIndex = processedComposition.slice(0, 4).findIndex(
+        c => c.name.toUpperCase().trim() === targetName.toUpperCase().trim()
+      );
+      if (existingTopIndex !== -1) {
+        processedComposition[existingTopIndex].isOurCompany = true;
+      } else {
+        const top4 = processedComposition.slice(0, 4);
+        const syntheticEntry = { empresaId: currentEmpresaId, name: targetName, share: soaValue || 0, isOurCompany: true };
+        processedComposition = [...top4, syntheticEntry];
+      }
+    }
   }
 
   const rankingList = processedComposition.map((comp, idx) => {
     const brandDisplayName = (brand && comp.isOurCompany)
       ? brand 
-      : (comp.brandName || comp.nombreMarca || comp.marcaNombre || comp.name);
+      : comp.name;
 
     return {
       ...comp,
@@ -676,14 +702,14 @@ const MarketView = () => {
                 </div>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.1rem', flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.1rem', flex: 1, minHeight: 0, overflowY: 'auto' }} className="custom-scrollbar">
                 {(() => {
                   const maxShare = Math.max(...rankingList.map(r => r.share || 0), 1);
-                  return rankingList.map((item) => {
+                  return rankingList.map((item, idx) => {
                     const barWidthPct = maxShare > 0 ? Math.min(100, (item.share / maxShare) * 100) : 0;
                     return (
                       <div 
-                        key={item.name} 
+                        key={`${item.name}-${idx}`} 
                         style={{ 
                           display: 'flex', 
                           flexDirection: 'column', 
@@ -734,7 +760,7 @@ const MarketView = () => {
 
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', minHeight: 0 }}>
+          <div className="market-grid-row">
             
             <div className="card" style={{ padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', height: '100%', boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

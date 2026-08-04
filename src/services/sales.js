@@ -282,15 +282,19 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
   try {
     let sortQuery = '';
     if (filters.sortBy) {
-      const sortFieldMap = {
-        revenue: 'montoFacturado',
-        units: 'unidadesVendidas',
-        avgPrice: 'precioUnitario',
-        sku: 'sku'
-      };
-      const fieldName = sortFieldMap[filters.sortBy] || filters.sortBy;
       const order = filters.sortOrder === 'asc' ? 'asc' : 'desc';
-      sortQuery = `&sort=${fieldName},${order}`;
+      if (filters.sortBy === 'date') {
+        sortQuery = `&sort=anio,${order}&sort=mes,${order}`;
+      } else {
+        const sortFieldMap = {
+          revenue: 'montoFacturado',
+          units: 'unidadesVendidas',
+          avgPrice: 'precioUnitario',
+          sku: 'sku',
+        };
+        const fieldName = sortFieldMap[filters.sortBy] || filters.sortBy;
+        sortQuery = `&sort=${fieldName},${order}`;
+      }
     }
 
     let url = `/v1/${empresaId}/sales?anios=${years.join(',')}&page=${page - 1}&size=${limit}${sortQuery}`;
@@ -308,14 +312,13 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
 
     let list = data.content ? data.content.map(mapSaleItemToFrontend) : [];
 
-    if (filters.sortBy && list.length > 0) {
+    // For date sort: apply client-side sort as guaranteed fallback
+    // (backend field names for year/month may vary across environments)
+    if (filters.sortBy === 'date' && list.length > 0) {
       const isAsc = filters.sortOrder === 'asc';
       list = [...list].sort((a, b) => {
-        let valA = a[filters.sortBy];
-        let valB = b[filters.sortBy];
-        if (typeof valA === 'string') valA = valA.toLowerCase();
-        if (typeof valB === 'string') valB = valB.toLowerCase();
-
+        const valA = (a.year || 0) * 100 + (a.month || 0);
+        const valB = (b.year || 0) * 100 + (b.month || 0);
         if (valA < valB) return isAsc ? -1 : 1;
         if (valA > valB) return isAsc ? 1 : -1;
         return 0;

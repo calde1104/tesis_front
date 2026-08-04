@@ -20,7 +20,7 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
     if (Array.isArray(value) && value.length > 0) {
       const numericSelectedCount = value.filter(val => val !== '').length;
       const totalNumericCount = options.filter(opt => opt.value !== '').length;
-      
+
       if (numericSelectedCount === totalNumericCount) {
         selectedOptionLabel = placeholder;
       } else {
@@ -176,7 +176,7 @@ const SalesView = ({ formatCurrency }) => {
   const [search, setSearch] = useState('');
   const [years, setYears] = useState([]);
   const [months, setMonths] = useState([]);
-  
+
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
 
@@ -291,20 +291,20 @@ const SalesView = ({ formatCurrency }) => {
     setDownloadUrl(null);
     setExportProgress(0);
     setExportStatus('RUNNING');
-    
+
     const { taskId } = await triggerSalesExport({ department, category, brand, search, years, months });
     setExportTaskId(taskId);
   };
 
   const handleDownload = () => {
     const csvHeader = 'SKU;Producto;Contenido Neto;Unidad Medida;Categoria;Marca;Unidades;Facturacion;Precio Promedio\n';
-    const csvRows = salesData.map(item => 
+    const csvRows = salesData.map(item =>
       `${item.sku};${item.name};${item.netContent};${item.unit};${item.category};${item.brand};${item.units};${item.revenue};${item.avgPrice}`
     ).join('\n');
-    
+
     const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', `reporte_ventas_${department || 'general'}.csv`);
@@ -337,8 +337,8 @@ const SalesView = ({ formatCurrency }) => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3>Filtros de Búsqueda</h3>
           {(search || department || category || brand || sortBy || years.length > 0 || months.length > 0) && (
-            <button 
-              className="btn-secondary" 
+            <button
+              className="btn-secondary"
               onClick={handleClearFilters}
               style={{
                 padding: '0.35rem 0.75rem',
@@ -369,9 +369,9 @@ const SalesView = ({ formatCurrency }) => {
         <div className="filters-grid">
           <div className="filter-group" style={{ display: 'flex', flexDirection: 'column' }}>
             <label style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>Buscar Producto / SKU</label>
-            <input 
-              type="text" 
-              value={search} 
+            <input
+              type="text"
+              value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
@@ -564,7 +564,7 @@ const SalesView = ({ formatCurrency }) => {
             )}
           </div>
         </div>
-        
+
         <div className="table-wrapper">
           {loadingTable ? (
             <div className="table-loading">
@@ -575,8 +575,18 @@ const SalesView = ({ formatCurrency }) => {
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th 
-                    className="center-col" 
+                  <th
+                    className="center-col"
+                    style={{ width: '10%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={() => handleSort('date')}
+                  >
+                    Fecha
+                    <span style={{ marginLeft: '4px', opacity: sortBy === 'date' ? 1 : 0.25, fontSize: '0.75rem' }}>
+                      {sortBy === 'date' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </th>
+                  <th
+                    className="center-col"
                     style={{ width: '8%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('sku')}
                   >
@@ -588,9 +598,8 @@ const SalesView = ({ formatCurrency }) => {
                   <th style={{ width: '22%', whiteSpace: 'nowrap' }}>Producto</th>
                   <th style={{ width: '15%', whiteSpace: 'nowrap' }}>Categoría</th>
                   <th style={{ width: '11%', whiteSpace: 'nowrap' }}>Marca</th>
-                  <th className="center-col" style={{ width: '10%', whiteSpace: 'nowrap' }}>Presentación</th>
-                  <th 
-                    className="number-col" 
+                  <th
+                    className="number-col"
                     style={{ width: '10%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('units')}
                   >
@@ -599,8 +608,8 @@ const SalesView = ({ formatCurrency }) => {
                       {sortBy === 'units' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
                     </span>
                   </th>
-                  <th 
-                    className="number-col" 
+                  <th
+                    className="number-col"
                     style={{ width: '12%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('revenue')}
                   >
@@ -609,12 +618,12 @@ const SalesView = ({ formatCurrency }) => {
                       {sortBy === 'revenue' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
                     </span>
                   </th>
-                  <th 
-                    className="number-col" 
+                  <th
+                    className="number-col"
                     style={{ width: '12%', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                     onClick={() => handleSort('avgPrice')}
                   >
-                    Precio Promedio
+                    Precio Unitario
                     <span style={{ marginLeft: '4px', opacity: sortBy === 'avgPrice' ? 1 : 0.25, fontSize: '0.75rem' }}>
                       {sortBy === 'avgPrice' ? (sortOrder === 'asc' ? '▲' : '▼') : '↕'}
                     </span>
@@ -623,20 +632,27 @@ const SalesView = ({ formatCurrency }) => {
               </thead>
               <tbody>
                 {salesData.length > 0 ? (
-                  salesData.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="sku-cell center-col">{item.sku}</td>
-                      <td className="name-cell">{item.name}</td>
-                      <td>{item.category}</td>
-                      <td>{item.brand}</td>
-                      <td className="center-col" style={{ color: '#cbd5e1' }}>{item.netContent} {item.unit}</td>
-                      <td className="number-col">{item.units.toLocaleString('es-AR')}</td>
-                      <td className="number-col">{formatCurrency(item.revenue)}</td>
-                      <td className="number-col font-bold" style={{ color: '#38bdf8' }}>
-                        {formatCurrency(item.avgPrice)}
-                      </td>
-                    </tr>
-                  ))
+                  salesData.map((item, idx) => {
+                    const monthNamesEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    const dateFormatted = item.month && item.year
+                      ? `${monthNamesEs[item.month - 1] || item.month} ${item.year}`
+                      : 'Consolidado';
+
+                    return (
+                      <tr key={idx}>
+                        <td className="center-col" style={{ color: '#38bdf8', fontWeight: '600' }}>{dateFormatted}</td>
+                        <td className="sku-cell center-col">{item.sku}</td>
+                        <td className="name-cell">{item.name}</td>
+                        <td>{item.category}</td>
+                        <td>{item.brand}</td>
+                        <td className="number-col">{item.units.toLocaleString('es-AR')}</td>
+                        <td className="number-col">{formatCurrency(item.revenue)}</td>
+                        <td className="number-col font-bold" style={{ color: '#38bdf8' }}>
+                          {formatCurrency(item.avgPrice)}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="8" className="no-data-cell">No se encontraron productos para los filtros seleccionados</td>
@@ -649,16 +665,16 @@ const SalesView = ({ formatCurrency }) => {
 
         {totalPages > 1 && (
           <div className="table-pagination">
-            <button 
-              disabled={page === 1} 
+            <button
+              disabled={page === 1}
               onClick={() => setPage(prev => Math.max(1, prev - 1))}
               className="pagination-btn"
             >
               <ArrowLeft size={16} /> Anterior
             </button>
             <span className="page-info">Página {page} de {totalPages}</span>
-            <button 
-              disabled={page === totalPages} 
+            <button
+              disabled={page === totalPages}
               onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
               className="pagination-btn"
             >
