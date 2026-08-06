@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Loader2, Award, Building2, TrendingUp, TrendingDown, GlassWater, Utensils, Droplet, Folder, X } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell
+  BarChart, Bar, Cell, PieChart as RechartsPie, Pie
 } from 'recharts';
-import { getMarketShareOverview, getPriceGap, getMarketShareComposition, getShareOfAssortment } from '../../../services/marketShare';
+import { getMarketShareOverview, getPriceGap, getMarketShareComposition, getShareOfAssortment, getCategoriesSummary } from '../../../services/marketShare';
 import { getSalesFilters } from '../../../services/sales';
 import { getEmpresaId } from '../../../services/api';
 
@@ -190,6 +190,9 @@ const MarketView = () => {
   const [shareData, setShareData] = useState([]);
   const [priceGap, setPriceGap] = useState([]);
   const [composition, setComposition] = useState([]);
+  const [categoriesSummary, setCategoriesSummary] = useState([]);
+  const [hoveredData, setHoveredData] = useState(null);
+  const [showAllSoa, setShowAllSoa] = useState(false);
   const [soaComposition, setSoaComposition] = useState([]);
   const [soaValue, setSoaValue] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -287,13 +290,19 @@ const MarketView = () => {
         }
       });
 
-      const pComp = getMarketShareComposition(selYear, selMonth, compFilters).then(res => {
+      const pComp = getMarketShareComposition(selYear, selMonth, { department, category: targetCategory }).then(res => {
         if (isMounted) {
           setComposition(Array.isArray(res) ? res : []);
         }
       });
 
-      await Promise.allSettled([pPrice, pSoa, pComp]);
+      const pSummary = getCategoriesSummary(selYear, selMonth, department).then(res => {
+        if (isMounted) {
+          setCategoriesSummary(Array.isArray(res) ? res : []);
+        }
+      });
+
+      await Promise.all([pPrice, pSoa, pComp, pSummary]);
       if (isMounted) {
         setLoading(false);
       }
@@ -425,41 +434,36 @@ const MarketView = () => {
     }
   });
 
-  let processedComposition = Array.from(compMap.values()).sort((a, b) => b.share - a.share);
+  const fullNaturalList = Array.from(compMap.values())
+    .sort((a, b) => b.share - a.share)
+    .map((comp, idx) => {
+      const brandDisplayName = (brand && comp.isOurCompany) ? brand : comp.name;
+      return {
+        ...comp,
+        displayName: brandDisplayName,
+        rankPosition: idx + 1,
+        color: comp.isOurCompany ? 'linear-gradient(90deg, #0284c7, #38bdf8)' : idx === 0 ? '#94a3b8' : '#64748b',
+        icon: comp.isOurCompany ? <Award size={14} style={{ color: '#38bdf8' }} /> : <Building2 size={14} style={{ color: '#cbd5e1' }} />
+      };
+    });
 
-  const isOurCompanyInTop5 = processedComposition.slice(0, 5).some(c => c.isOurCompany);
-  if (processedComposition.length > 0 && !isOurCompanyInTop5) {
-    const ourCompIndex = processedComposition.findIndex(c => c.isOurCompany);
-    if (ourCompIndex !== -1) {
-      const ourEntry = processedComposition.splice(ourCompIndex, 1)[0];
-      processedComposition.splice(4, 0, ourEntry);
-    } else {
-      const targetName = brand || currentEmpresaNombre;
-      const existingTopIndex = processedComposition.slice(0, 4).findIndex(
-        c => c.name.toUpperCase().trim() === targetName.toUpperCase().trim()
-      );
-      if (existingTopIndex !== -1) {
-        processedComposition[existingTopIndex].isOurCompany = true;
-      } else {
-        const top4 = processedComposition.slice(0, 4);
-        const syntheticEntry = { empresaId: currentEmpresaId, name: targetName, share: soaValue || 0, isOurCompany: true };
-        processedComposition = [...top4, syntheticEntry];
-      }
-    }
+  // Asegurar que nuestra empresa esté en la lista si no vino en el backend
+  const hasOurComp = fullNaturalList.some(c => c.isOurCompany);
+  if (!hasOurComp && fullNaturalList.length > 0) {
+    const targetName = brand || currentEmpresaNombre;
+    fullNaturalList.push({
+      empresaId: currentEmpresaId,
+      name: targetName,
+      displayName: targetName,
+      share: soaValue || 0,
+      isOurCompany: true,
+      rankPosition: fullNaturalList.length + 1,
+      color: 'linear-gradient(90deg, #0284c7, #38bdf8)',
+      icon: <Award size={14} style={{ color: '#38bdf8' }} />
+    });
   }
 
-  const rankingList = processedComposition.map((comp, idx) => {
-    const brandDisplayName = (brand && comp.isOurCompany)
-      ? brand 
-      : comp.name;
-
-    return {
-      ...comp,
-      displayName: brandDisplayName,
-      color: comp.isOurCompany ? 'linear-gradient(90deg, #0284c7, #38bdf8)' : idx === 0 ? '#94a3b8' : '#64748b',
-      icon: comp.isOurCompany ? <Award size={14} style={{ color: '#38bdf8' }} /> : <Building2 size={14} style={{ color: '#cbd5e1' }} />
-    };
-  });
+  const rankingList = fullNaturalList;
 
   const activeCategories = category 
     ? [category] 
@@ -475,31 +479,74 @@ const MarketView = () => {
     ? [...composition].sort((a, b) => b.share - a.share)[0] 
     : null;
 
-  const tableData = activeCategories.map((cat) => {
-    const isCurrentFilter = category === cat || (brand && filterOptions?.brandCategories?.[brand]?.includes(cat));
-    const hasRealData = categoryShares[cat] !== undefined || (isCurrentFilter && activeCategories.length === 1);
+  const summaryForActive = (categoriesSummary && categoriesSummary.length > 0)
+    ? categoriesSummary.filter(cs => activeCategories.length === 0 || activeCategories.includes(cs.categoria))
+    : [];
 
-    const rowShare = hasRealData ? (categoryShares[cat] !== undefined ? categoryShares[cat] : currentShare) : null;
-    const isLider = hasRealData && somLeader ? ((somLeader.empresaId && somLeader.empresaId === currentEmpresaId) || rowShare >= somLeader.share) : false;
+  const tableData = (summaryForActive.length > 0)
+    ? summaryForActive.map(catSumm => {
+        const cat = catSumm.categoria;
+        const leader = catSumm.rankingCompetencia && catSumm.rankingCompetencia.length > 0 
+          ? catSumm.rankingCompetencia[0] 
+          : null;
+        
+        const isLider = leader ? catSumm.nuestraCuota >= leader.cuota : true;
+        
+        const defaultAvgGap = Array.isArray(priceGap) && priceGap.length > 0 
+          ? parseFloat((priceGap.reduce((acc, curr) => acc + curr.gap, 0) / priceGap.length).toFixed(1))
+          : 0;
+        const rowGap = categoryPriceGaps[cat] !== undefined ? categoryPriceGaps[cat] : defaultAvgGap;
 
-    const defaultAvgGap = Array.isArray(priceGap) && priceGap.length > 0 
-      ? parseFloat((priceGap.reduce((acc, curr) => acc + curr.gap, 0) / priceGap.length).toFixed(1))
-      : 0;
-    const rowGap = hasRealData ? (categoryPriceGaps[cat] !== undefined ? categoryPriceGaps[cat] : defaultAvgGap) : null;
+        const formattedOurShare = catSumm.nuestraCuota !== null ? parseFloat(Number(catSumm.nuestraCuota).toFixed(2)) : '-';
+        const formattedLeaderCuota = leader && leader.cuota !== undefined && leader.cuota !== null ? parseFloat(Number(leader.cuota).toFixed(2)) : 0;
 
-    return {
-      category: cat,
-      ourShare: rowShare !== null ? rowShare : '-',
-      leaderShare: hasRealData && somLeader
-        ? (isLider 
-          ? `${currentEmpresaNombre} (${rowShare}%)` 
-          : (somLeader.name ? `${somLeader.name} (${somLeader.share}%)` : 'Sin datos'))
-        : 'Ver Detalles',
-      priceGap: rowGap !== null ? rowGap : '-',
-      status: hasRealData ? (isLider ? 'Líder' : 'Seguidor') : '-',
-      trend: hasRealData ? (shareDiff >= 0 ? 'up' : 'down') : 'none'
-    };
-  });
+        return {
+          category: cat,
+          ourShare: formattedOurShare,
+          leaderShare: leader 
+            ? (isLider ? `${currentEmpresaNombre} (${formattedOurShare}%)` : `${leader.empresaNombre} (${formattedLeaderCuota}%)`)
+            : 'Sin datos',
+          priceGap: rowGap !== null ? rowGap : '-',
+          status: isLider ? 'Líder' : 'Seguidor',
+          trend: 'none',
+          composition: (catSumm.rankingCompetencia || []).map(item => ({
+            empresaNombre: item.empresaNombre || item.name || 'Empresa',
+            cuota: Number(item.cuota !== undefined ? item.cuota : item.share) || 0
+          }))
+        };
+      })
+    : activeCategories.map((cat) => {
+        const isCurrentFilter = category === cat || (brand && filterOptions?.brandCategories?.[brand]?.includes(cat));
+        const hasRealData = categoryShares[cat] !== undefined || (isCurrentFilter && activeCategories.length === 1);
+
+        const rawRowShare = hasRealData ? (categoryShares[cat] !== undefined ? categoryShares[cat] : currentShare) : null;
+        const rowShare = rawRowShare !== null ? parseFloat(Number(rawRowShare).toFixed(2)) : null;
+        
+        const rawSomLeaderShare = somLeader && somLeader.share !== undefined ? parseFloat(Number(somLeader.share).toFixed(2)) : 0;
+        const isLider = hasRealData && somLeader ? ((somLeader.empresaId && somLeader.empresaId === currentEmpresaId) || rowShare >= rawSomLeaderShare) : false;
+
+        const defaultAvgGap = Array.isArray(priceGap) && priceGap.length > 0 
+          ? parseFloat((priceGap.reduce((acc, curr) => acc + curr.gap, 0) / priceGap.length).toFixed(1))
+          : 0;
+        const rowGap = hasRealData ? (categoryPriceGaps[cat] !== undefined ? categoryPriceGaps[cat] : defaultAvgGap) : null;
+
+        return {
+          category: cat,
+          ourShare: rowShare !== null ? rowShare : '-',
+          leaderShare: hasRealData && somLeader
+            ? (isLider 
+              ? `${currentEmpresaNombre} (${rowShare}%)` 
+              : (somLeader.name ? `${somLeader.name} (${rawSomLeaderShare}%)` : 'Sin datos'))
+            : 'Ver Detalles',
+          priceGap: rowGap !== null ? rowGap : '-',
+          status: hasRealData ? (isLider ? 'Líder' : 'Seguidor') : '-',
+          trend: hasRealData ? (shareDiff >= 0 ? 'up' : 'down') : 'none',
+          composition: (composition || []).map(item => ({
+            empresaNombre: item.empresaNombre || item.name || 'Empresa',
+            cuota: Number(item.cuota !== undefined ? item.cuota : item.share) || 0
+          }))
+        };
+      });
 
   return (
     <div className="view-container market-view" style={{ 
@@ -705,36 +752,84 @@ const MarketView = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.1rem', flex: 1, minHeight: 0, overflowY: 'auto' }} className="custom-scrollbar">
                 {(() => {
                   const maxShare = Math.max(...rankingList.map(r => r.share || 0), 1);
-                  return rankingList.map((item, idx) => {
-                    const barWidthPct = maxShare > 0 ? Math.min(100, (item.share / maxShare) * 100) : 0;
-                    return (
-                      <div 
-                        key={`${item.name}-${idx}`} 
-                        style={{ 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          gap: '0.15rem',
-                          padding: item.isOurCompany ? '0.25rem 0.45rem' : '0.15rem 0.35rem',
-                          background: item.isOurCompany ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
-                          border: item.isOurCompany ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid transparent',
-                          borderRadius: '5px',
-                          boxShadow: item.isOurCompany ? '0 0 8px rgba(56, 189, 248, 0.12)' : 'none',
-                          transition: 'all 0.3s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: item.isOurCompany ? '700' : '400' }}>
-                          <span style={{ color: item.isOurCompany ? '#38bdf8' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            {item.icon}
-                            {item.displayName || item.name}
-                          </span>
-                          <span style={{ color: item.isOurCompany ? '#38bdf8' : '#94a3b8', fontWeight: item.isOurCompany ? '800' : '600' }}>{item.share}%</span>
-                        </div>
-                        <div style={{ height: item.isOurCompany ? '5px' : '3.5px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', overflow: 'hidden' }}>
-                          <div style={{ width: `${barWidthPct}%`, height: '100%', background: item.color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
-                        </div>
-                      </div>
-                    );
-                  });
+                  
+                  let displayedList = [];
+                  if (showAllSoa) {
+                    displayedList = rankingList;
+                  } else {
+                    // Modo colapsado (Top 5 con anclaje de conveniencia de nuestra empresa si no está en Top 5)
+                    const top5 = rankingList.slice(0, 5);
+                    const isOurInTop5 = top5.some(c => c.isOurCompany);
+                    if (isOurInTop5 || rankingList.length <= 5) {
+                      displayedList = top5;
+                    } else {
+                      const top4 = rankingList.slice(0, 4);
+                      const ourEntry = rankingList.find(c => c.isOurCompany);
+                      displayedList = ourEntry ? [...top4, ourEntry] : top5;
+                    }
+                  }
+
+                  return (
+                    <>
+                      {displayedList.map((item, idx) => {
+                        const barWidthPct = maxShare > 0 ? Math.min(100, (item.share / maxShare) * 100) : 0;
+                        return (
+                          <div 
+                            key={`${item.name}-${idx}`} 
+                            style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '0.15rem',
+                              padding: item.isOurCompany ? '0.25rem 0.45rem' : '0.15rem 0.35rem',
+                              background: item.isOurCompany ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
+                              border: item.isOurCompany ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid transparent',
+                              borderRadius: '5px',
+                              boxShadow: item.isOurCompany ? '0 0 8px rgba(56, 189, 248, 0.12)' : 'none',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: item.isOurCompany ? '700' : '400' }}>
+                              <span style={{ color: item.isOurCompany ? '#38bdf8' : '#cbd5e1', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {item.icon}
+                                <span style={{ opacity: 0.6, fontSize: '0.65rem' }}>#{item.rankPosition}</span>
+                                {item.displayName || item.name}
+                              </span>
+                              <span style={{ color: item.isOurCompany ? '#38bdf8' : '#94a3b8', fontWeight: item.isOurCompany ? '800' : '600' }}>{item.share}%</span>
+                            </div>
+                            <div style={{ height: item.isOurCompany ? '5px' : '3.5px', background: 'rgba(255,255,255,0.03)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ width: `${barWidthPct}%`, height: '100%', background: item.color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {rankingList.length > 5 && (
+                        <button
+                          onClick={() => setShowAllSoa(!showAllSoa)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#38bdf8',
+                            fontSize: '0.65rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            padding: '0.2rem 0',
+                            marginTop: '0.1rem',
+                            textAlign: 'center',
+                            transition: 'opacity 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.2rem'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        >
+                          {showAllSoa ? 'Ver menos (Top 5)' : `Ver todos (${rankingList.length} en total) →`}
+                        </button>
+                      )}
+                    </>
+                  );
                 })()}
               </div>
 
@@ -852,7 +947,7 @@ const MarketView = () => {
               <div>
                 <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Detalle de Competitividad</h3>
                 <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>
-                  Cuotas, brecha y estado por categoría
+                  Cuotas por empresa, brecha y estado por categoría
                 </p>
               </div>
               
@@ -871,15 +966,33 @@ const MarketView = () => {
                     {tableData.map((row) => {
                       const isLider = row.status === 'Líder';
                       return (
-                        <tr key={row.category} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                        <tr 
+                          key={row.category} 
+                          style={{ 
+                            borderBottom: '1px solid rgba(255,255,255,0.02)',
+                            background: hoveredData?.category === row.category ? 'rgba(14, 165, 233, 0.05)' : 'transparent',
+                            transition: 'background 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            const x = Math.max(10, Math.min(window.innerWidth - 340, e.clientX - 330));
+                            const y = Math.max(10, Math.min(window.innerHeight - 260, e.clientY - 110));
+                            setHoveredData({ category: row.category, composition: row.composition, x, y });
+                          }}
+                          onMouseMove={(e) => {
+                            const x = Math.max(10, Math.min(window.innerWidth - 340, e.clientX - 330));
+                            const y = Math.max(10, Math.min(window.innerHeight - 260, e.clientY - 110));
+                            setHoveredData(prev => prev ? { ...prev, x, y } : null);
+                          }}
+                          onMouseLeave={() => setHoveredData(null)}
+                        >
                           <td style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.2rem' }}>
                             {getCategoryIcon(row.category)}
-                            <span style={{ fontWeight: '600' }}>{row.category}</span>
+                            <span style={{ fontWeight: '600', cursor: 'pointer', color: hoveredData?.category === row.category ? '#38bdf8' : 'inherit' }}>{row.category}</span>
                           </td>
                           <td style={{ textAlign: 'center', fontWeight: '700', color: '#f8fafc', padding: '0.25rem 0.2rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.15rem' }}>
                               <span>{row.ourShare}%</span>
-                              {row.trend === 'up' ? <TrendingUp size={10} style={{ color: '#34d399' }} /> : <TrendingDown size={10} style={{ color: '#f43f5e' }} />}
+                              {row.trend === 'up' ? <TrendingUp size={10} style={{ color: '#34d399' }} /> : (row.trend === 'down' ? <TrendingDown size={10} style={{ color: '#f43f5e' }} /> : null)}
                             </div>
                           </td>
                           <td style={{ textAlign: 'left', color: isLider ? '#38bdf8' : '#cbd5e1', fontWeight: isLider ? '600' : '400', padding: '0.25rem 0.2rem' }}>
@@ -887,8 +1000,8 @@ const MarketView = () => {
                           </td>
                           <td style={{ textAlign: 'center', padding: '0.25rem 0.2rem' }}>
                             <span style={{
-                              color: row.priceGap > 0 ? '#f43f5e' : '#34d399',
-                              background: row.priceGap > 0 ? 'rgba(244,63,94,0.08)' : 'rgba(52,211,153,0.08)',
+                              color: row.priceGap > 0 ? '#f43f5e' : (row.priceGap < 0 ? '#34d399' : '#64748b'),
+                              background: row.priceGap > 0 ? 'rgba(244,63,94,0.08)' : (row.priceGap < 0 ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.05)'),
                               padding: '0.08rem 0.3rem',
                               borderRadius: '3px',
                               fontWeight: '700',
@@ -920,6 +1033,90 @@ const MarketView = () => {
 
           </div>
 
+        </div>
+      )}
+
+      {hoveredData && hoveredData.composition && hoveredData.composition.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: `${hoveredData.y}px`,
+          left: `${hoveredData.x}px`,
+          zIndex: 999999,
+          background: 'rgba(11, 15, 25, 0.98)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(14, 165, 233, 0.4)',
+          borderRadius: '12px',
+          padding: '0.85rem 1rem',
+          width: '360px',
+          minHeight: '220px',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.85), 0 0 25px rgba(14, 165, 233, 0.2)',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '0.4rem' }}>
+            <span style={{ fontSize: '0.78rem', color: '#38bdf8', textTransform: 'uppercase', fontWeight: '800', letterSpacing: '0.04em' }}>
+              Composición por Empresa - {hoveredData.category}
+            </span>
+            <span style={{ fontSize: '0.62rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '600' }}>Participación</span>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '130px', height: '130px', flexShrink: 0 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPie>
+                  <Pie
+                    data={hoveredData.composition.slice(0, 5)}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={55}
+                    paddingAngle={3}
+                    dataKey="cuota"
+                    stroke="none"
+                  >
+                    {hoveredData.composition.slice(0, 5).map((entry, index) => {
+                      const distinctColors = ['#38bdf8', '#a855f7', '#fb923c', '#f43f5e', '#facc15'];
+                      let fillColor = entry.empresaNombre && entry.empresaNombre.toUpperCase().includes(currentEmpresaNombre.toUpperCase())
+                        ? '#34d399' // Verde esmeralda para nuestra empresa
+                        : distinctColors[index % distinctColors.length];
+                      return <Cell key={`cell-${index}`} fill={fillColor} />;
+                    })}
+                  </Pie>
+                </RechartsPie>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem', overflow: 'hidden' }}>
+              {hoveredData.composition.slice(0, 5).map((entry, index) => {
+                const distinctColors = ['#38bdf8', '#a855f7', '#fb923c', '#f43f5e', '#facc15'];
+                const isOurComp = entry.empresaNombre && entry.empresaNombre.toUpperCase().includes(currentEmpresaNombre.toUpperCase());
+                const color = isOurComp ? '#34d399' : distinctColors[index % distinctColors.length];
+
+                const pctFormatted = parseFloat(Number(entry.cuota).toFixed(2));
+
+                return (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <span style={{ 
+                        color: isOurComp ? '#34d399' : '#cbd5e1', 
+                        fontWeight: isOurComp ? '700' : '500',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {entry.empresaNombre}
+                      </span>
+                    </div>
+                    <span style={{ fontWeight: '700', color: isOurComp ? '#34d399' : '#f8fafc', flexShrink: 0 }}>
+                      {pctFormatted}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 

@@ -196,6 +196,25 @@ export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) 
   }
 };
 
+export const getCategoriesSummary = async (anio = 2025, mes = 12, department = null) => {
+  const empresaId = getEmpresaId();
+  try {
+    const params = new URLSearchParams();
+    if (anio) params.append('anio', anio);
+    if (mes !== null && mes !== undefined && mes !== '') params.append('mes', mes);
+    
+    const departamentoId = getDeptId(department);
+    if (departamentoId) params.append('departamentoId', departamentoId);
+
+    const queryString = params.toString();
+    const data = await apiRequest(`/v1/${empresaId}/market-share/categories-summary?${queryString}`);
+    return data || [];
+  } catch (error) {
+    console.warn('getCategoriesSummary API call failed:', error);
+    return [];
+  }
+};
+
 export const predictColdStart = async (productData = {}) => {
   const empresaId = getEmpresaId();
   try {

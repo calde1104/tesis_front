@@ -581,56 +581,6 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
 
   return (
     <div className="view-container forecast-view">
-      {activeModel?.desalineado && !dismissedMlopsWarning && (
-        <div className="warning-banner" style={{
-          background: 'rgba(234, 179, 8, 0.1)',
-          border: '1px solid rgba(234, 179, 8, 0.25)',
-          borderRadius: '8px',
-          padding: '0.75rem 1.25rem',
-          color: '#eab308',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.75rem',
-          marginBottom: '1.25rem',
-          fontSize: '0.85rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
-            <AlertCircle size={18} />
-            <span>
-              <strong>Advertencia de MLOps:</strong> Se han detectado modificaciones en los datos históricos posteriores al último entrenamiento del modelo activo (<strong>{activeModel.version}</strong>). Las proyecciones pueden presentar desviaciones hasta el próximo ciclo programado de reentrenamiento.
-            </span>
-          </div>
-          <button 
-            type="button" 
-            onClick={onDismissMlopsWarning}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#eab308',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.2rem',
-              borderRadius: '4px',
-              transition: 'background 0.2s',
-              opacity: 0.8
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(234, 179, 8, 0.15)';
-              e.currentTarget.style.opacity = 1;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'none';
-              e.currentTarget.style.opacity = 0.8;
-            }}
-            title="Descartar advertencia"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
 
       <div className="card filters-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

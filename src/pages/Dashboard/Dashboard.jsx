@@ -41,17 +41,6 @@ const Dashboard = () => {
 
   const getNotifications = () => {
     const list = [];
-    
-    if (activeModel && activeModel.desalineado) {
-      list.push({
-        id: 'mlops-warn',
-        type: 'MLOPS',
-        title: 'Desalineación de Datos',
-        message: `Se modificaron datos históricos. El modelo activo (${activeModel.version}) requiere reentrenamiento.`,
-        severity: 'WARNING',
-        tab: 'settings'
-      });
-    }
 
     const productPredictions = {
       'SKU-001': { name: 'Aceite de Girasol', forecast: 14200, threshold: safetyStocks['SKU-001'] },
@@ -167,7 +156,7 @@ const Dashboard = () => {
 
   const getHeaderSubtitle = () => {
     switch(activeTab) {
-      case 'inicio': return "Resumen predictivo y estado de la demanda comercial.";
+      case 'inicio': return "Resumen predictivo y estado de la demanda comercial (basado en los datos del último mes cargado).";
       case 'sales': return "Consulta el histórico de transacciones facturadas por SKU.";
       case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
       case 'cold-start': return "Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento.";
@@ -175,7 +164,7 @@ const Dashboard = () => {
       case 'market': return "Cuota de mercado estimada y brechas relativas de precio.";
       case 'settings': return "Configuración de límites de demanda máxima esperada por producto.";
       case 'settings-info': return "Metadatos de la organización, especificaciones del modelo ML y estado de la plataforma.";
-      default: return "Resumen predictivo y estado de la demanda comercial.";
+      default: return "Resumen predictivo y estado de la demanda comercial (basado en los datos del último mes cargado).";
     }
   };
 
@@ -350,21 +339,6 @@ const Dashboard = () => {
               >
                 <TrendingUp size={22} className="nav-icon" />
                 <span className="nav-label">Proyecciones</span>
-                {activeModel && activeModel.desalineado && !dismissedMlopsWarning && (
-                  <span 
-                    title="Advertencia de MLOps: Se detectó desalineación en los datos históricos del modelo activo (v2.4.1) debido a nuevas ingestas o modificaciones de datos. Se requiere un reentrenamiento del modelo para corregir posibles desvíos en las proyecciones."
-                    style={{ 
-                      display: 'inline-flex',
-                      marginLeft: isSidebarOpen ? 'auto' : '0px', 
-                      position: isSidebarOpen ? 'static' : 'absolute',
-                      top: isSidebarOpen ? 'auto' : '4px',
-                      right: isSidebarOpen ? 'auto' : '4px',
-                      flexShrink: 0 
-                    }}
-                  >
-                    <AlertCircle size={16} style={{ color: '#eab308' }} />
-                  </span>
-                )}
               </button>
               
               {(activeTab === 'forecast' || activeTab === 'cold-start') && (

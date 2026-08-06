@@ -289,7 +289,7 @@ const IngestionView = () => {
               Arrastrá tu archivo de ventas aquí
             </h3>
             <p style={{ margin: '0.35rem 0 1.25rem 0', fontSize: '0.8rem', color: '#64748b' }}>
-              o hacé clic para explorar tus archivos (Soporta planillas CSV y Excel .xlsx, .xls hasta 20MB)
+              o hacé clic para explorar tus archivos (Soporta planillas CSV y Excel .xlsx, .xls hasta 50MB)
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
               <button 

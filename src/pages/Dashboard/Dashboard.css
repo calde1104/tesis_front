@@ -984,10 +984,49 @@
   }
   
   .sidebar-logo {
-    display: none;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
   }
 
   .sidebar-wrapper {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+  }
+
+  .sidebar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0.5rem;
+    border-radius: 12px;
+    width: 100%;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0.25rem;
+    width: 100%;
+  }
+
+  .nav-item {
+    padding: 0.4rem 0.6rem;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .sidebar-bottom {
+    display: none;
+  }
+
+  .sidebar-toggle-edge {
     display: none;
   }
   

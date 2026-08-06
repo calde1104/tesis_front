@@ -251,17 +251,35 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           </div>
         </div>
 
-        <div className="card kpi-card clickable-card" onClick={() => setActiveTab('settings')}>
+        <div className="card kpi-card clickable-card" onClick={() => setActiveTab('settings-info')}>
           <div className="kpi-header">
             <span className="kpi-label">{kpis.accuracy.label}</span>
-            <LineChart size={18} className="kpi-icon" />
+            <ShieldCheck size={18} className="kpi-icon" />
           </div>
-          <div className="kpi-value">
-            {kpis.accuracy.value !== null && kpis.accuracy.value !== undefined ? `${kpis.accuracy.value}%` : 'N/A'}
+          <div className="kpi-value" style={{ fontSize: kpis.accuracy.value !== null && kpis.accuracy.value < 0 ? '1.15rem' : '1.4rem', fontWeight: '700' }}>
+            {(() => {
+              if (kpis.accuracy.value === null || kpis.accuracy.value === undefined) return 'N/A';
+              if (kpis.accuracy.value >= 70) return `${kpis.accuracy.value}%`;
+              if (kpis.accuracy.value >= 40) return `${kpis.accuracy.value}%`;
+              return 'En Calibración';
+            })()}
           </div>
           <div className="kpi-footer">
-            <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
-              {kpis.accuracy.value !== null ? 'Modelo Activo' : 'Sin Modelo Activo'}
+            <span className="badge" style={{ 
+              background: kpis.accuracy.value >= 70 ? 'rgba(52, 211, 153, 0.1)' : (kpis.accuracy.value >= 40 ? 'rgba(251, 146, 60, 0.1)' : 'rgba(168, 85, 247, 0.12)'), 
+              color: kpis.accuracy.value >= 70 ? '#34d399' : (kpis.accuracy.value >= 40 ? '#fb923c' : '#c084fc'), 
+              border: `1px solid ${kpis.accuracy.value >= 70 ? 'rgba(52, 211, 153, 0.2)' : (kpis.accuracy.value >= 40 ? 'rgba(251, 146, 60, 0.2)' : 'rgba(168, 85, 247, 0.25)')}`, 
+              padding: '0.15rem 0.5rem', 
+              borderRadius: '12px', 
+              fontSize: '0.68rem', 
+              fontWeight: '700' 
+            }}>
+              {(() => {
+                if (kpis.accuracy.value === null) return 'Sin Modelo';
+                if (kpis.accuracy.value >= 70) return 'Alta Precisión';
+                if (kpis.accuracy.value >= 40) return 'Precisión Moderada';
+                return 'Modelo Baseline (Alta Desviación)';
+              })()}
             </span>
           </div>
         </div>
