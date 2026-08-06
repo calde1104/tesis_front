@@ -755,15 +755,12 @@ const IngestionView = () => {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '0.72rem' }}>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Año</span> <br/><span style={{ color: '#64748b' }}>Año de venta (ej. 2026)</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Mes</span> <br/><span style={{ color: '#64748b' }}>Mes (1 al 12)</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Canal</span> <br/><span style={{ color: '#64748b' }}>Canal (Autoservicio, etc)</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Departamento</span> <br/><span style={{ color: '#64748b' }}>Depto (Bebidas, etc)</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Categoria</span> <br/><span style={{ color: '#64748b' }}>Categoría de producto</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Sku</span> <br/><span style={{ color: '#64748b' }}>Código EAN de barra</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Descripcion</span> <br/><span style={{ color: '#64748b' }}>Nombre descriptivo</span></div>
-            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Empresa</span> <br/><span style={{ color: '#64748b' }}>Empresa fabricante</span></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.15)', fontSize: '0.74rem' }}>
+            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>SKU</span> <span style={{ color: '#f43f5e', fontSize: '0.65rem' }}>*</span> <br/><span style={{ color: '#94a3b8' }}>Código EAN / SKU de producto</span></div>
+            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Año</span> <span style={{ color: '#f43f5e', fontSize: '0.65rem' }}>*</span> <br/><span style={{ color: '#94a3b8' }}>Año de venta (ej. 2026)</span></div>
+            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Mes</span> <span style={{ color: '#f43f5e', fontSize: '0.65rem' }}>*</span> <br/><span style={{ color: '#94a3b8' }}>Número de mes (1 al 12)</span></div>
+            <div><span style={{ color: '#38bdf8', fontWeight: '700' }}>Unidades Vendidas</span> <span style={{ color: '#f43f5e', fontSize: '0.65rem' }}>*</span> <br/><span style={{ color: '#94a3b8' }}>Volumen en unidades físicas</span></div>
+            <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#38bdf8', fontWeight: '700' }}>Monto Facturado</span> <span style={{ color: '#f43f5e', fontSize: '0.65rem' }}>*</span> <br/><span style={{ color: '#94a3b8' }}>Importe facturado (moneda local)</span></div>
           </div>
 
           <button 

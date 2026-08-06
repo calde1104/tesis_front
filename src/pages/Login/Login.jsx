@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, CheckSquare, Square, X, Shield, FileText, Check } from 'lucide-react';
-import Spline from '@splinetool/react-spline';
+import { Eye, EyeOff, CheckSquare, Square, Shield, FileText, Lock, Mail, ArrowRight } from 'lucide-react';
 import { login } from '../../services/auth';
 import './Login.css';
 
@@ -18,7 +17,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!agreed) {
-      setError('Debes aceptar el acuerdo y la privacidad.');
+      setError('Debes aceptar los términos y políticas para continuar.');
       return;
     }
     setError('');
@@ -35,273 +34,288 @@ const Login = () => {
     }
   };
 
+  React.useEffect(() => {
+    const canvas = document.getElementById('login-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    let animationFrameId;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    const handleResize = () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    const nodesCount = 35;
+    const nodes = Array.from({ length: nodesCount }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      radius: Math.random() * 1.5 + 1
+    }));
+
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.12 * (1 - dist / 140)})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      nodes.forEach(node => {
+        node.x += node.vx;
+        node.y += node.vy;
+
+        if (node.x < 0 || node.x > width) node.vx *= -1;
+        if (node.y < 0 || node.y > height) node.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+        ctx.fill();
+      });
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
   return (
     <div className="login-wrapper">
-      <div className="spline-bg">
-        <Spline scene="https://prod.spline.design/tw1-qSQoYshZJjqD/scene.splinecode" />
-      </div>
+      
+      <canvas id="login-canvas" className="login-canvas"></canvas>
+      <div className="bg-spotlight"></div>
+      <div className="bg-grid"></div>
 
-      <div className="login-container">
-        <div className="branding-section">
-          <div className="branding-logo">
-            <span className="branding-prefix">EL FUTURO DE LA</span>
-            <h1 className="branding-title">Inteligencia Predictiva</h1>
-            <span className="branding-suffix">B2B</span>
+      <div className="login-box">
+        
+        <div className="login-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem' }}>
+            <svg className="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '42px', height: '42px', flexShrink: 0 }}>
+              <defs>
+                <linearGradient id="logoGradLogin" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="100%" stopColor="#0284c7" />
+                </linearGradient>
+                <filter id="logoGlowLogin" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="#38bdf8" floodOpacity="0.4" />
+                </filter>
+              </defs>
+              <path 
+                d="M16 3L27 9.35V22.65L16 29L5 22.65V9.35L16 3Z" 
+                stroke="url(#logoGradLogin)" 
+                strokeWidth="2.2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                fill="rgba(56, 189, 248, 0.05)"
+              />
+              <path 
+                d="M15.5 8V24 M15.5 8H20C22.5 8, 22.5 16, 20 16H15.5 M15.5 16H20C22.5 16, 22.5 24, 20 24H15.5" 
+                stroke="#38bdf8" 
+                strokeWidth="2.4" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+              <path 
+                d="M9.5 8V24 M9.5 8H14.5C17.5 8, 17.5 16, 14.5 16H9.5" 
+                stroke="#ffffff" 
+                strokeWidth="2.4" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                filter="url(#logoGlowLogin)"
+              />
+            </svg>
+            <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
+              Predictive <span style={{ color: '#38bdf8' }}>B2B</span>
+            </h1>
           </div>
+          <p className="brand-subtitle">Plataforma de Simulación & Gestión de Demanda</p>
         </div>
 
-        <div className="login-card-wrapper">
-          <div className="login-card">
-            <h2>Iniciar sesión</h2>
-            <p className="login-subtitle">Ingresa tus credenciales para continuar</p>
+        <div className="login-card">
+          
+          <div className="card-heading">
+            <h2>Iniciar Sesión</h2>
+            <p>Ingresá tus credenciales corporativas para acceder al sistema.</p>
+          </div>
 
-            {error && (
-              <div className="login-error">
-                {error}
-              </div>
-            )}
+          {error && (
+            <div className="login-error-alert">
+              {error}
+            </div>
+          )}
 
-            <form className="login-form" onSubmit={handleLogin}>
-              <div className="form-group">
+          <form className="login-form" onSubmit={handleLogin}>
+            
+            <div className="form-field">
+              <label htmlFor="email">Correo Electrónico</label>
+              <div className="input-control">
+                <Mail size={16} className="field-icon" />
                 <input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Correo electrónico (ej. calderon@gmail.com)"
+                  placeholder="nombre@empresa.com"
                   required
                 />
               </div>
+            </div>
 
-              <div className="form-group password-group">
+            <div className="form-field">
+              <label htmlFor="password">Contraseña</label>
+              <div className="input-control">
+                <Lock size={16} className="field-icon" />
                 <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••"
+                  placeholder="••••••••••••"
                   required
                 />
                 <button 
                   type="button" 
-                  className="toggle-password"
+                  className="toggle-pass"
                   onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+            </div>
 
-              <div className="form-terms" onClick={() => setAgreed(!agreed)}>
-                {agreed ? (
-                  <CheckSquare size={16} className="checkbox-icon checked" />
-                ) : (
-                  <Square size={16} className="checkbox-icon" />
-                )}
-                <span>
-                  He leído y acepto el{' '}
-                  <a
-                    href="#terms"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setActiveModal('terms');
-                    }}
-                  >
-                    Acuerdo de Usuario
-                  </a>{' '}
-                  y{' '}
-                  <a
-                    href="#privacy"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setActiveModal('privacy');
-                    }}
-                  >
-                    Privacidad
-                  </a>
-                </span>
-              </div>
+            <div className="form-checkbox" onClick={() => setAgreed(!agreed)}>
+              {agreed ? (
+                <CheckSquare size={16} className="check-icon active" />
+              ) : (
+                <Square size={16} className="check-icon" />
+              )}
+              <span>
+                Acepto el{' '}
+                <a
+                  href="#terms"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveModal('terms');
+                  }}
+                >
+                  Acuerdo de Usuario
+                </a>{' '}
+                y la{' '}
+                <a
+                  href="#privacy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveModal('privacy');
+                  }}
+                >
+                  Política de Privacidad
+                </a>
+              </span>
+            </div>
 
-              <button 
-                type="submit" 
-                className="login-button"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
-              </button>
-            </form>
-          </div>
+            <button 
+              type="submit" 
+              className="submit-btn"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="loading-state">Iniciando sesión...</span>
+              ) : (
+                <>
+                  Ingresar a la Plataforma
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
         </div>
+
       </div>
 
       {activeModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(2, 6, 23, 0.82)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1.5rem',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.92) 100%)',
-            border: activeModal === 'terms' ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(52, 211, 153, 0.35)',
-            borderRadius: '16px',
-            width: '100%',
-            maxWidth: '680px',
-            maxHeight: '85vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: activeModal === 'terms'
-              ? '0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15)'
-              : '0 25px 60px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(52, 211, 153, 0.15)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              padding: '1.25rem 1.5rem',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              background: activeModal === 'terms' ? 'rgba(14, 165, 233, 0.05)' : 'rgba(16, 185, 129, 0.05)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                {activeModal === 'terms' ? (
-                  <FileText size={22} style={{ color: '#38bdf8' }} />
-                ) : (
-                  <Shield size={22} style={{ color: '#34d399' }} />
-                )}
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <div className="modal-header">
+              <div className="modal-title-box">
+                {activeModal === 'terms' ? <FileText size={20} className="modal-icon text-sky" /> : <Shield size={20} className="modal-icon text-emerald" />}
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>
-                    {activeModal === 'terms' ? 'Acuerdo de Usuario y Términos de Servicio B2B' : 'Política de Privacidad y Protección de Datos'}
-                  </h3>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    {activeModal === 'terms' ? 'Plataforma Predictiva de Inteligencia Comercial' : 'Garantía de Confidencialidad y Seguridad Empresarial'}
-                  </span>
+                  <h3>{activeModal === 'terms' ? 'Acuerdo de Usuario y Términos de Servicio B2B' : 'Política de Privacidad y Protección de Datos'}</h3>
+                  <p>Proyecto Final de Ingeniería — UADE 2026 (Calderón, Felipe & Crespo, Edgardo)</p>
                 </div>
               </div>
             </div>
 
-            <div className="custom-scrollbar" style={{
-              padding: '1.5rem',
-              overflowY: 'auto',
-              flex: 1,
-              color: '#cbd5e1',
-              fontSize: '0.85rem',
-              lineHeight: '1.6',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem'
-            }}>
+            <div className="modal-body custom-scrollbar">
               {activeModal === 'terms' ? (
                 <>
-                  <div style={{ background: 'rgba(56, 189, 248, 0.06)', borderLeft: '3px solid #38bdf8', padding: '0.75rem 1rem', borderRadius: '0 8px 8px 0', fontSize: '0.8rem', color: '#e2e8f0' }}>
-                    <strong>Marco Institucional del Sistema:</strong> Documento legal y técnico basado en la especificación del Proyecto Final de Ingeniería (UADE 2026, Autores: Calderón, Felipe & Crespo, Edgardo).
+                  <div className="modal-callout callout-sky">
+                    <strong>Marco Institucional del Sistema:</strong> Especificación oficial del sistema de soporte a decisiones predictivas.
                   </div>
-
                   <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>1. Licencia B2B de Inteligencia Predictiva (DaaS)</h4>
-                    <p style={{ margin: 0 }}>
-                      Se concede a la organización cliente una licencia corporativa no exclusiva para operar la Plataforma de Inteligencia Predictiva B2B. El servicio permite consultar dashboards de cuota de mercado (Market Share / SOM), Share of Assortment (SOA), competitividad de precios (Price Gap) y pronóstico de demanda de volumen transaccionado.
-                    </p>
+                    <h4>1. Licencia B2B de Inteligencia Predictiva (DaaS)</h4>
+                    <p>Se concede a la organización cliente una licencia corporativa no exclusiva para operar la Plataforma de Inteligencia Predictiva B2B. El servicio permite consultar dashboards de cuota de mercado (Market Share / SOM), Share of Assortment (SOA), competitividad de precios (Price Gap) y pronóstico de demanda de volumen transaccionado.</p>
                   </div>
-
                   <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>2. Integridad e Inmutabilidad de Ingesta (SHA-256)</h4>
-                    <p style={{ margin: 0 }}>
-                      Los lotes de datos transaccionales procesados en la plataforma (histórico 2021-2025) son auditados mediante protocolos criptográficos de hashing SHA-256. Esto garantiza la trazabilidad, inmutabilidad y autenticidad del historial de ventas de su empresa frente a alteraciones no autorizadas.
-                    </p>
+                    <h4>2. Integridad e Inmutabilidad de Ingesta (SHA-256)</h4>
+                    <p>Los lotes de datos transaccionales procesados en la plataforma (histórico 2021-2025) son auditados mediante protocolos criptográficos de hashing SHA-256. Esto garantiza la trazabilidad e inmutabilidad del historial de ventas frente a alteraciones no autorizadas.</p>
                   </div>
-
                   <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>3. Propiedad de Algoritmos y Torneo de Modelos</h4>
-                    <p style={{ margin: 0 }}>
-                      Los motores de Machine Learning (Torneo Champion/Challenger con algoritmos SARIMAX, XGBoost, Prophet y Clustering no supervisado K-Medoids / Gower Distance) constituyen propiedad intelectual protegida. Su objetivo técnico es lograr un MAPE &lt; 20% garantizando explicabilidad algorítmica.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>4. Evaluación Holística y Alcance de las Proyecciones</h4>
-                    <p style={{ margin: 0 }}>
-                      El motor predictivo analiza el universo completo de datos del mercado para modelar escenarios competitivos precisos. Las inferencias de demanda y Cold Start sirven como soporte cuantitativo para optimizar inventarios y prevenir quiebres de stock en el sector retail.
-                    </p>
+                    <h4>3. Propiedad de Algoritmos y Torneo de Modelos</h4>
+                    <p>Los motores de Machine Learning (Torneo Champion/Challenger con algoritmos SARIMAX, XGBoost, Prophet y K-Medoids) constituyen propiedad intelectual protegida, orientados a lograr explicabilidad y alta precisión predictiva.</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <div style={{ background: 'rgba(52, 211, 153, 0.06)', borderLeft: '3px solid #34d399', padding: '0.75rem 1rem', borderRadius: '0 8px 8px 0', fontSize: '0.8rem', color: '#e2e8f0' }}>
-                    <strong>Garantía de Confidencialidad Empresarial:</strong> Arquitectura diseñada para resguardar la privacidad transaccional de marcas y distribuidoras.
+                  <div className="modal-callout callout-emerald">
+                    <strong>Garantía de Confidencialidad Empresarial:</strong> Resguardo total de registros transaccionales por organización.
                   </div>
-
                   <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>1. Aislamiento Multi-inquilino (Multi-tenant)</h4>
-                    <p style={{ margin: 0 }}>
-                      La arquitectura de datos implementa un estricto control de acceso basado en roles y aislamiento de datos por identificador de inquilino (<code>empresaId</code>). Sus registros de ventas, precios y catálogos de SKUs se mantienen 100% aislados de otros competidores de la plataforma.
-                    </p>
+                    <h4>1. Aislamiento Multi-inquilino (Multi-tenant)</h4>
+                    <p>La arquitectura de datos implementa un estricto control de acceso basado en roles y aislamiento de datos por identificador de inquilino (<code>empresaId</code>). Sus registros de ventas, precios y catálogos de SKUs se mantienen 100% aislados de otros competidores.</p>
                   </div>
-
                   <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>2. Encriptación y Conexión Segura con Variables Exógenas</h4>
-                    <p style={{ margin: 0 }}>
-                      Toda transmisión de información utiliza protocolos TLS 1.3 y cifrado en reposo AES-256. La integración automatizada de datos de contexto macroeconómico y climatológico (Open-Meteo, Banco Mundial, FMI) se ejecuta en un sandbox analítico sin exponer datos privados.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>3. Confidencialidad de Auditoría de Mercado (Store Audit / Selling & Sellout)</h4>
-                    <p style={{ margin: 0 }}>
-                      Los volúmenes transaccionados en canales de venta se consolidan exclusivamente para generar indicadores macro de cuota de mercado. Bajo ninguna circunstancia sus cifras unitarias de facturación serán vendidas, transferidas o expuestas de forma individual a terceros.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 style={{ color: '#f8fafc', margin: '0 0 0.4rem 0', fontSize: '0.92rem', fontWeight: '700' }}>4. Titularidad y Derechos sobre la Información Transaccional</h4>
-                    <p style={{ margin: 0 }}>
-                      Su empresa conserva la titularidad inalienable sobre sus archivos procesados y su historial transaccional. Puede solicitar reportes de auditoría de integridad, exportación de datasets y la eliminación total de sus registros al finalizar el contrato de servicio.
-                    </p>
+                    <h4>2. Encriptación y Seguridad</h4>
+                    <p>Toda transmisión de información utiliza protocolos TLS 1.3 y cifrado en reposo AES-256. La integración automatizada de datos de contexto macroeconómico y climatológico se ejecuta en un entorno aislado sin exponer datos privados.</p>
                   </div>
                 </>
               )}
             </div>
 
-            <div style={{
-              padding: '0.85rem 1.5rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              justify: 'flex-end',
-              background: 'rgba(15, 23, 42, 0.6)'
-            }}>
-              <button
-                onClick={() => setActiveModal(null)}
-                style={{
-                  padding: '0.55rem 1.3rem',
-                  fontSize: '0.85rem',
-                  borderRadius: '8px',
-                  background: activeModal === 'terms'
-                    ? 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)'
-                    : 'linear-gradient(135deg, #059669 0%, #34d399 100%)',
-                  border: 'none',
-                  color: '#ffffff',
-                  cursor: 'pointer',
-                  fontWeight: '700',
-                  boxShadow: activeModal === 'terms'
-                    ? '0 4px 14px rgba(56, 189, 248, 0.25)'
-                    : '0 4px 14px rgba(52, 211, 153, 0.25)'
-                }}
-              >
+            <div className="modal-footer">
+              <button className="modal-close-btn" onClick={() => setActiveModal(null)}>
                 Cerrar
               </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };

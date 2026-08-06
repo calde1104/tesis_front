@@ -350,16 +350,16 @@ const Dashboard = () => {
                   >
                     <span className="sub-nav-dash" style={{ color: activeTab === 'forecast' ? '#38bdf8' : '#64748b' }}>-</span>
                     <LineChart size={16} className="sub-nav-icon" />
-                    <span className="sub-nav-label">Predicciones y Simulaciones</span>
+                    <span className="sub-nav-label">Simulador de Demanda</span>
                   </button>
                   <button
                     className={`sub-nav-item ${activeTab === 'cold-start' ? 'active' : ''}`}
                     onClick={() => setActiveTab('cold-start')}
-                    title="Pre-lanzamiento (Cold Start)"
+                    title="Pre-lanzamiento"
                   >
                     <span className="sub-nav-dash" style={{ color: activeTab === 'cold-start' ? '#38bdf8' : '#64748b' }}>-</span>
                     <Sparkles size={16} className="sub-nav-icon" />
-                    <span className="sub-nav-label">Pre-lanzamiento (Cold Start)</span>
+                    <span className="sub-nav-label">Pre-lanzamiento</span>
                   </button>
                 </div>
               )}

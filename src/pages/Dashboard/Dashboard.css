@@ -182,35 +182,41 @@
 .sub-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding-left: 1.5rem;
-  margin-top: 0.15rem;
-  margin-bottom: 0.25rem;
+  gap: 0.2rem;
+  padding-left: 0.85rem;
+  margin-left: 1.2rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.4rem;
+  border-left: 2px solid rgba(56, 189, 248, 0.2);
+  position: relative;
 }
 
 .dashboard-layout.sidebar-collapsed .sub-nav-list {
   padding-left: 0;
+  margin-left: 0;
+  border-left: none;
   align-items: center;
 }
 
 .sub-nav-item {
-  background: none;
+  background: transparent;
   border: none;
   color: #64748b;
   cursor: pointer;
-  padding: 0.4rem 0.65rem;
-  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  width: 100%;
+  gap: 0.45rem;
+  width: calc(100% - 0.75rem);
   text-align: left;
 }
 
 .dashboard-layout.sidebar-collapsed .sub-nav-item {
   justify-content: center;
   padding: 0.4rem;
+  width: 100%;
 }
 
 .sub-nav-item:hover {
@@ -220,8 +226,11 @@
 
 .sub-nav-item.active {
   color: #38bdf8;
-  background: rgba(56, 189, 248, 0.08);
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.15) 0%, rgba(56, 189, 248, 0.02) 100%);
+  border-left: 3px solid #38bdf8;
+  border-radius: 2px 8px 8px 2px;
   font-weight: 600;
+  box-shadow: -3px 0 10px rgba(56, 189, 248, 0.15);
 }
 
 .sub-nav-dash {
