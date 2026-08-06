@@ -500,11 +500,11 @@ const SalesView = ({ formatCurrency }) => {
           <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
             <span className="kpi-label">Facturación Acumulada</span>
           </div>
-          <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
+          <div className="kpi-value" style={{ margin: '0.5rem 0', color: '#f8fafc' }}>
             {loadingSummary ? '...' : formatCurrency(summary?.totalRevenue || 0)}
           </div>
           <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Total en período filtrado</span>
+            <span style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '500' }}>Total en período filtrado</span>
           </div>
         </div>
 
@@ -512,11 +512,11 @@ const SalesView = ({ formatCurrency }) => {
           <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
             <span className="kpi-label">Unidades Vendidas</span>
           </div>
-          <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
-            {loadingSummary ? '...' : `${summary?.totalUnits.toLocaleString('es-AR') || 0} un.`}
+          <div className="kpi-value" style={{ margin: '0.5rem 0', color: '#f8fafc' }}>
+            {loadingSummary ? '...' : `${summary?.totalUnits.toLocaleString('es-PY') || 0} un.`}
           </div>
           <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Volumen físico de ventas</span>
+            <span style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '500' }}>Volumen físico de ventas</span>
           </div>
         </div>
 
@@ -524,13 +524,11 @@ const SalesView = ({ formatCurrency }) => {
           <div className="kpi-header" style={{ justifyContent: 'center', width: '100%' }}>
             <span className="kpi-label">Precio Unitario Promedio (ASP)</span>
           </div>
-          <div className="kpi-value" style={{ margin: '0.5rem 0' }}>
+          <div className="kpi-value" style={{ margin: '0.5rem 0', color: '#f8fafc' }}>
             {loadingSummary ? '...' : formatCurrency(summary?.averagePrice || 0)}
           </div>
           <div className="kpi-footer" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '700' }}>
-              Precio de Lista Promedio
-            </span>
+            <span style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: '500' }}>Precio Lista Promedio</span>
           </div>
         </div>
       </div>

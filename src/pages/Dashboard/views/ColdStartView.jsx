@@ -347,15 +347,21 @@ const ColdStartView = () => {
                     marginTop: '0.2rem',
                     transition: 'all 0.2s ease'
                   }}
-                  onFocus={(e) => e.currentTarget.style.borderColor = '#38bdf8'}
-                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0ea5e9';
+                    e.currentTarget.style.boxShadow = '0 0 12px rgba(14, 165, 233, 0.45)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>
-                    Precio Sugerido ($)
+                    Precio Sugerido (₲)
                   </label>
                   <input
                     type="number"
@@ -372,7 +378,16 @@ const ColdStartView = () => {
                       padding: '0.45rem 0.75rem',
                       fontSize: '0.85rem',
                       outline: 'none',
-                      marginTop: '0.2rem'
+                      marginTop: '0.2rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#0ea5e9';
+                      e.currentTarget.style.boxShadow = '0 0 12px rgba(14, 165, 233, 0.45)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -397,7 +412,16 @@ const ColdStartView = () => {
                       padding: '0.45rem 0.75rem',
                       fontSize: '0.85rem',
                       outline: 'none',
-                      marginTop: '0.2rem'
+                      marginTop: '0.2rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#0ea5e9';
+                      e.currentTarget.style.boxShadow = '0 0 12px rgba(14, 165, 233, 0.45)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   />
                 </div>
@@ -499,13 +523,13 @@ const ColdStartView = () => {
                   <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
                     <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Precio Óptimo</span>
                     <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.15rem' }}>
-                      ${coldPredictionResult.recommendedPrice.toLocaleString('es-AR')}
+                      ₲ {coldPredictionResult.recommendedPrice.toLocaleString('es-PY')}
                     </span>
                   </div>
                   <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
                     <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Ventas Est. M1</span>
                     <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.15rem' }}>
-                      {coldPredictionResult.salesVolume.toLocaleString('es-AR')} un.
+                      {coldPredictionResult.salesVolume.toLocaleString('es-PY')} un.
                     </span>
                   </div>
                   <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
@@ -555,7 +579,7 @@ const ColdStartView = () => {
                           yAxisId="left"
                           stroke="#38bdf8"
                           tick={{ fill: '#64748b', fontSize: 9 }}
-                          tickFormatter={(val) => val.toLocaleString('es-AR')}
+                          tickFormatter={(val) => val.toLocaleString('es-PY')}
                           width={40}
                         />
                         <YAxis

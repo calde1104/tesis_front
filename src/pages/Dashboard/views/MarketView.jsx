@@ -1012,13 +1012,13 @@ const MarketView = () => {
                           </td>
                           <td style={{ textAlign: 'center', padding: '0.25rem 0.2rem' }}>
                             <span style={{
-                              background: isLider ? 'rgba(56,189,248,0.08)' : 'rgba(148,163,184,0.08)',
-                              color: isLider ? '#38bdf8' : '#94a3b8',
-                              border: `1px solid ${isLider ? 'rgba(56,189,248,0.15)' : 'rgba(148,163,184,0.15)'}`,
-                              padding: '0.05rem 0.35rem',
-                              borderRadius: '6px',
-                              fontSize: '0.6rem',
-                              fontWeight: '600'
+                              background: isLider ? 'rgba(52, 211, 153, 0.1)' : 'rgba(56, 189, 248, 0.08)',
+                              color: isLider ? '#34d399' : '#38bdf8',
+                              border: `1px solid ${isLider ? 'rgba(52, 211, 153, 0.2)' : 'rgba(56, 189, 248, 0.15)'}`,
+                              padding: '0.08rem 0.45rem',
+                              borderRadius: '12px',
+                              fontSize: '0.62rem',
+                              fontWeight: '700'
                             }}>
                               {row.status}
                             </span>

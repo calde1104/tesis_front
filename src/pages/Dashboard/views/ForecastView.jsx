@@ -1075,13 +1075,13 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'center' }}>
-                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
+                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
                   <div className="slider-label-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <Coins size={14} style={{ color: '#38bdf8' }} />
-                      <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Precio Unitario</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#e2e8f0' }}>Precio Unitario</label>
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700' }} className={`slider-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}`}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', fontFamily: 'monospace' }} className={`slider-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}`}>
                       {priceChange > 0 ? `+${priceChange}` : priceChange}%
                     </span>
                   </div>
@@ -1096,13 +1096,13 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                   />
                 </div>
 
-                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
+                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
                   <div className="slider-label-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <DollarSign size={14} style={{ color: '#38bdf8' }} />
-                      <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Dólar (USD)</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#e2e8f0' }}>Dólar (USD)</label>
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700' }} className={`slider-value ${exchangeRateChange > 0 ? 'negative' : exchangeRateChange < 0 ? 'positive' : ''}`}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', fontFamily: 'monospace' }} className={`slider-value ${exchangeRateChange > 0 ? 'negative' : exchangeRateChange < 0 ? 'positive' : ''}`}>
                       {exchangeRateChange > 0 ? `+${exchangeRateChange}` : exchangeRateChange}%
                     </span>
                   </div>
@@ -1117,13 +1117,13 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                   />
                 </div>
 
-                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.45)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
+                <div className="slider-group" style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '0.75rem 0.85rem' }}>
                   <div className="slider-label-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <TrendingUp size={14} style={{ color: '#38bdf8' }} />
-                      <label style={{ fontSize: '0.8rem', fontWeight: '500' }}>Inflación (IPC)</label>
+                      <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#e2e8f0' }}>Inflación (IPC)</label>
                     </div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700' }} className={`slider-value ${inflationChange > 0 ? 'negative' : inflationChange < 0 ? 'positive' : ''}`}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', fontFamily: 'monospace' }} className={`slider-value ${inflationChange > 0 ? 'negative' : inflationChange < 0 ? 'positive' : ''}`}>
                       {inflationChange > 0 ? `+${inflationChange}` : inflationChange}%
                     </span>
                   </div>

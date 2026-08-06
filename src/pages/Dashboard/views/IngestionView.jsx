@@ -628,10 +628,11 @@ const IngestionView = () => {
                       <span className={`status-badge ${log.status.toLowerCase()}`} style={{
                         background: log.status === 'SUCCESS' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(244, 63, 94, 0.1)',
                         color: log.status === 'SUCCESS' ? '#34d399' : '#f43f5e',
-                        padding: '0.15rem 0.55rem',
+                        border: `1px solid ${log.status === 'SUCCESS' ? 'rgba(52, 211, 153, 0.2)' : 'rgba(244, 63, 94, 0.2)'}`,
+                        padding: '0.15rem 0.6rem',
                         borderRadius: '12px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
+                        fontSize: '0.72rem',
+                        fontWeight: '700',
                         display: 'inline-block'
                       }}>
                         {log.status === 'SUCCESS' ? 'Completado' : 'Fallido'}

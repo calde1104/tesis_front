@@ -484,8 +484,8 @@ const Dashboard = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(5, 8, 16, 0.75)',
+          backdropFilter: 'blur(16px)',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -493,39 +493,66 @@ const Dashboard = () => {
           animation: 'fade-in 0.2s ease-out'
         }} onClick={() => setShowLogoutModal(false)}>
           <div style={{
-            background: 'rgba(30, 41, 59, 0.98)',
-            border: '1px solid rgba(244, 63, 94, 0.2)',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: '16px',
-            padding: '2rem',
-            maxWidth: '400px',
+            padding: '1.75rem 1.5rem',
+            maxWidth: '380px',
             width: '90%',
             textAlign: 'center',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 63, 94, 0.1)',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 25px rgba(14, 165, 233, 0.08)',
             animation: 'scale-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '1.25rem',
+            gap: '1rem',
             position: 'relative'
           }} onClick={(e) => e.stopPropagation()}>
             
-            <div style={{ background: 'rgba(244, 63, 94, 0.1)', padding: '0.75rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <LogOut size={32} style={{ color: '#ef4444' }} />
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              borderRadius: '50%', 
+              background: 'rgba(56, 189, 248, 0.08)', 
+              border: '1px solid rgba(56, 189, 248, 0.18)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              <LogOut size={22} style={{ color: '#38bdf8' }} />
             </div>
 
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: '#f8fafc' }}>¿Cerrar Sesión?</h3>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                ¿Realmente deseas salir de la plataforma? Deberás ingresar tus credenciales nuevamente para acceder.
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>¿Cerrar Sesión?</h3>
+              <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.5' }}>
+                ¿Estás seguro de que deseas salir de la plataforma? Deberás ingresar tus credenciales nuevamente para acceder.
               </p>
             </div>
 
             <div style={{ display: 'flex', width: '100%', gap: '0.75rem', marginTop: '0.5rem' }}>
               <button 
                 type="button"
-                className="btn-secondary" 
                 onClick={() => setShowLogoutModal(false)}
-                style={{ flex: 1, padding: '0.6rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}
+                style={{ 
+                  flex: 1, 
+                  padding: '0.55rem', 
+                  fontSize: '0.82rem', 
+                  fontWeight: '600', 
+                  cursor: 'pointer',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#cbd5e1',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#f8fafc';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.color = '#cbd5e1';
+                }}
               >
                 Cancelar
               </button>
@@ -538,23 +565,28 @@ const Dashboard = () => {
                 }}
                 style={{
                   flex: 1,
-                  padding: '0.6rem',
+                  padding: '0.55rem',
                   fontSize: '0.82rem',
                   fontWeight: '700',
                   borderRadius: '8px',
-                  border: 'none',
-                  background: 'linear-gradient(90deg, #ef4444, #dc2626)',
-                  color: '#fff',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#f87171',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)',
+                  transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.35rem'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.15)'}
-                onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.22)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                }}
               >
                 Cerrar Sesión
               </button>
