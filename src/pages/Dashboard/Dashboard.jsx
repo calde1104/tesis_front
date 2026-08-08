@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
-  Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle, Sparkles, SlidersHorizontal, Server, LineChart
+  Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle, Sparkles, SlidersHorizontal, Server, LineChart,
+  Building2, Shield, Copy, Check, X, Mail
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
-import { getMLModels } from '../../services/settings';
+import { getMLModels, getSystemInfo } from '../../services/settings';
 import { logout } from '../../services/auth';
 import './Dashboard.css';
 
@@ -29,9 +30,55 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('inicio');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [companyDetails, setCompanyDetails] = useState(null);
+  const [copiedTenant, setCopiedTenant] = useState(false);
   const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
   const [dismissedMlopsWarning, setDismissedMlopsWarning] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
+
+  const [loadingCompanyDetails, setLoadingCompanyDetails] = useState(false);
+
+  const getRealUserEmail = () => {
+    const savedEmail = localStorage.getItem('userEmail');
+    if (savedEmail && savedEmail.includes('@')) return savedEmail;
+
+    if (companyDetails?.emailUsuario && companyDetails.emailUsuario.includes('@')) {
+      return companyDetails.emailUsuario;
+    }
+    if (companyDetails?.email && companyDetails.email.includes('@')) {
+      return companyDetails.email;
+    }
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payloadBase64 = token.split('.')[1];
+        const decodedJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(decodedJson);
+        if (payload && payload.sub && payload.sub.includes('@')) return payload.sub;
+      } catch (e) {}
+    }
+
+    const empNombre = localStorage.getItem('empresaNombre') || 'empresa';
+    const cleanEmp = empNombre.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `admin@${cleanEmp || 'empresa'}.com`;
+  };
+
+  const handleOpenCompanyModal = async () => {
+    setShowCompanyModal(true);
+    if (!companyDetails) {
+      setLoadingCompanyDetails(true);
+      try {
+        const sysInfo = await getSystemInfo();
+        if (sysInfo) setCompanyDetails(sysInfo);
+      } catch (e) {
+        console.error("Error al cargar datos del perfil corporativo:", e);
+      } finally {
+        setLoadingCompanyDetails(false);
+      }
+    }
+  };
   const [safetyStocks, setSafetyStocks] = useState({
     'SKU-001': 12000,
     'SKU-002': 25000,
@@ -417,7 +464,11 @@ const Dashboard = () => {
               <LogOut size={22} className="nav-icon" />
               <span className="nav-label">Cerrar Sesión</span>
             </button>
-            <div className="user-profile-nav">
+            <div 
+              className="user-profile-nav"
+              onClick={handleOpenCompanyModal}
+              title="Ver perfil corporativo e información de la empresa"
+            >
               <div className="user-avatar">
                 <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(localStorage.getItem('empresaNombre') || 'Analista B2B')}&background=0D8ABC&color=fff`} alt="User" />
               </div>
@@ -591,6 +642,168 @@ const Dashboard = () => {
                 Cerrar Sesión
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {showCompanyModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(5, 8, 16, 0.75)',
+            backdropFilter: 'blur(16px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000,
+            animation: 'fade-in 0.2s ease-out'
+          }} 
+          onClick={() => setShowCompanyModal(false)}
+        >
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.95) 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '20px',
+              padding: '1.75rem',
+              maxWidth: '480px',
+              width: '92%',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 30px rgba(14, 165, 233, 0.15)',
+              animation: 'scale-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+              position: 'relative'
+            }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Building2 size={22} style={{ color: '#38bdf8' }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#f8fafc' }}>Perfil Corporativo</h3>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Información de la Cuenta & Organización</span>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowCompanyModal(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#94a3b8',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => { 
+                  e.currentTarget.style.color = '#ef4444'; 
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; 
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)'; 
+                }}
+                onMouseLeave={(e) => { 
+                  e.currentTarget.style.color = '#94a3b8'; 
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; 
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; 
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {loadingCompanyDetails ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 0', gap: '0.75rem' }}>
+                <div className="spinner"></div>
+                <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Obteniendo datos de la organización desde la base de datos...</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Razón Social</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc' }}>
+                      {companyDetails?.razonSocial || companyDetails?.empresaNombre || localStorage.getItem('empresaNombre') || '-'}
+                    </span>
+                  </div>
+                  <span style={{ background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', padding: '0.25rem 0.65rem', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '700', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                    {companyDetails?.rolUsuario || companyDetails?.rol || localStorage.getItem('rol') || 'USUARIO'}
+                  </span>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.15)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Correo Electrónico de Sesión</span>
+                  <span style={{ fontSize: '0.92rem', color: '#38bdf8', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.45rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <Mail size={16} style={{ color: '#38bdf8' }} />
+                    {getRealUserEmail()}
+                  </span>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>RUC / CUIT Tributario</span>
+                  <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontFamily: 'monospace', fontWeight: '600' }}>
+                    {companyDetails?.cuit || '-'}
+                  </span>
+                </div>
+
+                <div style={{ background: 'rgba(15, 23, 42, 0.4)', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Identificador Único (Tenant ID)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: '#38bdf8', fontFamily: 'monospace', fontSize: '0.75rem', wordBreak: 'break-all', flex: 1, background: 'rgba(5, 8, 16, 0.6)', padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                      {companyDetails?.tenantUuid || companyDetails?.empresaId || localStorage.getItem('empresaId') || '-'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const id = companyDetails?.tenantUuid || companyDetails?.empresaId || localStorage.getItem('empresaId') || '';
+                        if (id) {
+                          navigator.clipboard.writeText(id);
+                          setCopiedTenant(true);
+                          setTimeout(() => setCopiedTenant(false), 2000);
+                        }
+                      }}
+                      style={{
+                        background: copiedTenant ? 'rgba(52, 211, 153, 0.2)' : 'rgba(56, 189, 248, 0.15)',
+                        border: `1px solid ${copiedTenant ? 'rgba(52, 211, 153, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                        color: copiedTenant ? '#34d399' : '#38bdf8',
+                        padding: '0.4rem 0.65rem',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {copiedTenant ? <Check size={14} /> : <Copy size={14} />}
+                      {copiedTenant ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
       )}

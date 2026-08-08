@@ -8,6 +8,9 @@ export const login = async (email, password) => {
 
   if (data && data.token) {
     localStorage.setItem('token', data.token);
+    if (email) {
+      localStorage.setItem('userEmail', email);
+    }
     if (data.empresaId) {
       localStorage.setItem('empresaId', data.empresaId);
     }

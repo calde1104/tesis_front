@@ -261,74 +261,63 @@ const SettingsView = () => {
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.35rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.2rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(15, 23, 42, 0.6)', padding: '0.2rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
                 style={{
-                  background: statusFilter === 'ALL' ? 'rgba(56, 189, 248, 0.18)' : 'transparent',
-                  color: statusFilter === 'ALL' ? '#38bdf8' : '#94a3b8',
+                  background: statusFilter === 'ALL' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                  color: statusFilter === 'ALL' ? '#f8fafc' : '#94a3b8',
                   border: statusFilter === 'ALL' ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid transparent',
-                  padding: '0.35rem 0.75rem',
+                  padding: '0.35rem 0.85rem',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
-                  fontWeight: '700',
+                  fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem'
+                  transition: 'all 0.2s'
                 }}
               >
-                Todos <span style={{ opacity: 0.75, fontSize: '0.72rem' }}>({productsList.length})</span>
+                Todos ({productsList.length})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('RISK')}
                 style={{
-                  background: statusFilter === 'RISK' ? 'rgba(239, 68, 68, 0.18)' : 'transparent',
+                  background: statusFilter === 'RISK' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
                   color: statusFilter === 'RISK' ? '#f87171' : '#94a3b8',
                   border: statusFilter === 'RISK' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid transparent',
-                  padding: '0.35rem 0.75rem',
+                  padding: '0.35rem 0.85rem',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
-                  fontWeight: '700',
+                  fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
+                  transition: 'all 0.2s'
                 }}
               >
-                <AlertTriangle size={13} style={{ color: statusFilter === 'RISK' ? '#f87171' : '#64748b' }} />
-                En Riesgo <span style={{ opacity: 0.9, fontSize: '0.72rem', background: statusFilter === 'RISK' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255,255,255,0.05)', padding: '0.05rem 0.4rem', borderRadius: '10px' }}>{riskCount}</span>
+                En Riesgo ({riskCount})
               </button>
               <button
                 type="button"
                 onClick={() => setStatusFilter('SAFE')}
                 style={{
-                  background: statusFilter === 'SAFE' ? 'rgba(52, 211, 153, 0.18)' : 'transparent',
-                  color: statusFilter === 'SAFE' ? '#34d399' : '#94a3b8',
-                  border: statusFilter === 'SAFE' ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid transparent',
-                  padding: '0.35rem 0.75rem',
+                  background: statusFilter === 'SAFE' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                  color: statusFilter === 'SAFE' ? '#f8fafc' : '#94a3b8',
+                  border: statusFilter === 'SAFE' ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+                  padding: '0.35rem 0.85rem',
                   borderRadius: '6px',
                   fontSize: '0.78rem',
-                  fontWeight: '700',
+                  fontWeight: '600',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
+                  transition: 'all 0.2s'
                 }}
               >
-                <CheckCircle2 size={13} style={{ color: statusFilter === 'SAFE' ? '#34d399' : '#64748b' }} />
-                Seguros <span style={{ opacity: 0.9, fontSize: '0.72rem', background: statusFilter === 'SAFE' ? 'rgba(52, 211, 153, 0.25)' : 'rgba(255,255,255,0.05)', padding: '0.05rem 0.4rem', borderRadius: '10px' }}>{safeCount}</span>
+                Seguros ({safeCount})
               </button>
             </div>
 
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }} className="custom-scrollbar">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }} className="custom-scrollbar">
             {filteredProducts.length === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.85rem' }}>
                 No se encontraron productos que coincidan con los filtros aplicados.
@@ -338,116 +327,111 @@ const SettingsView = () => {
                 const currentVal = productThresholds[prod.id] !== undefined ? productThresholds[prod.id] : (productThresholds[prod.sku] !== undefined ? productThresholds[prod.sku] : 0);
                 const demand = estimatedDemands[prod.sku] || estimatedDemands[prod.id] || prod.estimatedDemand || 1000;
                 const isAtRisk = demand > currentVal;
-                const formattedNum = Number(currentVal).toLocaleString('es-PY');
                 const formattedDemand = Number(demand).toLocaleString('es-PY');
 
                 return (
                   <div 
                     key={prod.id || prod.sku} 
                     style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 140px 180px', 
                       alignItems: 'center', 
-                      background: isAtRisk ? 'rgba(239, 68, 68, 0.03)' : 'rgba(255,255,255,0.02)', 
+                      gap: '1rem', 
+                      background: isAtRisk ? 'rgba(239, 68, 68, 0.03)' : 'rgba(255, 255, 255, 0.02)', 
                       padding: '0.85rem 1.15rem', 
                       borderRadius: '10px', 
-                      border: `1px solid ${isAtRisk ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.04)'}`,
-                      borderLeft: `4px solid ${isAtRisk ? '#ef4444' : '#10b981'}`,
+                      border: `1px solid ${isAtRisk ? 'rgba(239, 68, 68, 0.18)' : 'rgba(255, 255, 255, 0.04)'}`,
+                      borderLeft: `3px solid ${isAtRisk ? '#ef4444' : 'transparent'}`,
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.9rem', color: '#f8fafc', fontWeight: '600' }}>{prod.name}</span>
-                        {isAtRisk ? (
-                          <span title="Demanda estimada supera el umbral (Riesgo de Sobredemanda)" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '0.12rem 0.45rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(239, 68, 68, 0.2)' }}>
-                            ✕
-                          </span>
-                        ) : (
-                          <span title="Demanda en rango seguro" style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.3)', padding: '0.12rem 0.45rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 8px rgba(52, 211, 153, 0.2)' }}>
-                            ✓
-                          </span>
-                        )}
-                      </div>
-                      <span style={{ fontFamily: 'monospace', color: '#64748b', fontSize: '0.75rem', marginTop: '0.15rem', display: 'block' }}>
-                        {prod.sku} {prod.category ? `• ${prod.category}` : ''} {prod.brand ? `• ${prod.brand}` : ''} <span style={{ color: '#94a3b8' }}>• Predicción: <strong style={{ color: '#38bdf8' }}>{formattedDemand} un.</strong></span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontSize: '0.88rem', color: '#f8fafc', fontWeight: '600' }}>{prod.name}</span>
+                      <span style={{ color: '#64748b', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                        {prod.sku} {prod.category ? `• ${prod.category}` : ''} {prod.brand ? `• ${prod.brand}` : ''}
                       </span>
                     </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      
-                      <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: '700', fontFamily: 'monospace', background: 'rgba(14, 165, 233, 0.08)', padding: '0.25rem 0.5rem', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
-                        {formattedNum} un.
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Demanda Estimada</span>
+                      <span style={{ fontSize: '0.85rem', color: isAtRisk ? '#f87171' : '#cbd5e1', fontWeight: '600', fontFamily: 'monospace' }}>
+                        {formattedDemand} un.
                       </span>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <button
-                          type="button"
-                          onClick={() => adjustThreshold(prod.id, -1000)}
-                          style={{
-                            background: 'rgba(14, 165, 233, 0.12)',
-                            border: '1px solid rgba(56, 189, 248, 0.3)',
-                            color: '#38bdf8',
-                            borderRadius: '6px',
-                            width: '32px',
-                            height: '34px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            userSelect: 'none'
-                          }}
-                          title="Disminuir 1,000 unidades"
-                        >
-                          <Minus size={14} />
-                        </button>
-
-                        <input 
-                          type="number" 
-                          step="1000"
-                          value={currentVal} 
-                          onChange={(e) => setProductThresholds({ 
-                            ...productThresholds, 
-                            [prod.id]: parseInt(e.target.value) || 0 
-                          })}
-                          style={{ 
-                            background: 'rgba(15, 23, 42, 0.6)', 
-                            border: '1px solid rgba(255, 255, 255, 0.1)', 
-                            borderRadius: '6px', 
-                            padding: '0.45rem 0.5rem', 
-                            color: '#f8fafc', 
-                            fontSize: '0.88rem', 
-                            width: '95px', 
-                            textAlign: 'right', 
-                            outline: 'none' 
-                          }}
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => adjustThreshold(prod.id, 1000)}
-                          style={{
-                            background: 'rgba(14, 165, 233, 0.12)',
-                            border: '1px solid rgba(56, 189, 248, 0.3)',
-                            color: '#38bdf8',
-                            borderRadius: '6px',
-                            width: '32px',
-                            height: '34px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            userSelect: 'none'
-                          }}
-                          title="Aumentar 1,000 unidades"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-
                     </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => adjustThreshold(prod.id, -100)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#cbd5e1',
+                          borderRadius: '6px',
+                          width: '30px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          userSelect: 'none'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)'; e.currentTarget.style.color = '#38bdf8'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; e.currentTarget.style.color = '#cbd5e1'; }}
+                        title="Disminuir 100 un."
+                      >
+                        <Minus size={14} />
+                      </button>
+
+                      <input 
+                        type="number" 
+                        step="100"
+                        value={currentVal} 
+                        onChange={(e) => setProductThresholds({ 
+                          ...productThresholds, 
+                          [prod.id]: parseInt(e.target.value) || 0 
+                        })}
+                        style={{ 
+                          background: 'rgba(15, 23, 42, 0.7)', 
+                          border: '1px solid rgba(255, 255, 255, 0.1)', 
+                          borderRadius: '6px', 
+                          padding: '0.4rem 0.5rem', 
+                          color: '#f8fafc', 
+                          fontSize: '0.85rem', 
+                          width: '90px', 
+                          textAlign: 'right', 
+                          outline: 'none',
+                          fontFamily: 'monospace',
+                          fontWeight: '600'
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => adjustThreshold(prod.id, 100)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#cbd5e1',
+                          borderRadius: '6px',
+                          width: '30px',
+                          height: '32px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          userSelect: 'none'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)'; e.currentTarget.style.color = '#38bdf8'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; e.currentTarget.style.color = '#cbd5e1'; }}
+                        title="Aumentar 100 un."
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+
                   </div>
                 );
               })
