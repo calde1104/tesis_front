@@ -66,8 +66,50 @@ export const updateSystemConfig = async (newConfig) => {
   }
 };
 
+export const getProductThresholds = async () => {
+  const empresaId = getEmpresaId();
+  const storageKey = `product_thresholds_${empresaId}`;
+  
+  try {
+    const data = await apiRequest(`/v1/${empresaId}/config`);
+    if (Array.isArray(data)) {
+      const thresholdsMap = {};
+      data.forEach(item => {
+        if (item.parametro === 'UMBRAL_DEMANDA_MAXIMA' && item.valor) {
+          const key = item.productoId || item.producto_id || item.sku;
+          if (key) {
+            thresholdsMap[key] = parseInt(item.valor, 10);
+          }
+        }
+      });
+      if (Object.keys(thresholdsMap).length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(thresholdsMap));
+        localStorage.setItem('product_thresholds', JSON.stringify(thresholdsMap));
+        return thresholdsMap;
+      }
+    }
+  } catch (error) {
+    console.warn('getProductThresholds API call failed:', error);
+  }
+
+  const saved = localStorage.getItem(storageKey) || localStorage.getItem('product_thresholds');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error("Error parsing saved thresholds:", e);
+    }
+  }
+  return {};
+};
+
 export const saveProductThresholds = async (thresholdsMap) => {
   const empresaId = getEmpresaId();
+  const storageKey = `product_thresholds_${empresaId}`;
+
+  localStorage.setItem(storageKey, JSON.stringify(thresholdsMap));
+  localStorage.setItem('product_thresholds', JSON.stringify(thresholdsMap));
+
   try {
     const promises = Object.entries(thresholdsMap).map(([productoId, valor]) => {
       return apiRequest(`/v1/${empresaId}/config`, {
@@ -81,11 +123,9 @@ export const saveProductThresholds = async (thresholdsMap) => {
     });
 
     await Promise.all(promises);
-    localStorage.setItem('product_thresholds', JSON.stringify(thresholdsMap));
     return { success: true, message: 'Umbrales guardados correctamente en la base de datos MySQL' };
   } catch (error) {
     console.warn('Failed to persist thresholds to backend. Saving to localStorage fallback.', error);
-    localStorage.setItem('product_thresholds', JSON.stringify(thresholdsMap));
     return { success: true, message: 'Umbrales guardados localmente' };
   }
 };
@@ -96,44 +136,30 @@ export const getMLModels = async () => {
     const data = await apiRequest(`/v1/${empresaId}/models`);
     
     if (!data || data.length === 0) {
-      console.warn('Backend has 0 active models. Returning mock models for visual display.');
-      return getMockModels();
+      return [];
     }
 
-    return data.map((m, idx) => {
-      const date = idx === 0 ? '08/07/2026 14:32' : (idx === 1 ? '01/07/2026 09:15' : '15/06/2026 11:45');
-      const dataRange = idx === 0 ? '01/01/2016 a 30/06/2026' : (idx === 1 ? '01/01/2016 a 31/05/2026' : '01/01/2016 a 30/04/2026');
-      
+    return data.map((m) => {
+      const formattedDate = m.fechaEntrenamiento 
+        ? String(m.fechaEntrenamiento).replace('T', ' ').substring(0, 16) 
+        : (m.fechaCreacion ? String(m.fechaCreacion).replace('T', ' ').substring(0, 16) : null);
+
       return {
         id: m.id,
         version: m.version,
-        date: date,
-        dataRange: dataRange,
-        mape: `${m.mape.toFixed(2)}%`,
-        mae: Math.round(m.mae).toLocaleString('es-AR'),
-        rmse: Math.round(m.rmse).toLocaleString('es-AR'),
-        active: m.activo,
-        desalineado: m.mape > 5.0
+        date: formattedDate,
+        dataRange: m.rangoEntrenamiento || m.dataRange || null,
+        mape: m.mape != null ? `${m.mape.toFixed(2)}%` : null,
+        mae: m.mae != null ? Math.round(m.mae).toLocaleString('es-AR') : null,
+        rmse: m.rmse != null ? Math.round(m.rmse).toLocaleString('es-AR') : null,
+        active: m.activo || m.active || false,
+        desalineado: m.mape != null ? m.mape > 5.0 : false
       };
     });
   } catch (error) {
-    console.warn('getMLModels failed. Falling back to mock data.', error);
-    return getMockModels();
+    console.warn('getMLModels API request failed:', error);
+    return [];
   }
-};
-
-const getMockModels = () => {
-  let models = localStorage.getItem('ml_models');
-  if (!models) {
-    const initial = [
-      { id: 'm-001', version: 'v2.4.1', date: '08/07/2026 14:32', dataRange: '01/01/2016 a 30/06/2026', mape: '4.85%', mae: '14.200', rmse: '18.450', active: true, desalineado: true },
-      { id: 'm-002', version: 'v2.4.0', date: '01/07/2026 09:15', dataRange: '01/01/2016 a 31/05/2026', mape: '5.20%', mae: '15.800', rmse: '20.110', active: false, desalineado: false },
-      { id: 'm-003', version: 'v2.3.5', date: '15/06/2026 11:45', dataRange: '01/01/2016 a 30/04/2026', mape: '5.95%', mae: '18.100', rmse: '23.050', active: false, desalineado: false }
-    ];
-    localStorage.setItem('ml_models', JSON.stringify(initial));
-    models = JSON.stringify(initial);
-  }
-  return JSON.parse(models);
 };
 
 export const triggerRetraining = async () => {

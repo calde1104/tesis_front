@@ -41,8 +41,21 @@ export const logout = async () => {
   } finally {
     clearSalesFiltersCache();
     clearMarketShareCache();
+    
+    const preservedSettings = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.includes('product_thresholds')) {
+        preservedSettings[key] = localStorage.getItem(key);
+      }
+    }
+
     localStorage.clear();
     sessionStorage.clear();
+
+    Object.entries(preservedSettings).forEach(([k, v]) => {
+      localStorage.setItem(k, v);
+    });
   }
 };
 

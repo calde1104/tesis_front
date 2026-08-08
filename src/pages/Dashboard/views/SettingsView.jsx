@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader2, Sliders, CheckCircle2, Search, X, Plus, Minus, AlertTriangle } from 'lucide-react';
-import { saveProductThresholds } from '../../../services/settings';
+import { saveProductThresholds, getProductThresholds } from '../../../services/settings';
 import { getSalesList } from '../../../services/sales';
 import { getForecast } from '../../../services/forecast';
 
@@ -25,13 +25,10 @@ const SettingsView = () => {
       setLoading(true);
       
       let initialThresholds = {};
-      const savedThresholds = localStorage.getItem('product_thresholds');
-      if (savedThresholds) {
-        try {
-          initialThresholds = JSON.parse(savedThresholds);
-        } catch (e) {
-          console.error("Error leyendo umbrales de localStorage:", e);
-        }
+      try {
+        initialThresholds = await getProductThresholds();
+      } catch (e) {
+        console.error("Error cargando umbrales desde servicios:", e);
       }
 
       try {
@@ -86,9 +83,18 @@ const SettingsView = () => {
 
           const newThresholds = { ...initialThresholds };
           updatedList.forEach((prod) => {
-            if (newThresholds[prod.id] === undefined && newThresholds[prod.sku] === undefined) {
+            const savedVal = initialThresholds[prod.id] !== undefined 
+              ? initialThresholds[prod.id] 
+              : (initialThresholds[prod.sku] !== undefined ? initialThresholds[prod.sku] : undefined);
+
+            if (savedVal !== undefined) {
+              newThresholds[prod.id] = savedVal;
+              newThresholds[prod.sku] = savedVal;
+            } else {
               const baseDemand = prod.estimatedDemand || 1000;
-              newThresholds[prod.id] = Math.max(1000, Math.ceil((baseDemand * 1.2) / 500) * 500);
+              const defaultVal = Math.max(1000, Math.ceil((baseDemand * 1.2) / 500) * 500);
+              newThresholds[prod.id] = defaultVal;
+              newThresholds[prod.sku] = defaultVal;
             }
           });
           setProductThresholds(newThresholds);
@@ -138,9 +144,20 @@ const SettingsView = () => {
   };
 
   const adjustThreshold = (prodId, delta) => {
-    const current = productThresholds[prodId] !== undefined ? productThresholds[prodId] : 0;
+    const prod = productsList.find(p => p.id === prodId || p.sku === prodId);
+    const current = productThresholds[prodId] !== undefined 
+      ? productThresholds[prodId] 
+      : (prod && productThresholds[prod.sku] !== undefined ? productThresholds[prod.sku] : 0);
     const nextVal = Math.max(0, current + delta);
-    setProductThresholds(prev => ({ ...prev, [prodId]: nextVal }));
+    
+    setProductThresholds(prev => {
+      const updated = { ...prev, [prodId]: nextVal };
+      if (prod) {
+        if (prod.id) updated[prod.id] = nextVal;
+        if (prod.sku) updated[prod.sku] = nextVal;
+      }
+      return updated;
+    });
   };
 
   const getProductRiskStatus = (prod) => {
@@ -388,10 +405,14 @@ const SettingsView = () => {
                         type="number" 
                         step="100"
                         value={currentVal} 
-                        onChange={(e) => setProductThresholds({ 
-                          ...productThresholds, 
-                          [prod.id]: parseInt(e.target.value) || 0 
-                        })}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setProductThresholds(prev => ({
+                            ...prev,
+                            [prod.id]: val,
+                            [prod.sku]: val
+                          }));
+                        }}
                         style={{ 
                           background: 'rgba(15, 23, 42, 0.7)', 
                           border: '1px solid rgba(255, 255, 255, 0.1)', 
