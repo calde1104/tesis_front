@@ -111,9 +111,9 @@ const Login = () => {
 
       <div className="login-box">
         
-        <div className="login-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem' }}>
-            <svg className="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '42px', height: '42px', flexShrink: 0 }}>
+        <div className="login-header animated-splash-header">
+          <div className="logo-brand-row animated-splash-logo-row">
+            <svg className="logo-icon animated-splash-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="logoGradLogin" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#38bdf8" />
@@ -147,14 +147,14 @@ const Login = () => {
                 filter="url(#logoGlowLogin)"
               />
             </svg>
-            <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 className="splash-title">
               Predictive <span style={{ color: '#38bdf8' }}>B2B</span>
             </h1>
           </div>
-          <p className="brand-subtitle">Plataforma de Simulación & Gestión de Demanda</p>
+          <p className="brand-subtitle animated-splash-subtitle">Plataforma de Simulación & Gestión de Demanda</p>
         </div>
 
-        <div className="login-card">
+        <div className="login-card animated-splash-card">
           
           <div className="card-heading">
             <h2>Iniciar Sesión</h2>

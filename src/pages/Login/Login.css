@@ -65,42 +65,179 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: all 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.brand-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(14, 165, 233, 0.05) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+.logo-brand-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), filter 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.brand-logo-mark {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: #38bdf8;
-  box-shadow: 0 0 12px #38bdf8;
+.animated-splash-logo {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1), filter 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.brand-title {
+.splash-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: #f8fafc;
-  margin: 0 0 0.35rem 0;
-  letter-spacing: -0.01em;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .brand-subtitle {
   font-size: 0.85rem;
   color: #64748b;
   margin: 0;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+
+.animated-splash-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: splashHeaderGlide 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animated-splash-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+  animation: splashLogoScale 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, filter;
+}
+
+.animated-splash-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+.splash-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.animated-splash-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0;
+  animation: splashSubtitleFade 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animated-splash-card {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: splashCardFade 3.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes splashHeaderGlide {
+  0% {
+    opacity: 0;
+    transform: translateY(145px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(140px);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(140px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashLogoScale {
+  0% {
+    transform: scale(1.6);
+    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.3));
+  }
+  15% {
+    transform: scale(1.85);
+    filter: drop-shadow(0 0 32px rgba(56, 189, 248, 0.65));
+  }
+  65% {
+    transform: scale(1.85);
+    filter: drop-shadow(0 0 32px rgba(56, 189, 248, 0.65));
+  }
+  100% {
+    transform: scale(1.0);
+    filter: drop-shadow(0 0 0px transparent);
+  }
+}
+
+@keyframes splashSubtitleFade {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  20% {
+    opacity: 0.85;
+    transform: translateY(8px);
+  }
+  65% {
+    opacity: 0.85;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashCardFade {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+    pointer-events: none;
+  }
+  68% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+    pointer-events: none;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+}
+
+@keyframes logoPulseCenter {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.35));
+  }
+  100% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 38px rgba(56, 189, 248, 0.75));
+  }
 }
 
 .login-card {
@@ -112,6 +249,7 @@
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card-heading h2 {
