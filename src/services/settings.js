@@ -1,11 +1,5 @@
 import { apiRequest, getEmpresaId } from './api';
 
-const configParamKeys = {
-  alertThreshold: 'ALERTA_STOCK_MINIMO_PCT',
-  trainingFrequency: 'FRECUENCIA_ENTRENAMIENTO_MODELO',
-  forecastHorizon: 'HORIZONTE_PRONOSTICO_MESES',
-  currency: 'MONEDA_VISUALIZACION'
-};
 
 export const getSystemInfo = async () => {
   const empresaId = getEmpresaId();
@@ -18,53 +12,6 @@ export const getSystemInfo = async () => {
   }
 };
 
-export const getSystemConfig = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let config = localStorage.getItem('system_config');
-      if (!config) {
-        const initial = {
-          alertThreshold: 20,
-          trainingFrequency: 'mensual',
-          forecastHorizon: 12,
-          currency: 'ARS'
-        };
-        localStorage.setItem('system_config', JSON.stringify(initial));
-        config = JSON.stringify(initial);
-      }
-      resolve(JSON.parse(config));
-    }, 200);
-  });
-};
-
-export const updateSystemConfig = async (newConfig) => {
-  const empresaId = getEmpresaId();
-  
-  try {
-    const promises = Object.entries(newConfig).map(([key, value]) => {
-      const dbParamKey = configParamKeys[key];
-      if (dbParamKey) {
-        return apiRequest(`/v1/${empresaId}/config`, {
-          method: 'POST',
-          body: JSON.stringify({
-            parametro: dbParamKey,
-            valor: value.toString(),
-            productoId: null
-          })
-        });
-      }
-      return Promise.resolve();
-    });
-
-    await Promise.all(promises);
-    localStorage.setItem('system_config', JSON.stringify(newConfig));
-    return { success: true, message: 'Configuración guardada correctamente en el servidor' };
-  } catch (error) {
-    console.warn('Failed to update system config in backend. Saving locally.', error);
-    localStorage.setItem('system_config', JSON.stringify(newConfig));
-    return { success: true, message: 'Configuración guardada localmente' };
-  }
-};
 
 export const getProductThresholds = async () => {
   const empresaId = getEmpresaId();

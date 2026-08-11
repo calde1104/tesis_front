@@ -37,6 +37,7 @@ const Dashboard = () => {
   const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
   const [dismissedMlopsWarning, setDismissedMlopsWarning] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
+  const [dashboardTargetDate, setDashboardTargetDate] = useState('');
 
   const [loadingCompanyDetails, setLoadingCompanyDetails] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -142,6 +143,13 @@ const Dashboard = () => {
         const targetAnio = lastHistPoint ? lastHistPoint.rawAnio : new Date().getFullYear();
         const targetMes = lastHistPoint ? lastHistPoint.rawMes : 12;
 
+        if (lastHistPoint) {
+          const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+          setDashboardTargetDate(`${monthNames[targetMes - 1]} ${targetAnio}`);
+        } else {
+          setDashboardTargetDate('');
+        }
+
         const [kpiRes, marketRes, contextRes, modelsRes] = await Promise.all([
           getKPIs(targetAnio, targetMes),
           getMarketShareComposition(targetAnio, targetMes),
@@ -226,9 +234,10 @@ const Dashboard = () => {
 
   const getDynamicGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Buen día, Analista";
-    if (hour < 20) return "Buenas tardes, Analista";
-    return "Buenas noches, Analista";
+    const companyName = localStorage.getItem('empresaNombre') || 'Empresa';
+    if (hour < 12) return `Buen día, ${companyName}`;
+    if (hour < 20) return `Buenas tardes, ${companyName}`;
+    return `Buenas noches, ${companyName}`;
   };
 
   const getHeaderTitle = () => {
@@ -247,7 +256,7 @@ const Dashboard = () => {
 
   const getHeaderSubtitle = () => {
     switch(activeTab) {
-      case 'inicio': return "Resumen predictivo y estado de la demanda comercial (basado en los datos del último mes cargado).";
+      case 'inicio': return `Resumen predictivo y estado de la demanda comercial (basado en datos de ${dashboardTargetDate || 'último mes cargado'}).`;
       case 'sales': return "Consulta el histórico de transacciones facturadas por SKU.";
       case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
       case 'cold-start': return "Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento.";
@@ -255,7 +264,7 @@ const Dashboard = () => {
       case 'market': return "Análisis de datos reales de cuota de mercado y posicionamiento competitivo.";
       case 'settings': return "Configuración de límites de demanda máxima esperada por producto.";
       case 'settings-info': return "Metadatos de la organización, especificaciones del modelo ML y estado de la plataforma.";
-      default: return "Resumen predictivo y estado de la demanda comercial (basado en los datos del último mes cargado).";
+      default: return `Resumen predictivo y estado de la demanda comercial (basado en datos de ${dashboardTargetDate || 'último mes cargado'}).`;
     }
   };
 
