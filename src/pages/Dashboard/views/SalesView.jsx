@@ -366,7 +366,7 @@ const SalesView = ({ formatCurrency }) => {
             </button>
           )}
         </div>
-        <div className="filters-grid">
+        <div className="filters-grid" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
           <div className="filter-group" style={{ display: 'flex', flexDirection: 'column' }}>
             <label style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>Buscar Producto / SKU</label>
             <input

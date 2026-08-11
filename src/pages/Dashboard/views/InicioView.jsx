@@ -1,11 +1,31 @@
 import { 
   ArrowUpRight, ArrowDownRight, Coins, LineChart, Target, Scale, 
-  AreaChart as LucideAreaChart, Layers, Sliders, ShieldCheck 
+  AreaChart as LucideAreaChart, Layers, Sliders, ShieldCheck, Minus
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPie, Pie, Cell, ReferenceLine, ReferenceDot
 } from 'recharts';
+
+const MinimalStatus = ({ variant, children }) => {
+  const styles = {
+    purple: '#c084fc',
+    green: '#34d399',
+    blue: '#38bdf8',
+    orange: '#fb923c',
+    red: '#f87171'
+  };
+  const color = styles[variant] || styles.blue;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#94a3b8', fontWeight: '500', letterSpacing: '0.01em' }}>
+      <span style={{ position: 'relative', display: 'flex', width: '5px', height: '5px' }}>
+        <span style={{ position: 'absolute', display: 'inline-flex', height: '100%', width: '100%', borderRadius: '50%', backgroundColor: color, opacity: 0.5, filter: 'blur(1px)' }}></span>
+        <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', height: '5px', width: '5px', backgroundColor: color }}></span>
+      </span>
+      <span>{children}</span>
+    </div>
+  );
+};
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -179,8 +199,8 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
     idx < salesData.length - 1 && 
     salesData[idx + 1].forecast !== null
   );
-  const transitionMonth = transitionPoint ? transitionPoint.month : 'Jun 26';
-  const transitionValue = transitionPoint ? transitionPoint.historical : 682500;
+  const transitionMonth = transitionPoint ? transitionPoint.month : null;
+  const transitionValue = transitionPoint ? transitionPoint.historical : null;
 
   return (
     <>
@@ -195,14 +215,12 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
           </div>
           <div className="kpi-footer">
             {kpis.sales.trend !== null && kpis.sales.trend !== undefined ? (
-              <div className={`kpi-trend ${kpis.sales.trend >= 0 ? 'positive' : 'negative'}`}>
-                {kpis.sales.trend >= 0 ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
-                <span>{kpis.sales.trend >= 0 ? `+${kpis.sales.trend}` : kpis.sales.trend}% vs mes anterior</span>
+              <div className={`kpi-trend ${kpis.sales.trend > 0 ? 'positive' : (kpis.sales.trend < 0 ? 'negative' : 'neutral')}`}>
+                {kpis.sales.trend > 0 ? <ArrowUpRight size={12}/> : (kpis.sales.trend < 0 ? <ArrowDownRight size={12}/> : <Minus size={12}/>)}
+                <span>{kpis.sales.trend > 0 ? `+${kpis.sales.trend}` : kpis.sales.trend}% vs mes anterior</span>
               </div>
             ) : (
-              <span className="badge" style={{ background: 'rgba(56, 189, 248, 0.08)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
-                Último mes cargado
-              </span>
+              <MinimalStatus variant="blue">Último mes cargado</MinimalStatus>
             )}
           </div>
         </div>
@@ -210,21 +228,19 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
         <div className="card kpi-card clickable-card" onClick={() => setActiveTab('market')}>
           <div className="kpi-header">
             <span className="kpi-label">{kpis.margin.label}</span>
-            <Layers size={18} className="kpi-icon" style={{ color: '#34d399' }} />
+            <Layers size={18} className="kpi-icon" style={{ color: '#38bdf8' }} />
           </div>
           <div className="kpi-value">
             {kpis.margin.value}%
           </div>
           <div className="kpi-footer">
             {kpis.margin.trend !== null && kpis.margin.trend !== undefined ? (
-              <div className={`kpi-trend ${kpis.margin.trend >= 0 ? 'positive' : 'negative'}`}>
-                {kpis.margin.trend >= 0 ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
-                <span>{kpis.margin.trend >= 0 ? `+${kpis.margin.trend}` : kpis.margin.trend}% vs mes anterior</span>
+              <div className={`kpi-trend ${kpis.margin.trend > 0 ? 'positive' : (kpis.margin.trend < 0 ? 'negative' : 'neutral')}`}>
+                {kpis.margin.trend > 0 ? <ArrowUpRight size={12}/> : (kpis.margin.trend < 0 ? <ArrowDownRight size={12}/> : <Minus size={12}/>)}
+                <span>{kpis.margin.trend > 0 ? `+${kpis.margin.trend}` : kpis.margin.trend}% vs mes anterior</span>
               </div>
             ) : (
-              <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.08)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
-                Período Consolidado
-              </span>
+              <MinimalStatus variant="green">Período Consolidado</MinimalStatus>
             )}
           </div>
         </div>
@@ -232,21 +248,21 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
         <div className="card kpi-card clickable-card" onClick={() => setActiveTab('market')}>
           <div className="kpi-header">
             <span className="kpi-label">{kpis.priceGap.label}</span>
-            <Scale size={18} className="kpi-icon" style={{ color: '#c084fc' }} />
+            <Scale size={18} className="kpi-icon" style={{ color: '#38bdf8' }} />
           </div>
           <div className="kpi-value">
             {kpis.priceGap.value}%
           </div>
           <div className="kpi-footer">
             {kpis.priceGap.trend !== null && kpis.priceGap.trend !== undefined ? (
-              <div className={`kpi-trend ${kpis.priceGap.trend <= 0 ? 'positive' : 'negative'}`}>
-                {kpis.priceGap.trend <= 0 ? <ArrowDownRight size={12}/> : <ArrowUpRight size={12}/>}
-                <span>{kpis.priceGap.trend >= 0 ? `+${kpis.priceGap.trend}` : kpis.priceGap.trend}% vs mes anterior</span>
+              <div className={`kpi-trend ${kpis.priceGap.trend < 0 ? 'positive' : (kpis.priceGap.trend > 0 ? 'negative' : 'neutral')}`}>
+                {kpis.priceGap.trend > 0 ? <ArrowUpRight size={12}/> : (kpis.priceGap.trend < 0 ? <ArrowDownRight size={12}/> : <Minus size={12}/>)}
+                <span>{kpis.priceGap.trend > 0 ? `+${kpis.priceGap.trend}` : kpis.priceGap.trend}% vs mes anterior</span>
               </div>
             ) : (
-              <span className="badge" style={{ background: kpis.priceGap.value <= 0 ? 'rgba(56, 189, 248, 0.1)' : 'rgba(239, 68, 68, 0.1)', color: kpis.priceGap.value <= 0 ? '#38bdf8' : '#ef4444', border: kpis.priceGap.value <= 0 ? '1px solid rgba(56, 189, 248, 0.15)' : '1px solid rgba(239, 68, 68, 0.15)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
+              <MinimalStatus variant={kpis.priceGap.value <= 0 ? 'blue' : 'red'}>
                 {kpis.priceGap.value <= 0 ? 'Competitivo' : 'Por encima'}
-              </span>
+              </MinimalStatus>
             )}
           </div>
         </div>
@@ -254,7 +270,7 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
         <div className="card kpi-card clickable-card" onClick={() => setActiveTab('settings-info')}>
           <div className="kpi-header">
             <span className="kpi-label">{kpis.accuracy.label}</span>
-            <ShieldCheck size={18} className="kpi-icon" style={{ color: '#818cf8' }} />
+            <ShieldCheck size={18} className="kpi-icon" style={{ color: '#38bdf8' }} />
           </div>
           <div className="kpi-value" style={{ fontSize: kpis.accuracy.value !== null && kpis.accuracy.value < 0 ? '1.15rem' : '1.4rem', fontWeight: '700' }}>
             {(() => {
@@ -265,22 +281,14 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             })()}
           </div>
           <div className="kpi-footer">
-            <span className="badge" style={{ 
-              background: kpis.accuracy.value >= 70 ? 'rgba(52, 211, 153, 0.1)' : (kpis.accuracy.value >= 40 ? 'rgba(251, 146, 60, 0.1)' : 'rgba(168, 85, 247, 0.12)'), 
-              color: kpis.accuracy.value >= 70 ? '#34d399' : (kpis.accuracy.value >= 40 ? '#fb923c' : '#c084fc'), 
-              border: `1px solid ${kpis.accuracy.value >= 70 ? 'rgba(52, 211, 153, 0.2)' : (kpis.accuracy.value >= 40 ? 'rgba(251, 146, 60, 0.2)' : 'rgba(168, 85, 247, 0.25)')}`, 
-              padding: '0.15rem 0.5rem', 
-              borderRadius: '12px', 
-              fontSize: '0.68rem', 
-              fontWeight: '700' 
-            }}>
+            <MinimalStatus variant={kpis.accuracy.value >= 70 ? 'green' : (kpis.accuracy.value >= 40 ? 'orange' : 'purple')}>
               {(() => {
                 if (kpis.accuracy.value === null) return 'Sin Modelo';
                 if (kpis.accuracy.value >= 70) return 'Alta Precisión';
                 if (kpis.accuracy.value >= 40) return 'Precisión Moderada';
                 return 'Modelo Baseline';
               })()}
-            </span>
+            </MinimalStatus>
           </div>
         </div>
       </div>

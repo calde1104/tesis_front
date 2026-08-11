@@ -196,6 +196,7 @@ const MarketView = () => {
   const [soaComposition, setSoaComposition] = useState([]);
   const [soaValue, setSoaValue] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [resolvedDate, setResolvedDate] = useState({ year: null, month: null });
 
   const [department, setDepartment] = useState('');
   const [category, setCategory] = useState('');
@@ -238,13 +239,17 @@ const MarketView = () => {
 
       const latestDataYear = validShareRes.length > 0 && validShareRes[validShareRes.length - 1].year
         ? validShareRes[validShareRes.length - 1].year
-        : 2025;
+        : new Date().getFullYear();
       const latestDataMonth = validShareRes.length > 0 && validShareRes[validShareRes.length - 1].monthNum
         ? validShareRes[validShareRes.length - 1].monthNum
         : 12;
 
       const selYear = numericYears.length > 0 ? Math.max(...numericYears) : latestDataYear;
       const selMonth = numericMonths.length > 0 ? Math.max(...numericMonths) : latestDataMonth;
+
+      if (isMounted) {
+        setResolvedDate({ year: selYear, month: selMonth });
+      }
 
       const pPrice = getPriceGap({ department, category: targetCategory, brand, years, months }).then(res => {
         if (isMounted) {
@@ -396,9 +401,9 @@ const MarketView = () => {
   ];
 
   const lastPoint = shareData.length > 0 ? shareData[shareData.length - 1] : null;
-  const currentShare = lastPoint ? lastPoint['Nuestra Empresa'] : 0.63;
+  const currentShare = (lastPoint && lastPoint['Nuestra Empresa'] !== undefined) ? lastPoint['Nuestra Empresa'] : 0;
   const prevPoint = shareData.length > 1 ? shareData[shareData.length - 2] : null;
-  const prevShare = prevPoint ? prevPoint['Nuestra Empresa'] : currentShare;
+  const prevShare = (prevPoint && prevPoint['Nuestra Empresa'] !== undefined) ? prevPoint['Nuestra Empresa'] : currentShare;
   const shareDiff = parseFloat((currentShare - prevShare).toFixed(2));
 
   const currentEmpresaId = getEmpresaId();
@@ -641,7 +646,7 @@ const MarketView = () => {
       ) : (
         <div style={{ 
           display: 'grid',
-          gridTemplateRows: '1.15fr 0.85fr', 
+          gridTemplateRows: '1.2fr 0.8fr', 
           gap: '0.65rem',
           flex: 1,
           minHeight: 0,
@@ -705,6 +710,11 @@ const MarketView = () => {
                   </h3>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>
                     {brand ? 'Referencias activas (SKUs) por marca en el catálogo del mercado' : 'Referencias activas (SKUs) en el catálogo del mercado'}
+                    {resolvedDate.year && resolvedDate.month && (
+                      <span style={{ color: '#38bdf8', marginLeft: '0.3rem', fontWeight: '600' }}>
+                        • Año: {resolvedDate.year} • Mes: {monthOptions.find(opt => Number(opt.value) === Number(resolvedDate.month))?.label || resolvedDate.month}
+                      </span>
+                    )}
                   </p>
                   <div style={{ marginTop: '0.2rem', fontSize: '0.65rem', display: 'flex', alignItems: 'center' }}>
                     <span style={{ 
@@ -725,7 +735,7 @@ const MarketView = () => {
                           ? shareData[shareData.length - 1].year
                           : (filterOptions?.years && filterOptions.years.length > 0 
                               ? filterOptions.years[filterOptions.years.length - 1] 
-                              : 2025);
+                              : new Date().getFullYear());
 
                         if (monthLabel && yearLabel) {
                           return `Surtido en ${monthLabel} ${yearLabel}`;
@@ -749,7 +759,7 @@ const MarketView = () => {
                 </div>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.1rem', flex: 1, minHeight: 0, overflowY: 'auto' }} className="custom-scrollbar">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.1rem', flex: 1, minHeight: 0, overflowY: 'auto' }} className="custom-scrollbar">
                 {(() => {
                   const maxShare = Math.max(...rankingList.map(r => r.share || 0), 1);
                   
@@ -780,7 +790,7 @@ const MarketView = () => {
                               display: 'flex', 
                               flexDirection: 'column', 
                               gap: '0.15rem',
-                              padding: item.isOurCompany ? '0.25rem 0.45rem' : '0.15rem 0.35rem',
+                              padding: item.isOurCompany ? '0.15rem 0.35rem' : '0.1rem 0.25rem',
                               background: item.isOurCompany ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
                               border: item.isOurCompany ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid transparent',
                               borderRadius: '5px',
@@ -838,7 +848,7 @@ const MarketView = () => {
                 background: 'rgba(14, 165, 233, 0.03)',
                 border: '1px dashed rgba(14, 165, 233, 0.2)',
                 borderRadius: '6px',
-                padding: '0.4rem 0.6rem',
+                padding: '0.25rem 0.4rem',
                 fontSize: '0.65rem',
                 color: '#cbd5e1',
                 lineHeight: '1.3'
@@ -862,7 +872,13 @@ const MarketView = () => {
                 <div>
                   <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Variación de Precio por Producto (%)</h3>
                   <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>
-                    Variación porcentual vs período anterior
+                    {category ? `Categoría: ${category}` : department ? `Departamento: ${department}` : brand ? `Marca: ${brand}` : 'Top productos de la empresa'}
+                    <span style={{ color: '#64748b', opacity: 0.8, marginLeft: '0.3rem' }}>• Variación vs mes anterior</span>
+                    {resolvedDate.year && resolvedDate.month && (
+                      <span style={{ color: '#38bdf8', marginLeft: '0.3rem', fontWeight: '600' }}>
+                        • Año: {resolvedDate.year} • Mes: {monthOptions.find(opt => Number(opt.value) === Number(resolvedDate.month))?.label || resolvedDate.month}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.6rem' }}>
@@ -947,7 +963,12 @@ const MarketView = () => {
               <div>
                 <h3 style={{ margin: 0, fontSize: '0.88rem', color: '#f8fafc', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Detalle de Competitividad</h3>
                 <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.68rem', color: '#64748b' }}>
-                  Cuotas por empresa, brecha y estado por categoría
+                  {category ? `Cuotas y estado competitivo para ${category}` : department ? `Cuotas y estado competitivo en ${department}` : brand ? `Detalle competitivo de la marca ${brand}` : 'Desglose general de competitividad por categoría'}
+                  {resolvedDate.year && resolvedDate.month && (
+                    <span style={{ color: '#38bdf8', marginLeft: '0.3rem', fontWeight: '600' }}>
+                      • Año: {resolvedDate.year} • Mes: {monthOptions.find(opt => Number(opt.value) === Number(resolvedDate.month))?.label || resolvedDate.month}
+                    </span>
+                  )}
                 </p>
               </div>
               

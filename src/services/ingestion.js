@@ -1,6 +1,6 @@
 import { apiRequest, getEmpresaId } from './api';
 
-export const uploadFile = async (file, frequency = 'MENSUAL', periodoDesde = '2025-01-01', periodoHasta = '2025-12-31') => {
+export const uploadFile = async (file, frequency = 'MENSUAL', periodoDesde = `${new Date().getFullYear()}-01-01`, periodoHasta = `${new Date().getFullYear()}-12-31`) => {
   const empresaId = getEmpresaId();
   
   const formData = new FormData();

@@ -71,7 +71,11 @@ export const getProductThresholds = async () => {
   const storageKey = `product_thresholds_${empresaId}`;
   
   try {
-    const data = await apiRequest(`/v1/${empresaId}/config`);
+    let data = await apiRequest(`/v1/${empresaId}/config`);
+    if (data && !Array.isArray(data) && Array.isArray(data.data)) {
+      data = data.data;
+    }
+    
     if (Array.isArray(data)) {
       const thresholdsMap = {};
       data.forEach(item => {
@@ -122,8 +126,9 @@ export const saveProductThresholds = async (thresholdsMap) => {
       });
     });
 
-    await Promise.all(promises);
-    return { success: true, message: 'Umbrales guardados correctamente en la base de datos MySQL' };
+    // Usar allSettled para evitar que un fallo en un SKU (ej. ID vs String) rompa todo el lote
+    await Promise.allSettled(promises);
+    return { success: true, message: 'Umbrales procesados en la base de datos' };
   } catch (error) {
     console.warn('Failed to persist thresholds to backend. Saving to localStorage fallback.', error);
     return { success: true, message: 'Umbrales guardados localmente' };
@@ -162,38 +167,4 @@ export const getMLModels = async () => {
   }
 };
 
-export const triggerRetraining = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const models = getMockModels();
-      const newVersion = `v2.4.${models.length + 1}`;
-      const newModel = {
-        id: 'm-' + Math.random().toString(36).substring(2, 5),
-        version: newVersion,
-        date: new Date().toLocaleDateString('es-AR') + ' 03:00',
-        dataRange: '01/01/2016 a ' + new Date().toLocaleDateString('es-AR'),
-        mape: (4.0 + Math.random() * 0.7).toFixed(2) + '%',
-        mae: Math.floor(12000 + Math.random() * 2000).toLocaleString('es-AR'),
-        rmse: Math.floor(16000 + Math.random() * 2000).toLocaleString('es-AR'),
-        active: false
-      };
-      models.unshift(newModel);
-      localStorage.setItem('ml_models', JSON.stringify(models));
-      resolve({ success: true, newModel });
-    }, 600);
-  });
-};
 
-export const activateModelVersion = async (modelId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const models = getMockModels();
-      const updated = models.map(m => ({
-        ...m,
-        active: m.id === modelId
-      }));
-      localStorage.setItem('ml_models', JSON.stringify(updated));
-      resolve({ success: true, message: 'Modelo activado correctamente' });
-    }, 300);
-  });
-};

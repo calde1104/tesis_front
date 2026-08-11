@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import { getMLModels, getSystemInfo } from '../../services/settings';
 import { logout } from '../../services/auth';
+import { getProfile, uploadProfilePhoto, deleteProfilePhoto } from '../../services/profile';
 import './Dashboard.css';
 
 import InicioView from './views/InicioView';
@@ -38,6 +39,8 @@ const Dashboard = () => {
   const [activeModel, setActiveModel] = useState(null);
 
   const [loadingCompanyDetails, setLoadingCompanyDetails] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const getRealUserEmail = () => {
     const savedEmail = localStorage.getItem('userEmail');
@@ -122,11 +125,21 @@ const Dashboard = () => {
       return;
     }
 
+    const fetchUserProfile = async () => {
+      try {
+        const p = await getProfile();
+        if (p) setProfile(p);
+      } catch (e) {
+        console.error("Error fetching user profile:", e);
+      }
+    };
+    fetchUserProfile();
+
     const fetchData = async () => {
       try {
         const salesRes = await getSalesEvolution();
         const lastHistPoint = salesRes.filter(p => p.historical !== null && p.rawAnio && p.rawMes).pop();
-        const targetAnio = lastHistPoint ? lastHistPoint.rawAnio : 2025;
+        const targetAnio = lastHistPoint ? lastHistPoint.rawAnio : new Date().getFullYear();
         const targetMes = lastHistPoint ? lastHistPoint.rawMes : 12;
 
         const [kpiRes, marketRes, contextRes, modelsRes] = await Promise.all([
@@ -164,6 +177,37 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     setShowLogoutModal(true);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const OK = ["image/jpeg", "image/png", "image/webp"];
+    if (!OK.includes(file.type)) return alert("Formato no permitido (JPG, PNG o WebP).");
+    if (file.size > 2 * 1024 * 1024) return alert("La imagen supera los 2 MB.");
+    
+    try {
+      setUploadingPhoto(true);
+      const updatedProfile = await uploadProfilePhoto(file);
+      setProfile(updatedProfile);
+    } catch (err) {
+      alert(err.message || "Error al subir la foto");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    try {
+      setUploadingPhoto(true);
+      await deleteProfilePhoto();
+      setProfile(prev => ({ ...prev, foto: null }));
+    } catch (err) {
+      alert(err.message || "Error al borrar la foto");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const formatCurrency = (value) => {
@@ -208,12 +252,15 @@ const Dashboard = () => {
       case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
       case 'cold-start': return "Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento.";
       case 'ingestion': return "Carga de archivos de ventas, validación de formato y control de historial.";
-      case 'market': return "Cuota de mercado estimada y brechas relativas de precio.";
+      case 'market': return "Análisis de datos reales de cuota de mercado y posicionamiento competitivo.";
       case 'settings': return "Configuración de límites de demanda máxima esperada por producto.";
       case 'settings-info': return "Metadatos de la organización, especificaciones del modelo ML y estado de la plataforma.";
       default: return "Resumen predictivo y estado de la demanda comercial (basado en los datos del último mes cargado).";
     }
   };
+
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(localStorage.getItem('empresaNombre') || 'Analista B2B')}&background=0D8ABC&color=fff`;
+  const avatarSrc = profile?.foto ?? defaultAvatar;
 
   return (
     <div className={`dashboard-layout ${isSidebarOpen ? '' : 'sidebar-collapsed'}`}>
@@ -470,11 +517,10 @@ const Dashboard = () => {
               title="Ver perfil corporativo e información de la empresa"
             >
               <div className="user-avatar">
-                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(localStorage.getItem('empresaNombre') || 'Analista B2B')}&background=0D8ABC&color=fff`} alt="User" />
+                <img src={avatarSrc} alt="User" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
               </div>
               <div className="user-info-nav">
                 <span className="user-name">{localStorage.getItem('empresaNombre') || 'Analista B2B'}</span>
-                <span className="user-role">{localStorage.getItem('rol') || 'Admin'}</span>
               </div>
             </div>
           </div>
@@ -738,6 +784,41 @@ const Dashboard = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', background: 'rgba(15, 23, 42, 0.6)', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <img 
+                    src={avatarSrc} 
+                    alt="Perfil" 
+                    style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(56, 189, 248, 0.3)' }} 
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                    <span style={{ fontSize: '0.85rem', color: '#f8fafc', fontWeight: '700' }}>Foto de Perfil</span>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <label style={{ 
+                        background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: uploadingPhoto ? 'not-allowed' : 'pointer', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'inline-block', transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => { if (!uploadingPhoto) e.currentTarget.style.background = 'rgba(56, 189, 248, 0.25)' }}
+                      onMouseLeave={(e) => { if (!uploadingPhoto) e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)' }}>
+                        {uploadingPhoto ? 'Procesando...' : 'Cambiar foto'}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                      </label>
+                      {profile?.foto && (
+                        <button 
+                          type="button" 
+                          onClick={handlePhotoDelete}
+                          disabled={uploadingPhoto}
+                          style={{ 
+                            background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: uploadingPhoto ? 'not-allowed' : 'pointer', border: '1px solid rgba(239, 68, 68, 0.3)', transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => { if (!uploadingPhoto) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)' }}
+                          onMouseLeave={(e) => { if (!uploadingPhoto) e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)' }}
+                        >
+                          Quitar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.6)', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                     <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Razón Social</span>

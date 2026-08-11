@@ -18,8 +18,8 @@ const IngestionView = () => {
 
   const [frequency, setFrequency] = useState(null); // 'MENSUAL' | 'SEMANAL' | null
   const [frequencyError, setFrequencyError] = useState(false);
-  const [periodoDesde, setPeriodoDesde] = useState('2025-01-01');
-  const [periodoHasta, setPeriodoHasta] = useState('2025-12-31');
+  const [periodoDesde, setPeriodoDesde] = useState(`${new Date().getFullYear()}-01-01`);
+  const [periodoHasta, setPeriodoHasta] = useState(`${new Date().getFullYear()}-12-31`);
 
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSuccessCelebration, setShowSuccessCelebration] = useState(false);

@@ -109,7 +109,7 @@ export const getPriceGap = async (filters = {}) => {
   }
 };
 
-export const getMarketShareComposition = async (anio = 2025, mes = 12, filters = {}) => {
+export const getMarketShareComposition = async (anio = new Date().getFullYear(), mes = new Date().getMonth() + 1, filters = {}) => {
   const empresaId = getEmpresaId();
   try {
     const params = new URLSearchParams();
@@ -151,7 +151,7 @@ export const getMarketShareComposition = async (anio = 2025, mes = 12, filters =
   }
 };
 
-export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) => {
+export const getShareOfAssortment = async (anio = new Date().getFullYear(), mes = new Date().getMonth() + 1, filters = {}) => {
   const empresaId = getEmpresaId();
   try {
     const params = new URLSearchParams();
@@ -196,7 +196,7 @@ export const getShareOfAssortment = async (anio = 2025, mes = 12, filters = {}) 
   }
 };
 
-export const getCategoriesSummary = async (anio = 2025, mes = 12, department = null) => {
+export const getCategoriesSummary = async (anio = new Date().getFullYear(), mes = new Date().getMonth() + 1, department = null) => {
   const empresaId = getEmpresaId();
   try {
     const params = new URLSearchParams();
