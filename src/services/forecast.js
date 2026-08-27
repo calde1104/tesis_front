@@ -86,8 +86,11 @@ export const getForecast = async (sku = null) => {
         : null;
 
       const predicted = getVal(rawMatch, ['unidadesPredichas', 'unidades_predichas', 'unidades', 'montoPredicho', 'monto_predicho', 'cantidad', 'valor', 'forecast', 'prediccion']);
-      const lower = getVal(rawMatch, ['intervaloConfianzaInf', 'intervalo_confianza_inf', 'intervaloInf', 'inf']);
-      const upper = getVal(rawMatch, ['intervaloConfianzaSup', 'intervalo_confianza_sup', 'intervaloSup', 'sup']);
+      const rawLower = getVal(rawMatch, ['intervaloConfianzaInf', 'intervalo_confianza_inf', 'intervaloInf', 'inf']);
+      const rawUpper = getVal(rawMatch, ['intervaloConfianzaSup', 'intervalo_confianza_sup', 'intervaloSup', 'sup']);
+
+      const lower = rawLower !== null && rawLower !== undefined ? rawLower : (predicted !== null ? Math.round(predicted * 0.85) : null);
+      const upper = rawUpper !== null && rawUpper !== undefined ? rawUpper : (predicted !== null ? Math.round(predicted * 1.15) : null);
 
       forecastPoints.push({
         month: `${monthsEs[currMonth - 1]} ${String(currYear).slice(-2)}`,

@@ -128,6 +128,9 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
 const CustomTooltip = ({ active, payload, label, selectedProduct, productList, formatCurrency, priceChange }) => {
   if (active && payload && payload.length) {
     const filteredPayload = payload.filter((pld) => {
+      if (pld.dataKey === 'forecastUpper' || pld.dataKey === 'forecastLower' || pld.name === 'forecastUpper') {
+        return false;
+      }
       if (pld.dataKey === 'forecast' && pld.payload.historical !== null && pld.payload.historical !== undefined) {
         return false;
       }
@@ -152,7 +155,8 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, productList, f
       }}>
         <p style={{ margin: 0, fontWeight: '700', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</p>
         {filteredPayload.map((pld) => {
-          const isSimulated = pld.name === 'simulated' || pld.dataKey === 'simulated';
+          const isForecast = pld.name === 'forecast' || pld.dataKey === 'forecast';
+          const isSimulated = pld.name === 'simulated' || pld.dataKey === 'simulated' || pld.name === 'Simulado';
           const isHistorical = pld.name === 'historical' || pld.dataKey === 'historical';
           const units = typeof pld.value === 'number' ? pld.value : 0;
           
@@ -175,7 +179,7 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, productList, f
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
                 <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: pld.color }}></span>
                 <span style={{ color: '#cbd5e1', fontWeight: '500' }}>
-                  {isHistorical ? 'Ventas Históricas' : pld.name === 'forecast' ? 'Demanda Proyectada' : isSimulated ? 'Simulado' : pld.name}:
+                  {isHistorical ? 'Ventas Históricas' : isForecast ? 'Demanda Proyectada' : isSimulated ? 'Simulado' : pld.name}:
                 </span>
                 <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
                   {units.toLocaleString('es-PY')} un.
@@ -185,6 +189,24 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, productList, f
               {displayMoney !== null && formatCurrency && (
                 <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#38bdf8', opacity: 0.9 }}>
                   <span>{moneyLabel}: {formatCurrency(displayMoney)}</span>
+                </div>
+              )}
+
+              {isForecast && pld.payload?.forecastLower !== null && pld.payload?.forecastLower !== undefined && pld.payload?.forecastUpper !== null && pld.payload?.forecastUpper !== undefined && (
+                <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <span>Int. Confianza (±15%):</span>
+                  <span style={{ color: '#818cf8', fontWeight: '600' }}>
+                    [{Math.round(pld.payload.forecastLower).toLocaleString('es-PY')} - {Math.round(pld.payload.forecastUpper).toLocaleString('es-PY')} un.]
+                  </span>
+                </div>
+              )}
+
+              {isSimulated && pld.payload?.simulated !== null && pld.payload?.simulated !== undefined && (
+                <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <span>Int. Confianza Simulado:</span>
+                  <span style={{ color: '#34d399', fontWeight: '600' }}>
+                    [{Math.round(pld.payload.simulated * 0.85).toLocaleString('es-PY')} - {Math.round(pld.payload.simulated * 1.15).toLocaleString('es-PY')} un.]
+                  </span>
                 </div>
               )}
             </div>

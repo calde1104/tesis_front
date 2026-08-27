@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Loader2, TrendingUp, HelpCircle, Utensils, GlassWater, User, Droplet, Folder } from 'lucide-react';
+import { 
+  Sparkles, Loader2, TrendingUp, HelpCircle, Utensils, GlassWater, 
+  User, Droplet, Folder, AlertCircle, RefreshCw, BarChart3, Users,
+  Layers, CheckCircle2, DollarSign, Activity, Percent, ArrowUpRight
+} from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { predictColdStart } from '../../../services/marketShare';
-import { getSalesFilters } from '../../../services/sales';
+import { predictColdStart } from '../../../services/coldStart';
+import { getSalesFilters, getDeptId, getCategoryId, getBrandId } from '../../../services/sales';
+
+const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const monthsFullEs = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
 
 const getDepartmentIcon = (deptName) => {
   const name = deptName ? deptName.toLowerCase() : '';
@@ -12,8 +22,6 @@ const getDepartmentIcon = (deptName) => {
   if (name.includes('cuidado') || name.includes('personal') || name.includes('perfumer') || name.includes('cosmet')) return <User size={16} />;
   return <Folder size={16} />;
 };
-
-
 
 const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down' }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -122,7 +130,73 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   );
 };
 
+const CustomColdStartTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const monthName = monthsFullEs[(data.monthNum || 1) - 1] || data.month;
 
+    return (
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.95)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(14, 165, 233, 0.3)',
+        borderRadius: '10px',
+        padding: '0.75rem 0.9rem',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(14, 165, 233, 0.2)',
+        fontSize: '0.78rem',
+        minWidth: '200px'
+      }}>
+        <div style={{
+          color: '#f8fafc',
+          fontWeight: '700',
+          fontSize: '0.85rem',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          paddingBottom: '0.35rem',
+          marginBottom: '0.45rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>{monthName} {data.year}</span>
+          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>M+{payload[0].payload.idxMes || ''}</span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8' }} />
+              Demanda Estimada:
+            </span>
+            <span style={{ fontWeight: '700', color: '#f8fafc' }}>
+              {Number(data.units).toLocaleString('es-PY')} un.
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399' }} />
+              Facturación Proyectada:
+            </span>
+            <span style={{ fontWeight: '700', color: '#f8fafc' }}>
+              ₲ {Number(data.revenue).toLocaleString('es-PY')}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#94a3b8', borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '0.35rem', marginTop: '0.15rem' }}>
+            <span>Rango de Confianza (±20%):</span>
+            <span>[{Number(data.confidenceInf).toLocaleString('es-PY')} - {Number(data.confidenceSup).toLocaleString('es-PY')}]</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
+            <span>Factor Estacional:</span>
+            <span style={{ color: '#38bdf8', fontWeight: '600' }}>x{Number(data.seasonalFactor || 1).toFixed(3)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 const ColdStartView = () => {
   const [filterOptions, setFilterOptions] = useState({
@@ -137,9 +211,13 @@ const ColdStartView = () => {
   const [coldBrand, setColdBrand] = useState('');
   const [coldExpectedPrice, setColdExpectedPrice] = useState('');
   const [coldExpectedWeight, setColdExpectedWeight] = useState('');
-  const [coldUnit, setColdUnit] = useState('L');
+  const [coldUnit, setColdUnit] = useState('lt');
+  const [coldHorizon, setColdHorizon] = useState(12);
+
   const [coldPredicting, setColdPredicting] = useState(false);
   const [coldPredictionResult, setColdPredictionResult] = useState(null);
+  const [coldError, setColdError] = useState(null);
+  const [activeResultTab, setActiveResultTab] = useState('forecast'); // 'forecast' | 'twins'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -152,34 +230,64 @@ const ColdStartView = () => {
           }
         }
       } catch (err) {
-        console.error("Error al cargar filtros:", err);
+        console.error("Error al cargar filtros de catálogo:", err);
       }
     };
     fetchData();
   }, []);
 
   const handleColdStartSubmit = async (e) => {
-    e.preventDefault();
-    if (!coldProductName || !coldExpectedPrice || !coldTargetCategory || !coldBrand) {
-      alert("Por favor rellene todos los campos, incluyendo categoría y marca.");
+    if (e) e.preventDefault();
+    setColdError(null);
+
+    if (!coldProductName.trim()) {
+      setColdError("Ingrese el nombre o descripción del nuevo producto.");
       return;
     }
+    if (!coldDepartment) {
+      setColdError("Seleccione el departamento comercial.");
+      return;
+    }
+    if (!coldTargetCategory) {
+      setColdError("Seleccione la categoría objetivo.");
+      return;
+    }
+    if (!coldBrand) {
+      setColdError("Seleccione la marca del nuevo SKU.");
+      return;
+    }
+    if (!coldExpectedPrice || Number(coldExpectedPrice) <= 0) {
+      setColdError("Ingrese un precio sugerido válido mayor a 0.");
+      return;
+    }
+    if (!coldExpectedWeight || Number(coldExpectedWeight) <= 0) {
+      setColdError("Ingrese un contenido neto válido mayor a 0.");
+      return;
+    }
+
     setColdPredicting(true);
     setColdPredictionResult(null);
 
-    setTimeout(async () => {
+    try {
       const result = await predictColdStart({
-        name: coldProductName,
         department: coldDepartment,
         category: coldTargetCategory,
         brand: coldBrand,
-        expectedPrice: coldExpectedPrice,
-        weight: coldExpectedWeight,
-        unit: coldUnit
+        name: coldProductName,
+        expectedPrice: Number(coldExpectedPrice),
+        weight: Number(coldExpectedWeight),
+        unit: coldUnit,
+        horizonteMeses: Number(coldHorizon) || 12
       });
+
       setColdPredictionResult(result);
+      setActiveResultTab('forecast');
+    } catch (err) {
+      console.error("Error al ejecutar predicción Cold Start:", err);
+      setColdError(err.message || "Error al comunicarse con el microservicio de IA.");
+    } finally {
       setColdPredicting(false);
-    }, 1000);
+    }
   };
 
   const handleColdDepartmentChange = (deptId) => {
@@ -198,6 +306,26 @@ const ColdStartView = () => {
 
   const coldAllowedCategories = coldDepartment && filterOptions?.categories ? filterOptions.categories[coldDepartment] || [] : [];
   const coldAllowedBrands = filterOptions?.brands || [];
+
+  const proyecciones = coldPredictionResult?.proyeccion_12_meses || [];
+  const totalUnits12M = proyecciones.reduce((acc, p) => acc + (Number(p.unidades_predichas) || 0), 0);
+  const totalRevenue12M = proyecciones.reduce((acc, p) => acc + (Number(p.monto_predicho) || 0), 0);
+  const clusterId = coldPredictionResult?.producto_nuevo?.cluster_asignado ?? 0;
+  const baseUnitsEst = Number(coldPredictionResult?.producto_nuevo?.unidades_base_estimadas || 0);
+  const elasticityFactor = Number(coldPredictionResult?.producto_nuevo?.factor_elasticidad_precio || 1.0);
+  const peerProducts = coldPredictionResult?.productos_similares_gemelos || [];
+
+  const chartData = proyecciones.map((p, idx) => ({
+    month: `${monthsEs[(p.mes || 1) - 1]} ${String(p.anio || '').slice(-2)}`,
+    monthNum: p.mes,
+    year: p.anio,
+    idxMes: idx + 1,
+    units: Math.round(p.unidades_predichas || 0),
+    revenue: Math.round(p.monto_predicho || 0),
+    confidenceInf: Math.round(p.intervalo_confianza_inf || 0),
+    confidenceSup: Math.round(p.intervalo_confianza_sup || 0),
+    seasonalFactor: p.factor_estacional_aplicado || 1.0
+  }));
 
   return (
     <div className="forecast-view" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, minHeight: '100%' }}>
@@ -240,12 +368,12 @@ const ColdStartView = () => {
               Asistente Predictivo de Pre-lanzamiento (Cold Start)
             </h3>
             <p className="subtitle" style={{ fontSize: '0.78rem', color: '#64748b', margin: '0.1rem 0 0 0' }}>
-              Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento de similitud física y marcaria.
+              Inferencia de demanda inicial para nuevos SKUs mediante segmentación K-Means y transferencia de vecinos cercanos (KNN).
             </p>
           </div>
         </div>
 
-        <div className="cold-start-layout-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.25rem', flex: 1, minHeight: 0, overflow: 'visible' }}>
+        <div className="cold-start-layout-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.3fr', gap: '1.25rem', flex: 1, minHeight: 0, overflow: 'visible' }}>
           <form className="cold-start-form" onSubmit={handleColdStartSubmit} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '0.65rem', height: '100%', overflow: 'visible', paddingRight: '0.25rem' }}>
 
             <div style={{ background: 'rgba(15, 23, 42, 0.5)', border: '1px solid rgba(255, 255, 255, 0.07)', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative', zIndex: 10 }}>
@@ -358,14 +486,16 @@ const ColdStartView = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600' }}>
                     Precio Sugerido (₲)
                   </label>
                   <input
                     type="number"
-                    placeholder="Ej: 1250"
+                    min="1"
+                    step="any"
+                    placeholder="Ej: 12500"
                     value={coldExpectedPrice}
                     onChange={(e) => setColdExpectedPrice(e.target.value)}
                     required
@@ -398,6 +528,7 @@ const ColdStartView = () => {
                   </label>
                   <input
                     type="number"
+                    min="0.01"
                     step="any"
                     placeholder="Ej: 1.5"
                     value={coldExpectedWeight}
@@ -428,22 +559,39 @@ const ColdStartView = () => {
 
                 <div className="form-group" style={{ margin: 0 }}>
                   <CustomSelect
-                    label="Medida"
+                    label="Unidad"
                     value={coldUnit}
                     onChange={(e) => setColdUnit(e.target.value)}
                     placeholder="Unidad"
                     direction="down"
                     options={[
-                      { value: 'L', label: 'L' },
-                      { value: 'ml', label: 'ml' },
-                      { value: 'g', label: 'g' },
-                      { value: 'kg', label: 'kg' },
-                      { value: 'un', label: 'un' }
+                      { value: 'lt', label: 'Litros (lt)' },
+                      { value: 'ml', label: 'Mililitros (ml)' },
+                      { value: 'gr', label: 'Gramos (gr)' },
+                      { value: 'kg', label: 'Kilos (kg)' },
+                      { value: 'un', label: 'Unidades (un)' }
                     ]}
                   />
                 </div>
               </div>
             </div>
+
+            {coldError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '0.55rem 0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#fca5a5',
+                fontSize: '0.78rem'
+              }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, color: '#ef4444' }} />
+                <span>{coldError}</span>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -462,11 +610,12 @@ const ColdStartView = () => {
                 boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)',
                 transition: 'all 0.2s ease',
                 position: 'relative',
-                zIndex: 1
+                zIndex: 1,
+                cursor: coldPredicting ? 'not-allowed' : 'pointer'
               }}
             >
               {coldPredicting ? <Loader2 size={16} className="spinner" /> : <TrendingUp size={16} />}
-              {coldPredicting ? 'Calculando Clusters...' : 'Predecir Lanzamiento'}
+              {coldPredicting ? 'Consultando Motor de IA...' : 'Predecir Lanzamiento (FastAPI)'}
             </button>
           </form>
 
@@ -485,150 +634,267 @@ const ColdStartView = () => {
                 borderRadius: '12px',
                 padding: '2rem'
               }}>
-                <Loader2 size={40} className="spinner" style={{ color: '#38bdf8', marginBottom: '1rem' }} />
-                <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', margin: '0 0 0.5rem 0', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ejecutando Modelado</h4>
-                <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, lineHeight: '1.4' }}>
-                  El motor de IA está procesando el algoritmo K-Medoids para agrupar el nuevo SKU en el cluster adecuado...
+                <Loader2 size={42} className="spinner" style={{ color: '#38bdf8', marginBottom: '1rem' }} />
+                <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', margin: '0 0 0.5rem 0', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Modelado de Similitud en Ejecución
+                </h4>
+                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: '1.4', maxWidth: '360px' }}>
+                  FastAPI está procesando el agrupamiento vectorial K-Means y buscando los productos gemelos más cercanos (KNN) en la base de datos...
                 </p>
               </div>
             ) : coldPredictionResult ? (
-              /* Gorgeous Result Card */
+              /* Real Results Box */
               <div className="prediction-success-box" style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.03) 100%)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
+                background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.06) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                border: '1px solid rgba(14, 165, 233, 0.25)',
                 borderRadius: '12px',
-                padding: '1.25rem',
+                padding: '1rem 1.15rem',
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.85rem',
-                boxShadow: '0 8px 24px rgba(16, 185, 129, 0.05)',
+                gap: '0.75rem',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
                 minHeight: 0
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.85rem', color: '#34d399', fontWeight: '700', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '70%' }}>
-                    {coldProductName ? `Proyección: ${coldProductName}` : 'Clasificación Exitosa'}
-                  </h4>
-                  <span className="badge" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.5rem', borderRadius: '12px', fontSize: '0.65rem' }}>
-                    Cluster Activo
-                  </span>
-                </div>
-
-                <div className="result-metric-large" style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                  <span className="metric-label" style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.05em' }}>Grupo de Comportamiento</span>
-                  <span className="metric-value" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#34d399' }}>{coldPredictionResult.clusterName}</span>
-                </div>
-
-                <div className="result-stats-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Precio Óptimo</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.15rem' }}>
-                      ₲ {coldPredictionResult.recommendedPrice.toLocaleString('es-PY')}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '0.5rem' }}>
+                  <div style={{ maxWidth: '65%', overflow: 'hidden' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#38bdf8', fontWeight: '700', letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {coldPredictionResult.producto_nuevo?.descripcion || coldProductName || 'Nuevo Lanzamiento'}
+                    </h4>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      Transferencia de demanda desde catálogo histórico
                     </span>
                   </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Ventas Est. M1</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.15rem' }}>
-                      {coldPredictionResult.salesVolume.toLocaleString('es-PY')} un.
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <span className="badge" style={{ background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', border: '1px solid rgba(14, 165, 233, 0.3)', padding: '0.2rem 0.55rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
+                      Cluster #{clusterId}
                     </span>
-                  </div>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.6rem', color: '#64748b', textTransform: 'uppercase', display: 'block' }}>Confianza</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#38bdf8', display: 'block', marginTop: '0.15rem' }}>
-                      {coldPredictionResult.confidenceLevel}
+                    <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.12)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.25)', padding: '0.2rem 0.55rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
+                      K-Means + KNN
                     </span>
                   </div>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                    <h5 style={{ margin: 0, fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '60%' }}>
-                      Rampa: {coldProductName || 'Nuevo SKU'} (6M)
-                    </h5>
-                    <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.65rem' }}>
+                <div className="result-stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.45rem' }}>
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.45rem 0.55rem', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#64748b', textTransform: 'uppercase', display: 'block', fontWeight: '600' }}>Demanda Base</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#38bdf8', display: 'block', marginTop: '0.1rem' }}>
+                      {Math.round(baseUnitsEst).toLocaleString('es-PY')} <span style={{ fontSize: '0.65rem', fontWeight: '400', color: '#94a3b8' }}>un/mes</span>
+                    </span>
+                  </div>
+
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.45rem 0.55rem', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#64748b', textTransform: 'uppercase', display: 'block', fontWeight: '600' }}>Elasticidad</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.1rem' }}>
+                      x{elasticityFactor.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.45rem 0.55rem', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#64748b', textTransform: 'uppercase', display: 'block', fontWeight: '600' }}>Volumen 12M</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#f8fafc', display: 'block', marginTop: '0.1rem' }}>
+                      {Math.round(totalUnits12M).toLocaleString('es-PY')} <span style={{ fontSize: '0.65rem', fontWeight: '400', color: '#94a3b8' }}>un.</span>
+                    </span>
+                  </div>
+
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '0.45rem 0.55rem', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#64748b', textTransform: 'uppercase', display: 'block', fontWeight: '600' }}>Facturación 12M</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#34d399', display: 'block', marginTop: '0.1rem' }}>
+                      ₲ {Math.round(totalRevenue12M).toLocaleString('es-PY')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '0.35rem' }}>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveResultTab('forecast')}
+                      style={{
+                        background: activeResultTab === 'forecast' ? 'rgba(14, 165, 233, 0.18)' : 'transparent',
+                        border: `1px solid ${activeResultTab === 'forecast' ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                        color: activeResultTab === 'forecast' ? '#38bdf8' : '#94a3b8',
+                        borderRadius: '6px',
+                        padding: '0.3rem 0.65rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <BarChart3 size={14} />
+                      Curva de Proyección (12 Meses)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveResultTab('twins')}
+                      style={{
+                        background: activeResultTab === 'twins' ? 'rgba(14, 165, 233, 0.18)' : 'transparent',
+                        border: `1px solid ${activeResultTab === 'twins' ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)'}`,
+                        color: activeResultTab === 'twins' ? '#38bdf8' : '#94a3b8',
+                        borderRadius: '6px',
+                        padding: '0.3rem 0.65rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <Users size={14} />
+                      Pares Gemelos KNN ({peerProducts.length})
+                    </button>
+                  </div>
+
+                  {activeResultTab === 'forecast' && (
+                    <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.68rem' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#38bdf8' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8' }} />
-                        Ventas (un.)
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8' }} />
+                        Demanda (unidades)
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#34d399' }}>
-                        <span style={{ width: '6px', height: '2px', borderTop: '2px dashed #34d399' }} />
-                        Market Share (%)
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(56, 189, 248, 0.5)' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(56, 189, 248, 0.2)', border: '1px dashed #38bdf8' }} />
+                        Confianza ±20%
                       </span>
                     </div>
-                  </div>
-                  <div style={{ flex: 1, minHeight: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={coldPredictionResult.predictedShares}
-                        margin={{ top: 10, right: -15, left: -25, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="colorColdSales" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorColdShare" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#34d399" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                        <XAxis dataKey="month" stroke="#475569" tick={{ fill: '#64748b', fontSize: 9 }} />
-
-                        <YAxis
-                          yAxisId="left"
-                          stroke="#38bdf8"
-                          tick={{ fill: '#64748b', fontSize: 9 }}
-                          tickFormatter={(val) => val.toLocaleString('es-PY')}
-                          width={40}
-                        />
-                        <YAxis
-                          yAxisId="right"
-                          orientation="right"
-                          stroke="#34d399"
-                          tick={{ fill: '#64748b', fontSize: 9 }}
-                          tickFormatter={(val) => `${val}%`}
-                          width={35}
-                        />
-
-                        <Tooltip
-                          contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '8px', fontSize: '0.75rem' }}
-                          formatter={(value, name) => {
-                            if (name === 'sales') return [`${value.toLocaleString('es-AR')} un.`, 'Ventas Estimadas'];
-                            if (name === 'share') return [`${value}%`, 'Market Share'];
-                            return [value, name];
-                          }}
-                        />
-
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="sales"
-                          stroke="#38bdf8"
-                          strokeWidth={2}
-                          fillOpacity={1}
-                          fill="url(#colorColdSales)"
-                          activeDot={{ r: 4 }}
-                        />
-
-                        <Area
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey="share"
-                          stroke="#34d399"
-                          strokeWidth={2}
-                          strokeDasharray="4 4"
-                          fillOpacity={1}
-                          fill="url(#colorColdShare)"
-                          activeDot={{ r: 4 }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
+                  )}
                 </div>
+
+                {activeResultTab === 'forecast' && (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '180px' }}>
+                    <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={chartData}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorColdForecast" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
+                              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.02} />
+                            </linearGradient>
+                            <linearGradient id="colorColdBand" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.12} />
+                              <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                          <XAxis 
+                            dataKey="month" 
+                            stroke="#475569" 
+                            tick={{ fill: '#94a3b8', fontSize: 10 }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            stroke="#475569"
+                            tick={{ fill: '#94a3b8', fontSize: 10 }}
+                            tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
+                            tickLine={false}
+                            axisLine={false}
+                            width={45}
+                          />
+
+                          <Tooltip content={<CustomColdStartTooltip />} />
+
+                          <Area
+                            type="monotone"
+                            dataKey="confidenceSup"
+                            stroke="rgba(56, 189, 248, 0.3)"
+                            strokeDasharray="3 3"
+                            fill="url(#colorColdBand)"
+                            fillOpacity={1}
+                            name="Límite Superior"
+                          />
+
+                          <Area
+                            type="monotone"
+                            dataKey="units"
+                            stroke="#38bdf8"
+                            strokeWidth={2.5}
+                            fill="url(#colorColdForecast)"
+                            fillOpacity={1}
+                            name="Demanda Proyectada"
+                            activeDot={{ r: 5, fill: '#38bdf8', stroke: '#ffffff', strokeWidth: 2 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {activeResultTab === 'twins' && (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: '180px', overflowY: 'auto' }} className="custom-scrollbar">
+                    {peerProducts.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem', fontSize: '0.8rem' }}>
+                        No se encontraron productos similares en el espacio vectorial.
+                      </div>
+                    ) : (
+                      peerProducts.map((peer, idx) => (
+                        <div
+                          key={peer.id_producto || peer.sku || idx}
+                          style={{
+                            background: 'rgba(15, 23, 42, 0.65)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '8px',
+                            padding: '0.55rem 0.75rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#38bdf8', background: 'rgba(14, 165, 233, 0.1)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
+                                {peer.sku || `SKU-${idx + 1}`}
+                              </span>
+                              <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#f8fafc' }}>
+                                {peer.descripcion}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b', display: 'flex', gap: '0.5rem' }}>
+                              <span>Marca: <strong style={{ color: '#cbd5e1' }}>{peer.marca || 'N/A'}</strong></span>
+                              <span>•</span>
+                              <span>Categoría: <strong style={{ color: '#cbd5e1' }}>{peer.categoria || 'N/A'}</strong></span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'right' }}>
+                            <div>
+                              <span style={{ fontSize: '0.62rem', color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Ventas Promedio</span>
+                              <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#f8fafc' }}>
+                                {Math.round(Number(peer.ventas_promedio_mensual || 0)).toLocaleString('es-PY')} <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>un/m</span>
+                              </span>
+                            </div>
+
+                            <div style={{
+                              background: 'rgba(52, 211, 153, 0.12)',
+                              border: '1px solid rgba(52, 211, 153, 0.3)',
+                              color: '#34d399',
+                              padding: '0.25rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: '700',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {Number(peer.similitud_pct || 0).toFixed(1)}% Similitud
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
-              /* Original Clean Welcome Placeholder */
+              /* Initial State Placeholder */
               <div className="prediction-placeholder" style={{
                 flex: 1,
                 display: 'flex',
@@ -643,9 +909,9 @@ const ColdStartView = () => {
                 background: 'rgba(255, 255, 255, 0.01)'
               }}>
                 <HelpCircle size={42} className="placeholder-icon" style={{ color: '#475569', marginBottom: '0.85rem' }} />
-                <p style={{ fontSize: '0.92rem', fontWeight: '600', color: '#cbd5e1', margin: 0 }}>Cargá los datos del nuevo producto</p>
+                <p style={{ fontSize: '0.92rem', fontWeight: '600', color: '#cbd5e1', margin: 0 }}>Cargá las especificaciones del nuevo SKU</p>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.4rem', margin: 0, lineHeight: '1.45', maxWidth: '340px' }}>
-                  Completá el formulario a la izquierda con las especificaciones físicas y comerciales del SKU para agruparlo en un cluster de ventas histórico.
+                  Completá el formulario para clasificar el producto en un cluster K-Means y heredar la curva estacional mediante vecinos cercanos (KNN).
                 </p>
               </div>
             )}
