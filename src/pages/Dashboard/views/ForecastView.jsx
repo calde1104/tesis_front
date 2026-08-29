@@ -464,7 +464,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
       }));
 
       if (mapped.length === 0 && forecastData && forecastData.length > 0) {
-        const factor = 1 + (priceChange * -0.015) + (exchangeRateChange * -0.005) + (inflationChange * -0.008);
+        const factor = Math.max(0.3, 1 + (priceChange * -0.015) + (exchangeRateChange * -0.008) + (inflationChange * -0.010));
         mapped = forecastData
           .filter(p => p.forecast !== null && p.forecast !== undefined)
           .map(p => ({

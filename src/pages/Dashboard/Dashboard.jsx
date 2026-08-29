@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
   Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle, Sparkles, SlidersHorizontal, Server, LineChart,
-  Building2, Shield, Copy, Check, X, Mail
+  Building2, Shield, Copy, Check, X, Mail, CheckCircle2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import { getMLModels, getSystemInfo } from '../../services/settings';
 import { logout } from '../../services/auth';
 import { getProfile, uploadProfilePhoto, deleteProfilePhoto } from '../../services/profile';
+import { getNotificaciones, marcarNotificacionVista, marcarNotificacionResuelta } from '../../services/notificaciones';
+import { getSalesList } from '../../services/sales';
 import './Dashboard.css';
 
 import InicioView from './views/InicioView';
@@ -83,41 +85,57 @@ const Dashboard = () => {
       }
     }
   };
-  const [safetyStocks, setSafetyStocks] = useState({
-    'SKU-001': 12000,
-    'SKU-002': 25000,
-    'SKU-005': 40000,
-    'SKU-007': 30000
-  });
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [productsMap, setProductsMap] = useState({});
+  const notificationRef = useRef(null);
 
-  const getNotifications = () => {
-    const list = [];
-
-    const productPredictions = {
-      'SKU-001': { name: 'Aceite de Girasol', forecast: 14200, threshold: safetyStocks['SKU-001'] },
-      'SKU-002': { name: 'Fideos Tallarín', forecast: 28500, threshold: safetyStocks['SKU-002'] },
-      'SKU-005': { name: 'Cerveza Lager Lata', forecast: 45000, threshold: safetyStocks['SKU-005'] },
-      'SKU-007': { name: 'Gaseosa Cola', forecast: 35600, threshold: safetyStocks['SKU-007'] }
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
     };
 
-    Object.entries(productPredictions).forEach(([sku, prod]) => {
-      if (prod.forecast > prod.threshold) {
-        list.push({
-          id: `stock-${sku}`,
-          type: 'STOCK',
-          title: `Quiebre de Stock: ${prod.name}`,
-          message: `La demanda estimada (${prod.forecast.toLocaleString('es-AR')} un) supera el stock de seguridad (${prod.threshold.toLocaleString('es-AR')} un).`,
-          severity: 'CRITICAL',
-          tab: 'forecast',
-          sku: sku
-        });
-      }
-    });
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
-    return list;
+  const monthNamesFull = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  const fetchBackendNotifications = async () => {
+    try {
+      setLoadingNotifications(true);
+      const res = await getNotificaciones(0, 50);
+      if (res && res.content && Array.isArray(res.content)) {
+        setNotifications(res.content);
+      }
+    } catch (e) {
+      console.warn("Error al cargar notificaciones reales:", e);
+    } finally {
+      setLoadingNotifications(false);
+    }
   };
 
-  const notifications = getNotifications();
+  const handleMarkAsViewed = async (notifId, productSku) => {
+    setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, estado: 'VISTA' } : n));
+    marcarNotificacionVista(notifId);
+
+    if (productSku) {
+      setForecastSelectedSku(productSku);
+    }
+    setActiveTab('forecast');
+    setShowNotifications(false);
+  };
+
+  const activeNotificationsCount = notifications.filter(n => n.estado === 'ACTIVA').length;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -174,14 +192,33 @@ const Dashboard = () => {
     if (activeTab === 'inicio') {
       fetchData();
     }
-  }, [navigate, activeTab]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('product_thresholds');
-    if (saved) {
-      setSafetyStocks(JSON.parse(saved));
-    }
-  }, [activeTab]);
+    const loadCatalogDictionary = async () => {
+      try {
+        const salesRes = await getSalesList({}, 1, 100);
+        if (salesRes && salesRes.data) {
+          const map = {};
+          salesRes.data.forEach(item => {
+            const id = item.id || item.id_producto || item.idProducto;
+            const sku = item.sku;
+            const entry = {
+              sku: item.sku,
+              name: item.name || item.descripcionProducto,
+              category: item.category || item.categoriaNombre,
+              brand: item.brand || item.marcaNombre
+            };
+            if (id) map[id] = entry;
+            if (sku) map[sku] = entry;
+          });
+          setProductsMap(map);
+        }
+      } catch (e) {
+        console.warn("Error cargando diccionario de productos para notificaciones:", e);
+      }
+    };
+    loadCatalogDictionary();
+    fetchBackendNotifications();
+  }, [navigate, activeTab]);
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -318,14 +355,20 @@ const Dashboard = () => {
           <p>{getHeaderSubtitle()}</p>
         </div>
         <div className="header-actions">
-          <div className="notification-wrapper" style={{ position: 'relative' }}>
+          <div className="notification-wrapper" ref={notificationRef} style={{ position: 'relative' }}>
             <button 
               className="icon-btn" 
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                if (!showNotifications) {
+                  fetchBackendNotifications();
+                }
+              }}
               style={{ position: 'relative' }}
+              title="Notificaciones y Alertas"
             >
               <Bell size={20} />
-              {notifications.length > 0 && (
+              {activeNotificationsCount > 0 && (
                 <span className="notification-badge" style={{
                   position: 'absolute',
                   top: '-4px',
@@ -342,7 +385,7 @@ const Dashboard = () => {
                   justifyContent: 'center',
                   border: '2px solid #0b0f19'
                 }}>
-                  {notifications.length}
+                  {activeNotificationsCount}
                 </span>
               )}
             </button>
@@ -350,64 +393,122 @@ const Dashboard = () => {
             {showNotifications && (
               <div className="notifications-dropdown" style={{
                 position: 'absolute',
-                top: '40px',
+                top: '42px',
                 right: '0',
-                width: '320px',
+                width: '360px',
                 background: '#0f172a',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                borderRadius: '10px',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)',
                 zIndex: 1000,
-                padding: '0.75rem 0'
+                padding: '0.75rem 0',
+                display: 'flex',
+                flexDirection: 'column'
               }}>
                 <div style={{
-                  padding: '0 1rem 0.5rem 1rem',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                  padding: '0 1.1rem 0.65rem 1.1rem',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#f1f5f9' }}>Notificaciones</h4>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{notifications.length} Alertas</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <Bell size={15} style={{ color: '#38bdf8' }} />
+                    <h4 style={{ margin: 0, fontSize: '0.88rem', color: '#f1f5f9', fontWeight: '700' }}>Notificaciones</h4>
+                  </div>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: '600',
+                    background: activeNotificationsCount > 0 ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeNotificationsCount > 0 ? '#38bdf8' : '#94a3b8',
+                    border: `1px solid ${activeNotificationsCount > 0 ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: '10px'
+                  }}>
+                    {activeNotificationsCount} {activeNotificationsCount === 1 ? 'no leída' : 'no leídas'}
+                  </span>
                 </div>
-                <div className="custom-scrollbar" style={{ maxHeight: '280px', overflowY: 'auto', padding: '0.25rem 0' }}>
-                  {notifications.length > 0 ? (
-                    notifications.map(n => (
-                      <div 
-                        key={n.id} 
-                        style={{
-                          padding: '0.75rem 1rem',
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.02)',
-                          cursor: 'pointer',
-                          textAlign: 'left'
-                        }}
-                        className="notification-item"
-                        onClick={() => {
-                          if (n.sku) setForecastSelectedSku(n.sku);
-                          setActiveTab(n.tab);
-                          setShowNotifications(false);
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                          <span style={{
-                            color: n.severity === 'CRITICAL' ? '#ef4444' : '#eab308',
-                            fontSize: '1rem',
-                            lineHeight: '1'
-                          }}>
-                            {n.severity === 'CRITICAL' ? '●' : '▲'}
-                          </span>
-                          <span style={{ fontWeight: '600', fontSize: '0.8rem', color: '#f8fafc' }}>
-                            {n.title}
-                          </span>
+
+                <div className="custom-scrollbar" style={{ maxHeight: '340px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                  {loadingNotifications ? (
+                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
+                      Cargando notificaciones...
+                    </div>
+                  ) : notifications.length > 0 ? (
+                    notifications.map(n => {
+                      const prodInfo = productsMap[n.productoId] || {};
+                      const prodName = prodInfo.name || 'Producto';
+                      const prodSku = prodInfo.sku || '';
+
+                      let payload = {};
+                      try {
+                        payload = typeof n.payload === 'string' ? JSON.parse(n.payload) : (n.payload || {});
+                      } catch (e) {
+                        payload = {};
+                      }
+
+                      const units = payload.unidadesPredichas ? Math.round(payload.unidadesPredichas) : null;
+                      const threshold = payload.umbralDemandaMaxima ? Math.round(payload.umbralDemandaMaxima) : null;
+                      const mesName = payload.mes ? monthNamesFull[payload.mes - 1] : '';
+                      const anio = payload.anio || '';
+
+                      const isUnread = n.estado === 'ACTIVA';
+
+                      return (
+                        <div 
+                          key={n.id} 
+                          style={{
+                            padding: '0.8rem 1.15rem',
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            background: isUnread ? 'rgba(56, 189, 248, 0.04)' : 'transparent',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.35rem'
+                          }}
+                          className="notification-item"
+                          onClick={() => handleMarkAsViewed(n.id, prodSku || n.productoId)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                              {isUnread && (
+                                <span style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  background: '#38bdf8',
+                                  flexShrink: 0
+                                }} />
+                              )}
+                              <span style={{ fontWeight: '600', fontSize: '0.82rem', color: isUnread ? '#f8fafc' : '#94a3b8' }}>
+                                {prodName}
+                              </span>
+                            </div>
+
+                            <span style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                              {n.fechaGeneracion ? new Date(n.fechaGeneracion).toLocaleDateString('es-PY', { day: '2-digit', month: 'short' }) : ''}
+                            </span>
+                          </div>
+
+                          <p style={{ margin: 0, fontSize: '0.76rem', color: isUnread ? '#cbd5e1' : '#64748b', lineHeight: '1.4' }}>
+                            {units && threshold ? (
+                              <>
+                                Pronóstico de <strong style={{ color: isUnread ? '#38bdf8' : '#94a3b8' }}>{units.toLocaleString('es-PY')} un.</strong> supera el límite de <strong style={{ color: isUnread ? '#f1f5f9' : '#94a3b8' }}>{threshold.toLocaleString('es-PY')} un.</strong> para {mesName} {anio}.
+                              </>
+                            ) : (
+                              'La demanda proyectada por la IA superó el límite de unidades fijado.'
+                            )}
+                          </p>
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', lineHeight: '1.4' }}>
-                          {n.message}
-                        </p>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
-                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                      No tienes alertas pendientes
+                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                      <CheckCircle2 size={24} style={{ color: '#38bdf8', opacity: 0.6 }} />
+                      <div style={{ fontWeight: '600', color: '#94a3b8' }}>Sin notificaciones pendientes</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Todos los productos se encuentran dentro de los rangos previstos.</div>
                     </div>
                   )}
                 </div>

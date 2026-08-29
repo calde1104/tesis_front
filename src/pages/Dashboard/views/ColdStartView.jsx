@@ -137,59 +137,63 @@ const CustomColdStartTooltip = ({ active, payload }) => {
 
     return (
       <div style={{
-        background: 'rgba(15, 23, 42, 0.95)',
+        background: 'rgba(11, 15, 25, 0.94)',
         backdropFilter: 'blur(16px)',
         border: '1px solid rgba(14, 165, 233, 0.3)',
-        borderRadius: '10px',
-        padding: '0.75rem 0.9rem',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(14, 165, 233, 0.2)',
-        fontSize: '0.78rem',
-        minWidth: '200px'
+        borderRadius: '12px',
+        padding: '0.85rem 1.15rem',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(14, 165, 233, 0.2)',
+        fontSize: '0.8rem',
+        minWidth: '270px'
       }}>
         <div style={{
           color: '#f8fafc',
           fontWeight: '700',
-          fontSize: '0.85rem',
+          fontSize: '0.88rem',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          paddingBottom: '0.35rem',
-          marginBottom: '0.45rem',
+          paddingBottom: '0.4rem',
+          marginBottom: '0.55rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span>{monthName} {data.year}</span>
-          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>M+{payload[0].payload.idxMes || ''}</span>
+          <span style={{ fontSize: '0.72rem', color: '#38bdf8', background: 'rgba(14, 165, 233, 0.12)', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(14, 165, 233, 0.25)', fontWeight: '600' }}>
+            Mes {payload[0].payload.idxMes || ''}
+          </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
+            <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />
               Demanda Estimada:
             </span>
-            <span style={{ fontWeight: '700', color: '#f8fafc' }}>
+            <span style={{ fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap' }}>
               {Number(data.units).toLocaleString('es-PY')} un.
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
+            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', flexShrink: 0 }} />
               Facturación Proyectada:
             </span>
-            <span style={{ fontWeight: '700', color: '#f8fafc' }}>
+            <span style={{ fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap' }}>
               ₲ {Number(data.revenue).toLocaleString('es-PY')}
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#94a3b8', borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '0.35rem', marginTop: '0.15rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', fontSize: '0.74rem', color: '#94a3b8', borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '0.4rem', marginTop: '0.15rem' }}>
             <span>Rango de Confianza (±20%):</span>
-            <span>[{Number(data.confidenceInf).toLocaleString('es-PY')} - {Number(data.confidenceSup).toLocaleString('es-PY')}]</span>
+            <span style={{ color: '#818cf8', fontWeight: '600', whiteSpace: 'nowrap' }}>
+              [{Number(data.confidenceInf).toLocaleString('es-PY')} - {Number(data.confidenceSup).toLocaleString('es-PY')} un.]
+            </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', fontSize: '0.74rem', color: '#94a3b8' }}>
             <span>Factor Estacional:</span>
-            <span style={{ color: '#38bdf8', fontWeight: '600' }}>x{Number(data.seasonalFactor || 1).toFixed(3)}</span>
+            <span style={{ color: '#38bdf8', fontWeight: '600', whiteSpace: 'nowrap' }}>x{Number(data.seasonalFactor || 1).toFixed(3)}</span>
           </div>
         </div>
       </div>
@@ -365,10 +369,10 @@ const ColdStartView = () => {
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc', letterSpacing: '-0.01em' }}>
-              Asistente Predictivo de Pre-lanzamiento (Cold Start)
+              Estimación de Demanda para Nuevos Productos
             </h3>
             <p className="subtitle" style={{ fontSize: '0.78rem', color: '#64748b', margin: '0.1rem 0 0 0' }}>
-              Inferencia de demanda inicial para nuevos SKUs mediante segmentación K-Means y transferencia de vecinos cercanos (KNN).
+              Proyección de ventas para lanzamientos sin histórico a partir del comportamiento de artículos similares del catálogo.
             </p>
           </div>
         </div>
@@ -615,7 +619,7 @@ const ColdStartView = () => {
               }}
             >
               {coldPredicting ? <Loader2 size={16} className="spinner" /> : <TrendingUp size={16} />}
-              {coldPredicting ? 'Consultando Motor de IA...' : 'Predecir Lanzamiento (FastAPI)'}
+              {coldPredicting ? 'Calculando Estimación...' : 'Estimar Demanda de Lanzamiento'}
             </button>
           </form>
 
@@ -636,10 +640,10 @@ const ColdStartView = () => {
               }}>
                 <Loader2 size={42} className="spinner" style={{ color: '#38bdf8', marginBottom: '1rem' }} />
                 <h4 style={{ color: '#38bdf8', fontSize: '0.95rem', margin: '0 0 0.5rem 0', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Modelado de Similitud en Ejecución
+                  Analizando Potencial de Mercado
                 </h4>
                 <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: 0, lineHeight: '1.4', maxWidth: '360px' }}>
-                  FastAPI está procesando el agrupamiento vectorial K-Means y buscando los productos gemelos más cercanos (KNN) en la base de datos...
+                  Comparando las características del producto con el catálogo histórico para proyectar el volumen estimado de ventas a 12 meses...
                 </p>
               </div>
             ) : coldPredictionResult ? (
@@ -657,20 +661,12 @@ const ColdStartView = () => {
                 minHeight: 0
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '0.5rem' }}>
-                  <div style={{ maxWidth: '65%', overflow: 'hidden' }}>
-                    <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#38bdf8', fontWeight: '700', letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ width: '100%', overflow: 'hidden' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#38bdf8', fontWeight: '700', letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {coldPredictionResult.producto_nuevo?.descripcion || coldProductName || 'Nuevo Lanzamiento'}
                     </h4>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      Transferencia de demanda desde catálogo histórico
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <span className="badge" style={{ background: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', border: '1px solid rgba(14, 165, 233, 0.3)', padding: '0.2rem 0.55rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
-                      Cluster #{clusterId}
-                    </span>
-                    <span className="badge" style={{ background: 'rgba(52, 211, 153, 0.12)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.25)', padding: '0.2rem 0.55rem', borderRadius: '12px', fontSize: '0.68rem', fontWeight: '700' }}>
-                      K-Means + KNN
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                      Proyección estimada a partir del comportamiento de artículos similares del catálogo
                     </span>
                   </div>
                 </div>
@@ -705,61 +701,71 @@ const ColdStartView = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '0.35rem' }}>
-                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  paddingBottom: '0.45rem',
+                  gap: '1.25rem',
+                  flexWrap: 'wrap'
+                }}>
+                  <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                     <button
                       type="button"
                       onClick={() => setActiveResultTab('forecast')}
                       style={{
-                        background: activeResultTab === 'forecast' ? 'rgba(14, 165, 233, 0.18)' : 'transparent',
+                        background: activeResultTab === 'forecast' ? 'rgba(14, 165, 233, 0.18)' : 'rgba(255, 255, 255, 0.02)',
                         border: `1px solid ${activeResultTab === 'forecast' ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)'}`,
                         color: activeResultTab === 'forecast' ? '#38bdf8' : '#94a3b8',
                         borderRadius: '6px',
-                        padding: '0.3rem 0.65rem',
+                        padding: '0.35rem 0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.35rem',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       <BarChart3 size={14} />
-                      Curva de Proyección (12 Meses)
+                      Curva de Proyección (12M)
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setActiveResultTab('twins')}
                       style={{
-                        background: activeResultTab === 'twins' ? 'rgba(14, 165, 233, 0.18)' : 'transparent',
+                        background: activeResultTab === 'twins' ? 'rgba(14, 165, 233, 0.18)' : 'rgba(255, 255, 255, 0.02)',
                         border: `1px solid ${activeResultTab === 'twins' ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)'}`,
                         color: activeResultTab === 'twins' ? '#38bdf8' : '#94a3b8',
                         borderRadius: '6px',
-                        padding: '0.3rem 0.65rem',
+                        padding: '0.35rem 0.75rem',
                         fontSize: '0.75rem',
                         fontWeight: '600',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.35rem',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       <Users size={14} />
-                      Pares Gemelos KNN ({peerProducts.length})
+                      Productos de Referencia ({peerProducts.length})
                     </button>
                   </div>
 
                   {activeResultTab === 'forecast' && (
-                    <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.68rem' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#38bdf8' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8' }} />
-                        Demanda (unidades)
+                    <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', fontSize: '0.72rem', whiteSpace: 'nowrap', marginLeft: 'auto' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#38bdf8', fontWeight: '500' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />
+                        Demanda (un.)
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(56, 189, 248, 0.5)' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(56, 189, 248, 0.2)', border: '1px dashed #38bdf8' }} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#94a3b8', fontWeight: '500' }}>
+                        <span style={{ width: '10px', height: '6px', borderRadius: '2px', background: 'rgba(56, 189, 248, 0.25)', border: '1px dashed #38bdf8', flexShrink: 0 }} />
                         Confianza ±20%
                       </span>
                     </div>
@@ -833,7 +839,7 @@ const ColdStartView = () => {
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: '180px', overflowY: 'auto' }} className="custom-scrollbar">
                     {peerProducts.length === 0 ? (
                       <div style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem', fontSize: '0.8rem' }}>
-                        No se encontraron productos similares en el espacio vectorial.
+                        No se encontraron productos de referencia en esta categoría.
                       </div>
                     ) : (
                       peerProducts.map((peer, idx) => (
@@ -909,9 +915,9 @@ const ColdStartView = () => {
                 background: 'rgba(255, 255, 255, 0.01)'
               }}>
                 <HelpCircle size={42} className="placeholder-icon" style={{ color: '#475569', marginBottom: '0.85rem' }} />
-                <p style={{ fontSize: '0.92rem', fontWeight: '600', color: '#cbd5e1', margin: 0 }}>Cargá las especificaciones del nuevo SKU</p>
+                <p style={{ fontSize: '0.92rem', fontWeight: '600', color: '#cbd5e1', margin: 0 }}>Cargá los datos del nuevo producto</p>
                 <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.4rem', margin: 0, lineHeight: '1.45', maxWidth: '340px' }}>
-                  Completá el formulario para clasificar el producto en un cluster K-Means y heredar la curva estacional mediante vecinos cercanos (KNN).
+                  Completá el formulario para estimar la demanda proyectada del nuevo lanzamiento y encontrar productos de referencia en el catálogo.
                 </p>
               </div>
             )}
