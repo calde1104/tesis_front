@@ -130,71 +130,68 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   );
 };
 
-const CustomColdStartTooltip = ({ active, payload }) => {
+const CustomColdStartTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    const units = typeof data.units === 'number' ? data.units : 0;
+    const revenue = typeof data.revenue === 'number' ? data.revenue : 0;
     const monthName = monthsFullEs[(data.monthNum || 1) - 1] || data.month;
 
     return (
-      <div style={{
-        background: 'rgba(11, 15, 25, 0.94)',
+      <div className="custom-chart-tooltip" style={{
+        background: 'rgba(11, 15, 25, 0.85)',
         backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(14, 165, 233, 0.3)',
+        border: '1px solid rgba(14, 165, 233, 0.25)',
+        padding: '0.75rem 1rem',
         borderRadius: '12px',
-        padding: '0.85rem 1.15rem',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(14, 165, 233, 0.2)',
-        fontSize: '0.8rem',
-        minWidth: '270px'
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(14, 165, 233, 0.1)',
+        textAlign: 'left',
+        minWidth: '220px'
       }}>
-        <div style={{
-          color: '#f8fafc',
+        <p style={{
+          margin: 0,
           fontWeight: '700',
-          fontSize: '0.88rem',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          paddingBottom: '0.4rem',
-          marginBottom: '0.55rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          fontSize: '0.75rem',
+          color: '#64748b',
+          marginBottom: '0.4rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em'
         }}>
-          <span>{monthName} {data.year}</span>
-          <span style={{ fontSize: '0.72rem', color: '#38bdf8', background: 'rgba(14, 165, 233, 0.12)', padding: '0.1rem 0.45rem', borderRadius: '4px', border: '1px solid rgba(14, 165, 233, 0.25)', fontWeight: '600' }}>
-            Mes {payload[0].payload.idxMes || ''}
-          </span>
-        </div>
+          {monthName} {data.year}
+        </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
-            <span style={{ color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />
-              Demanda Estimada:
-            </span>
-            <span style={{ fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap' }}>
-              {Number(data.units).toLocaleString('es-PY')} un.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />
+            <span style={{ color: '#cbd5e1', fontWeight: '500' }}>Demanda Proyectada:</span>
+            <span style={{ fontWeight: '700', color: '#f8fafc', marginLeft: 'auto' }}>
+              {units.toLocaleString('es-PY')} un.
             </span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem' }}>
-            <span style={{ color: '#34d399', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34d399', flexShrink: 0 }} />
-              Facturación Proyectada:
-            </span>
-            <span style={{ fontWeight: '700', color: '#f8fafc', whiteSpace: 'nowrap' }}>
-              ₲ {Number(data.revenue).toLocaleString('es-PY')}
-            </span>
-          </div>
+          {revenue > 0 && (
+            <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#38bdf8', opacity: 0.9 }}>
+              <span>Monto Est.: ₲ {revenue.toLocaleString('es-PY')}</span>
+            </div>
+          )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', fontSize: '0.74rem', color: '#94a3b8', borderTop: '1px dashed rgba(255, 255, 255, 0.08)', paddingTop: '0.4rem', marginTop: '0.15rem' }}>
-            <span>Rango de Confianza (±20%):</span>
-            <span style={{ color: '#818cf8', fontWeight: '600', whiteSpace: 'nowrap' }}>
-              [{Number(data.confidenceInf).toLocaleString('es-PY')} - {Number(data.confidenceSup).toLocaleString('es-PY')} un.]
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', fontSize: '0.74rem', color: '#94a3b8' }}>
-            <span>Factor Estacional:</span>
-            <span style={{ color: '#38bdf8', fontWeight: '600', whiteSpace: 'nowrap' }}>x{Number(data.seasonalFactor || 1).toFixed(3)}</span>
-          </div>
+          {data.confidenceInf !== null && data.confidenceInf !== undefined && data.confidenceSup !== null && data.confidenceSup !== undefined && (
+            <div style={{
+              paddingLeft: '0.85rem',
+              fontSize: '0.72rem',
+              color: '#94a3b8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              marginTop: '0.15rem'
+            }}>
+              <span>Int. Confianza (±20%):</span>
+              <span style={{ color: '#38bdf8', fontWeight: '600' }}>
+                [{Math.round(data.confidenceInf).toLocaleString('es-PY')} - {Math.round(data.confidenceSup).toLocaleString('es-PY')} un.]
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -602,23 +599,30 @@ const ColdStartView = () => {
               className="btn-primary"
               disabled={coldPredicting}
               style={{
+                width: '100%',
+                height: '42px',
+                minHeight: '42px',
+                maxHeight: '42px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                padding: '0.65rem 1.2rem',
+                padding: '0 1.2rem',
                 fontSize: '0.88rem',
                 fontWeight: '700',
                 borderRadius: '6px',
                 marginTop: '0.15rem',
                 boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)',
-                transition: 'all 0.2s ease',
+                transition: 'background 0.2s ease, opacity 0.2s ease',
                 position: 'relative',
                 zIndex: 1,
-                cursor: coldPredicting ? 'not-allowed' : 'pointer'
+                cursor: coldPredicting ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+                boxSizing: 'border-box',
+                flexShrink: 0
               }}
             >
-              {coldPredicting ? <Loader2 size={16} className="spinner" /> : <TrendingUp size={16} />}
+              {!coldPredicting && <TrendingUp size={16} style={{ color: '#040d21', flexShrink: 0 }} />}
               {coldPredicting ? 'Calculando Estimación...' : 'Estimar Demanda de Lanzamiento'}
             </button>
           </form>
@@ -836,65 +840,109 @@ const ColdStartView = () => {
                 )}
 
                 {activeResultTab === 'twins' && (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: '180px', overflowY: 'auto' }} className="custom-scrollbar">
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '180px', overflowY: 'auto' }} className="custom-scrollbar">
                     {peerProducts.length === 0 ? (
-                      <div style={{ textAlign: 'center', color: '#64748b', padding: '1.5rem', fontSize: '0.8rem' }}>
+                      <div style={{ textAlign: 'center', color: '#64748b', padding: '2rem 1rem', fontSize: '0.82rem' }}>
                         No se encontraron productos de referencia en esta categoría.
                       </div>
                     ) : (
-                      peerProducts.map((peer, idx) => (
-                        <div
-                          key={peer.id_producto || peer.sku || idx}
-                          style={{
-                            background: 'rgba(15, 23, 42, 0.65)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
-                            borderRadius: '8px',
-                            padding: '0.55rem 0.75rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#38bdf8', background: 'rgba(14, 165, 233, 0.1)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
-                                {peer.sku || `SKU-${idx + 1}`}
-                              </span>
-                              <span style={{ fontSize: '0.82rem', fontWeight: '600', color: '#f8fafc' }}>
-                                {peer.descripcion}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: '#64748b', display: 'flex', gap: '0.5rem' }}>
-                              <span>Marca: <strong style={{ color: '#cbd5e1' }}>{peer.marca || 'N/A'}</strong></span>
-                              <span>•</span>
-                              <span>Categoría: <strong style={{ color: '#cbd5e1' }}>{peer.categoria || 'N/A'}</strong></span>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'right' }}>
-                            <div>
-                              <span style={{ fontSize: '0.62rem', color: '#64748b', display: 'block', textTransform: 'uppercase' }}>Ventas Promedio</span>
-                              <span style={{ fontSize: '0.82rem', fontWeight: '700', color: '#f8fafc' }}>
-                                {Math.round(Number(peer.ventas_promedio_mensual || 0)).toLocaleString('es-PY')} <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>un/m</span>
-                              </span>
-                            </div>
-
-                            <div style={{
-                              background: 'rgba(52, 211, 153, 0.12)',
-                              border: '1px solid rgba(52, 211, 153, 0.3)',
-                              color: '#34d399',
-                              padding: '0.25rem 0.55rem',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
+                      <div style={{
+                        background: 'rgba(15, 23, 42, 0.5)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        borderRadius: '8px',
+                        overflow: 'hidden'
+                      }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.78rem' }}>
+                          <thead>
+                            <tr style={{
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                              color: '#64748b',
+                              fontSize: '0.68rem',
                               fontWeight: '700',
-                              whiteSpace: 'nowrap'
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
                             }}>
-                              {Number(peer.similitud_pct || 0).toFixed(1)}% Similitud
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                              <th style={{ padding: '0.55rem 0.85rem' }}>Producto</th>
+                              <th style={{ padding: '0.55rem 0.85rem' }}>Marca</th>
+                              <th style={{ padding: '0.55rem 0.85rem', textAlign: 'right' }}>Ventas Prom.</th>
+                              <th style={{ padding: '0.55rem 0.85rem', textAlign: 'right' }}>Similitud</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {peerProducts.map((peer, idx) => {
+                              const simPct = Number(peer.similitud_pct || 0);
+                              return (
+                                <tr
+                                  key={peer.id_producto || peer.sku || idx}
+                                  style={{
+                                    borderBottom: idx === peerProducts.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.04)',
+                                    transition: 'background 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(56, 189, 248, 0.04)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <td style={{ padding: '0.6rem 0.85rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                      <span style={{
+                                        fontSize: '0.68rem',
+                                        fontWeight: '700',
+                                        color: '#38bdf8',
+                                        background: 'rgba(56, 189, 248, 0.08)',
+                                        border: '1px solid rgba(56, 189, 248, 0.2)',
+                                        padding: '0.1rem 0.35rem',
+                                        borderRadius: '4px',
+                                        whiteSpace: 'nowrap'
+                                      }}>
+                                        {peer.sku || `SKU-${idx + 1}`}
+                                      </span>
+                                      <span style={{ fontWeight: '600', color: '#f1f5f9', lineHeight: '1.3' }}>
+                                        {peer.descripcion}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.85rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                                    {peer.marca || 'N/A'}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontWeight: '700', color: '#f8fafc' }}>
+                                      {Math.round(Number(peer.ventas_promedio_mensual || 0)).toLocaleString('es-PY')}
+                                    </span>
+                                    <span style={{ color: '#64748b', fontSize: '0.68rem', marginLeft: '0.25rem' }}>un/mes</span>
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.85rem', textAlign: 'right' }}>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                                      <div style={{
+                                        width: '42px',
+                                        height: '4px',
+                                        background: 'rgba(255, 255, 255, 0.08)',
+                                        borderRadius: '2px',
+                                        overflow: 'hidden'
+                                      }}>
+                                        <div style={{
+                                          width: `${Math.min(100, Math.max(0, simPct))}%`,
+                                          height: '100%',
+                                          background: 'linear-gradient(90deg, #0ea5e9, #38bdf8)',
+                                          borderRadius: '2px'
+                                        }} />
+                                      </div>
+                                      <span style={{
+                                        fontWeight: '700',
+                                        fontSize: '0.72rem',
+                                        color: '#38bdf8',
+                                        minWidth: '38px',
+                                        textAlign: 'right'
+                                      }}>
+                                        {simPct.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </div>
                 )}

@@ -419,9 +419,9 @@ const Dashboard = () => {
                   <span style={{
                     fontSize: '0.7rem',
                     fontWeight: '600',
-                    background: activeNotificationsCount > 0 ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                    color: activeNotificationsCount > 0 ? '#38bdf8' : '#94a3b8',
-                    border: `1px solid ${activeNotificationsCount > 0 ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    background: activeNotificationsCount > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                    color: activeNotificationsCount > 0 ? '#ef4444' : '#94a3b8',
+                    border: `1px solid ${activeNotificationsCount > 0 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
                     padding: '0.15rem 0.45rem',
                     borderRadius: '10px'
                   }}>
@@ -462,7 +462,7 @@ const Dashboard = () => {
                             borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
                             cursor: 'pointer',
                             textAlign: 'left',
-                            background: isUnread ? 'rgba(56, 189, 248, 0.04)' : 'transparent',
+                            background: isUnread ? 'rgba(239, 68, 68, 0.02)' : 'transparent',
                             transition: 'all 0.15s ease',
                             display: 'flex',
                             flexDirection: 'column',
@@ -478,7 +478,8 @@ const Dashboard = () => {
                                   width: '6px',
                                   height: '6px',
                                   borderRadius: '50%',
-                                  background: '#38bdf8',
+                                  background: '#ef4444',
+                                  boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)',
                                   flexShrink: 0
                                 }} />
                               )}
