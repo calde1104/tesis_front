@@ -3,6 +3,7 @@ import { UploadCloud, CheckCircle2, RefreshCw, Loader2, Download, FileSpreadshee
 import { uploadFile, checkPipelineStatus, getIngestionHistory, retryFailedIngestion, deleteIngestionHistory } from '../../../services/ingestion';
 import { clearSalesFiltersCache } from '../../../services/sales';
 import { clearMarketShareCache } from '../../../services/marketShare';
+import { sanitizeIsoDate } from '../../../utils/security';
 
 const IngestionView = () => {
   const fileInputRef = useRef(null);
@@ -412,7 +413,7 @@ const IngestionView = () => {
                     <input 
                       type="date" 
                       value={periodoDesde} 
-                      onChange={(e) => setPeriodoDesde(e.target.value)}
+                      onChange={(e) => setPeriodoDesde(sanitizeIsoDate(e.target.value) || e.target.value)}
                       onClick={(e) => e.target.showPicker && e.target.showPicker()}
                       style={{
                         width: '100%',
@@ -434,7 +435,7 @@ const IngestionView = () => {
                     <input 
                       type="date" 
                       value={periodoHasta} 
-                      onChange={(e) => setPeriodoHasta(e.target.value)}
+                      onChange={(e) => setPeriodoHasta(sanitizeIsoDate(e.target.value) || e.target.value)}
                       onClick={(e) => e.target.showPicker && e.target.showPicker()}
                       style={{
                         width: '100%',

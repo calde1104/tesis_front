@@ -7,6 +7,7 @@ import {
 import { getForecast, getFeatureImportance, triggerSimulation } from '../../../services/forecast';
 import { getMLModels } from '../../../services/settings';
 import { getSalesFilters, getSalesList } from '../../../services/sales';
+import { sanitizeSearch, sanitizeNumber } from '../../../utils/security';
 
 const getDepartmentIcon = (deptName) => {
   const name = deptName ? deptName.toLowerCase() : '';
@@ -194,7 +195,7 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, productList, f
 
               {isForecast && pld.payload?.forecastLower !== null && pld.payload?.forecastLower !== undefined && pld.payload?.forecastUpper !== null && pld.payload?.forecastUpper !== undefined && (
                 <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span>Int. Confianza (±15%):</span>
+                  <span>Int. Confianza:</span>
                   <span style={{ color: '#818cf8', fontWeight: '600' }}>
                     [{Math.round(pld.payload.forecastLower).toLocaleString('es-PY')} - {Math.round(pld.payload.forecastUpper).toLocaleString('es-PY')} un.]
                   </span>
@@ -713,7 +714,8 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              maxLength={100}
+              onChange={(e) => setSearch(sanitizeSearch(e.target.value))}
               placeholder="Buscar SKU o nombre..."
               style={{
                 width: '100%',
@@ -1112,7 +1114,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     min="-10"
                     max="10"
                     value={priceChange}
-                    onChange={(e) => setPriceChange(parseInt(e.target.value))}
+                    onChange={(e) => setPriceChange(sanitizeNumber(e.target.value, -100, 100, 0))}
                     className="range-input"
                     style={{ height: '4px', marginTop: '0.4rem' }}
                   />
@@ -1133,7 +1135,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     min="-10"
                     max="10"
                     value={exchangeRateChange}
-                    onChange={(e) => setExchangeRateChange(parseInt(e.target.value))}
+                    onChange={(e) => setExchangeRateChange(sanitizeNumber(e.target.value, -100, 100, 0))}
                     className="range-input"
                     style={{ height: '4px', marginTop: '0.4rem' }}
                   />
@@ -1154,7 +1156,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
                     min="-5"
                     max="15"
                     value={inflationChange}
-                    onChange={(e) => setInflationChange(parseInt(e.target.value))}
+                    onChange={(e) => setInflationChange(sanitizeNumber(e.target.value, -100, 100, 0))}
                     className="range-input"
                     style={{ height: '4px', marginTop: '0.4rem' }}
                   />

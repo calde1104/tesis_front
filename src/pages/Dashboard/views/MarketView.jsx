@@ -301,9 +301,35 @@ const MarketView = () => {
         }
       });
 
-      const pSummary = getCategoriesSummary(selYear, selMonth, department).then(res => {
+      const pSummary = getCategoriesSummary(selYear, selMonth, department).then(async (res) => {
         if (isMounted) {
-          setCategoriesSummary(Array.isArray(res) ? res : []);
+          const summaryList = Array.isArray(res) ? res : [];
+          setCategoriesSummary(summaryList);
+
+          // Si no hay una categoría específica seleccionada, consultar en paralelo la variación de precio
+          // real de cada categoría para que la tabla de competitividad muestre los datos individuales exactos
+          if (!category && summaryList.length > 0) {
+            const gapsMap = {};
+            await Promise.all(
+              summaryList.map(async (catItem) => {
+                const catName = catItem.categoria;
+                try {
+                  const catPriceRes = await getPriceGap({ department, category: catName, brand, years, months });
+                  if (catPriceRes && catPriceRes.length > 0) {
+                    const avgGap = parseFloat((catPriceRes.reduce((acc, curr) => acc + curr.gap, 0) / catPriceRes.length).toFixed(1));
+                    gapsMap[catName] = avgGap;
+                  } else {
+                    gapsMap[catName] = 0;
+                  }
+                } catch (e) {
+                  gapsMap[catName] = 0;
+                }
+              })
+            );
+            if (isMounted) {
+              setCategoryPriceGaps(prev => ({ ...prev, ...gapsMap }));
+            }
+          }
         }
       });
 

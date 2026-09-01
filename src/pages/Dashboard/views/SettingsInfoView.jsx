@@ -58,7 +58,7 @@ const SettingsInfoView = () => {
       const activeDate = activeModel?.date || (sysInfo?.ultimoReentrenamiento ? String(sysInfo.ultimoReentrenamiento).replace('T', ' ').substring(0, 16) : 'Activo en producción');
 
       setInfo({
-        frameworkBase: sysInfo?.frameworkBase || 'Regresión Lineal (scikit-learn)',
+        frameworkBase: sysInfo?.frameworkBase || activeModel?.algoritmo || activeModel?.algorithm || activeModel?.family || 'Random Forest / Regresión (scikit-learn)',
         versionModelo: activeVersion,
         mape: activeMape,
         mae: activeMae,

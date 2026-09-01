@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Download, Loader2, ArrowLeft, ArrowRight, Coins, Target, Scale, X } from 'lucide-react';
 import { getSalesFilters, getSalesSummary, getSalesList, triggerSalesExport, checkExportStatus } from '../../../services/sales';
+import { sanitizeSearch } from '../../../utils/security';
 
 
 // Componente selector personalizado para evitar barras de desplazamiento estándar
@@ -372,8 +373,9 @@ const SalesView = ({ formatCurrency }) => {
             <input
               type="text"
               value={search}
+              maxLength={100}
               onChange={(e) => {
-                setSearch(e.target.value);
+                setSearch(sanitizeSearch(e.target.value));
                 setPage(1);
               }}
               placeholder="Escribí nombre o SKU..."

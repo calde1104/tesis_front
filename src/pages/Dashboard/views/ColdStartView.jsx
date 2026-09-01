@@ -7,6 +7,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { predictColdStart } from '../../../services/coldStart';
 import { getSalesFilters, getDeptId, getCategoryId, getBrandId } from '../../../services/sales';
+import { sanitizeText, sanitizeNumber } from '../../../utils/security';
 
 const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const monthsFullEs = [
@@ -472,9 +473,10 @@ const ColdStartView = () => {
               </label>
               <input
                 type="text"
+                maxLength={150}
                 placeholder="Ej: Mayonesa Especial 500g"
                 value={coldProductName}
-                onChange={(e) => setColdProductName(e.target.value)}
+                onChange={(e) => setColdProductName(sanitizeText(e.target.value, 150))}
                 required
                 style={{
                   width: '100%',
@@ -498,6 +500,7 @@ const ColdStartView = () => {
               <input
                 type="number"
                 min="1"
+                max="1000000000"
                 step="any"
                 placeholder="Ej: 12500"
                 value={coldExpectedPrice}
@@ -526,6 +529,7 @@ const ColdStartView = () => {
                 <input
                   type="number"
                   min="0.01"
+                  max="10000"
                   step="any"
                   placeholder="1.5"
                   value={coldExpectedWeight}

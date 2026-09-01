@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckSquare, Square, Shield, FileText, Lock, Mail, ArrowRight } from 'lucide-react';
 import { login } from '../../services/auth';
+import { sanitizeEmail } from '../../utils/security';
 import './Login.css';
 
 const Login = () => {
@@ -16,6 +17,11 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const cleanEmail = sanitizeEmail(email);
+    if (!cleanEmail) {
+      setError('Por favor ingresá un correo electrónico válido.');
+      return;
+    }
     if (!agreed) {
       setError('Debes aceptar los términos y políticas para continuar.');
       return;
@@ -24,7 +30,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(email, password);
+      const response = await login(cleanEmail, password);
       console.log('Login successful:', response);
       navigate('/dashboard');
     } catch (err) {

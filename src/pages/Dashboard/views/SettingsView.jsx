@@ -3,6 +3,7 @@ import { Loader2, Sliders, CheckCircle2, Search, X, Plus, Minus, AlertTriangle }
 import { saveProductThresholds, getProductThresholds } from '../../../services/settings';
 import { getSalesList } from '../../../services/sales';
 import { getForecast } from '../../../services/forecast';
+import { sanitizeSearch, sanitizeNumber } from '../../../utils/security';
 
 const SettingsView = () => {
   const [loading, setLoading] = useState(true);
@@ -253,7 +254,8 @@ const SettingsView = () => {
               <input 
                 type="text" 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                maxLength={100}
+                onChange={(e) => setSearchQuery(sanitizeSearch(e.target.value))}
                 placeholder="Buscar por nombre, SKU, categoría..."
                 style={{
                   width: '100%',
@@ -404,9 +406,11 @@ const SettingsView = () => {
                       <input 
                         type="number" 
                         step="100"
+                        min="0"
+                        max="100000000"
                         value={currentVal} 
                         onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
+                          const val = sanitizeNumber(e.target.value, 0, 100000000, 0);
                           setProductThresholds(prev => ({
                             ...prev,
                             [prod.id]: val,
