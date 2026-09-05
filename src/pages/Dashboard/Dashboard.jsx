@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
   Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle, Sparkles, SlidersHorizontal, Server, LineChart,
-  Building2, Shield, Copy, Check, X, Mail, CheckCircle2
+  Building2, Shield, Copy, Check, X, Mail, CheckCircle2, Search
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
@@ -11,6 +11,8 @@ import { logout } from '../../services/auth';
 import { getProfile, uploadProfilePhoto, deleteProfilePhoto } from '../../services/profile';
 import { getNotificaciones, marcarNotificacionVista, marcarNotificacionResuelta } from '../../services/notificaciones';
 import { getSalesList } from '../../services/sales';
+import CommandPalette from './CommandPalette';
+import { isMacPlatform } from '../../utils/platform';
 import './Dashboard.css';
 
 import InicioView from './views/InicioView';
@@ -37,6 +39,8 @@ const Dashboard = () => {
   const [companyDetails, setCompanyDetails] = useState(null);
   const [copiedTenant, setCopiedTenant] = useState(false);
   const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
+  const [forecastSkuRequestId, setForecastSkuRequestId] = useState(0);
+  const [showPalette, setShowPalette] = useState(false);
   const [dismissedMlopsWarning, setDismissedMlopsWarning] = useState(false);
   const [activeModel, setActiveModel] = useState(null);
   const [dashboardTargetDate, setDashboardTargetDate] = useState('');
@@ -70,6 +74,15 @@ const Dashboard = () => {
     const cleanEmp = empNombre.toLowerCase().replace(/[^a-z0-9]/g, '');
     return `admin@${cleanEmp || 'empresa'}.com`;
   };
+
+  // Abre la proyeccion de un SKU. El requestId permite reabrir el mismo SKU
+  // dos veces seguidas y que ForecastView vuelva a reaccionar.
+  const openProductForecast = useCallback((sku) => {
+    if (!sku) return;
+    setForecastSelectedSku(sku);
+    setForecastSkuRequestId((id) => id + 1);
+    setActiveTab('forecast');
+  }, []);
 
   const handleOpenCompanyModal = async () => {
     setShowCompanyModal(true);
@@ -129,13 +142,41 @@ const Dashboard = () => {
     marcarNotificacionVista(notifId);
 
     if (productSku) {
-      setForecastSelectedSku(productSku);
+      openProductForecast(productSku);
+    } else {
+      setActiveTab('forecast');
     }
-    setActiveTab('forecast');
     setShowNotifications(false);
   };
 
   const activeNotificationsCount = notifications.filter(n => n.estado === 'ACTIVA').length;
+
+  // --- Command Palette (Ctrl/Cmd + K) ---
+  // productsMap indexa por id y por sku a la vez, asi que deduplicamos por sku.
+  const paletteProducts = useMemo(() => {
+    const seen = new Set();
+    const list = [];
+    Object.values(productsMap).forEach((prod) => {
+      if (!prod?.sku || seen.has(prod.sku)) return;
+      seen.add(prod.sku);
+      list.push(prod);
+    });
+    return list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+  }, [productsMap]);
+
+  useEffect(() => {
+    const handleShortcut = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setShowPalette((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
+
+  const closePalette = useCallback(() => setShowPalette(false), []);
+  const handlePaletteNavigate = useCallback((tab) => setActiveTab(tab), []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -195,7 +236,7 @@ const Dashboard = () => {
 
     const loadCatalogDictionary = async () => {
       try {
-        const salesRes = await getSalesList({}, 1, 100);
+        const salesRes = await getSalesList({}, 1, 500);
         if (salesRes && salesRes.data) {
           const map = {};
           salesRes.data.forEach(item => {
@@ -355,6 +396,20 @@ const Dashboard = () => {
           <p>{getHeaderSubtitle()}</p>
         </div>
         <div className="header-actions">
+          <button
+            type="button"
+            className="cmdk-trigger"
+            onClick={() => setShowPalette(true)}
+            title="Buscar productos, vistas y acciones"
+          >
+            <Search size={18} />
+            <span className="cmdk-trigger-label">Buscar</span>
+            <span className="cmdk-trigger-keys">
+              <kbd className="cmdk-kbd">{isMacPlatform() ? '⌘' : 'Ctrl'}</kbd>
+              <kbd className="cmdk-kbd">K</kbd>
+            </span>
+          </button>
+
           <div className="notification-wrapper" ref={notificationRef} style={{ position: 'relative' }}>
             <button 
               className="icon-btn" 
@@ -664,6 +719,7 @@ const Dashboard = () => {
           <ForecastView 
             formatCurrency={formatCurrency} 
             initialSku={forecastSelectedSku} 
+            skuRequestId={forecastSkuRequestId} 
             dismissedMlopsWarning={dismissedMlopsWarning}
             onDismissMlopsWarning={() => setDismissedMlopsWarning(true)}
           />
@@ -684,6 +740,19 @@ const Dashboard = () => {
           <SettingsInfoView />
         )}
       </main>
+
+      {showPalette && (
+        <CommandPalette
+          onClose={closePalette}
+          products={paletteProducts}
+          notifications={notifications}
+          onNavigate={handlePaletteNavigate}
+          onOpenProduct={openProductForecast}
+          onOpenNotification={handleMarkAsViewed}
+          onOpenCompany={handleOpenCompanyModal}
+          onLogout={handleLogout}
+        />
+      )}
 
       {showLogoutModal && (
         <div style={{

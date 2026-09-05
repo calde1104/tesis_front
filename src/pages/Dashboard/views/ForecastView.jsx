@@ -286,7 +286,7 @@ const CustomReferenceLabel = (props) => {
   );
 };
 
-const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDismissMlopsWarning }) => {
+const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlopsWarning, onDismissMlopsWarning }) => {
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModel, setActiveModel] = useState(null);
@@ -412,6 +412,9 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
     fetchForecastForSelection();
   }, [selectedProduct]);
 
+  // When coming from a notification or the command palette, clear all filters
+  // and auto-select the SKU. skuRequestId cambia en cada pedido, de modo que
+  // volver a elegir el mismo SKU tambien vuelve a disparar este efecto.
   useEffect(() => {
     if (initialSku) {
       setDepartment('');
@@ -421,7 +424,7 @@ const ForecastView = ({ formatCurrency, initialSku, dismissedMlopsWarning, onDis
       setSimResults(null);
       setSelectedProduct(initialSku);
     }
-  }, [initialSku]);
+  }, [initialSku, skuRequestId]);
 
   const handleClearSim = () => {
     setSimResults(null);
