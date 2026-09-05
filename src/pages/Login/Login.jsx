@@ -10,7 +10,11 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() =>
+    new URLSearchParams(window.location.search).has('expired')
+      ? 'Tu sesion expiro. Volve a iniciar sesion.'
+      : ''
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'terms' | 'privacy' | null
   const navigate = useNavigate();

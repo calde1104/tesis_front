@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { 
   ArrowUpRight, ArrowDownRight, Coins, LineChart, Target, Scale, 
   AreaChart as LucideAreaChart, Layers, Sliders, ShieldCheck, Minus
@@ -177,9 +178,10 @@ const CustomReferenceLabel = (props) => {
 };
 
 const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency, setActiveTab }) => {
-  if (!kpis || !contextVars) return null;
-
-  const processedSalesData = salesData.map((item, idx) => {
+  // Conectar de forma continua e inteligente el fin del histórico con el inicio del forecast en el cliente
+  // Memoizado: recharts reinicia (y congela) la animacion en curso cuando cambia
+  // la referencia de `data`, y sin esto era un array nuevo en cada render.
+  const processedSalesData = useMemo(() => salesData.map((item, idx) => {
     const isTransitionPoint = item.historical !== null && 
                               (item.forecast === null || item.forecast === undefined) && 
                               idx < salesData.length - 1 && 
@@ -191,14 +193,16 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
       };
     }
     return item;
-  });
+  }), [salesData]);
 
-  const transitionPoint = salesData.find((item, idx) => 
+  const transitionPoint = useMemo(() => salesData.find((item, idx) => 
     item.historical !== null && 
     (item.forecast === null || item.forecast === undefined) && 
     idx < salesData.length - 1 && 
     salesData[idx + 1].forecast !== null
-  );
+  ), [salesData]);
+
+  if (!kpis || !contextVars) return null;
   const transitionMonth = transitionPoint ? transitionPoint.month : null;
   const transitionValue = transitionPoint ? transitionPoint.historical : null;
 
@@ -525,4 +529,4 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
   );
 };
 
-export default InicioView;
+export default memo(InicioView);

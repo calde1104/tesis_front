@@ -5,7 +5,7 @@
   column-gap: 1.5rem;
   row-gap: 1rem;
   height: 100vh;
-  padding: 1.5rem 2rem 1.25rem 2rem;
+  padding: 2.25rem 2rem 1.25rem 2rem;
   
   background-color: #040d21; 
   background-image: 
@@ -62,6 +62,9 @@
   grid-row: 2;
   position: relative;
   display: flex;
+  /* Sin esto el alto natural del sidebar empuja la fila 1fr y el area de
+     contenido se sale por debajo del viewport (el layout la recorta). */
+  min-height: 0;
 }
 
 .sidebar {
@@ -74,7 +77,8 @@
   flex-direction: column;
   padding: 1.5rem 1rem;
   z-index: 10;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -358,6 +362,11 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0; /* Margin handled by grid row-gap */
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow: 0 8px 16px -12px rgba(0, 0, 0, 0.7);
+  position: relative;
+  z-index: 20;
 }
 
 .header-greeting h1 {
@@ -443,7 +452,7 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-top: 10px;
+  padding-top: 12px;
   padding-right: 0.75rem; /* Gap between scrollbar and card edges */
 }
 
@@ -759,15 +768,6 @@
   background: #0ea5e9;
 }
 
-.dashboard-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background-color: #020617;
-  color: #38bdf8;
-}
 
 .view-loading {
   display: flex;
@@ -819,7 +819,7 @@ svg.spinner {
 @media (max-height: 850px) {
   .dashboard-layout {
     height: 100vh;
-    padding: 1.5vh 2vw;
+    padding: max(1.25rem, 2.2vh) 2vw 1.25vh 2vw;
     row-gap: 0.75rem;
     column-gap: 1.5rem;
   }
@@ -830,6 +830,7 @@ svg.spinner {
   
   .dashboard-header {
     margin-bottom: 0;
+    padding-bottom: 0.6rem;
   }
 
   .header-greeting h1 {
@@ -1026,7 +1027,7 @@ svg.spinner {
     flex-direction: column;
     height: auto;
     overflow: auto;
-    padding: 1rem;
+    padding: 1.75rem 1rem 1rem 1rem;
   }
   
   .sidebar-logo {
@@ -2550,7 +2551,7 @@ input[type="number"] {
   .dashboard-layout {
     grid-template-columns: 220px 1fr;
     column-gap: 1rem;
-    padding: 1.25rem 1.5rem 1rem 1.5rem;
+    padding: 2rem 1.5rem 1rem 1.5rem;
   }
 }
 
@@ -2559,6 +2560,20 @@ input[type="number"] {
   color: #94a3b8;
   background: rgba(148, 163, 184, 0.08);
   border: 1px solid rgba(148, 163, 184, 0.12);
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ============================================================
@@ -2882,4 +2897,99 @@ input[type="number"] {
   .cmdk-overlay { padding-top: 8vh; }
   .cmdk-panel { max-height: 72vh; }
   .cmdk-footer { display: none; }
+}
+
+/* ============================================================
+   Skeletons de carga + transicion entre vistas
+   ============================================================ */
+
+.skel-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+/* Hereda .card, asi que solo neutraliza el hover y ordena el contenido */
+.skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.skel-card .card-header,
+.skel-card .kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skel-bar {
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.07) 0%,
+    rgba(56, 189, 248, 0.16) 50%,
+    rgba(148, 163, 184, 0.07) 100%
+  );
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skel-round { border-radius: 50%; }
+.skel-pill { border-radius: 999px; }
+
+.skel-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.skel-plot {
+  flex: 1;
+  min-height: 120px;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.03) 0%,
+    rgba(56, 189, 248, 0.06) 50%,
+    rgba(148, 163, 184, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skel-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.view-transition {
+  animation: view-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }

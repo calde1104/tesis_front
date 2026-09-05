@@ -6,12 +6,13 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
-import { getMLModels, getSystemInfo } from '../../services/settings';
+import { getSystemInfo } from '../../services/settings';
 import { logout } from '../../services/auth';
 import { getProfile, uploadProfilePhoto, deleteProfilePhoto } from '../../services/profile';
 import { getNotificaciones, marcarNotificacionVista, marcarNotificacionResuelta } from '../../services/notificaciones';
 import { getSalesList } from '../../services/sales';
 import CommandPalette from './CommandPalette';
+import InicioSkeleton from './InicioSkeleton';
 import { isMacPlatform } from '../../utils/platform';
 import './Dashboard.css';
 
@@ -23,6 +24,13 @@ import IngestionView from './views/IngestionView';
 import MarketView from './views/MarketView';
 import SettingsView from './views/SettingsView';
 import SettingsInfoView from './views/SettingsInfoView';
+
+// Devuelve la referencia anterior si el contenido no cambio. Reemplazar el
+// estado por datos identicos genera referencias nuevas que re-renderizan las
+// vistas y congelan la animacion de recharts a mitad de camino (StrictMode
+// duplica el fetch en dev, y volver a Inicio lo repite).
+const keepIfEqual = (prev, next) =>
+  JSON.stringify(prev) === JSON.stringify(next) ? prev : next;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -42,7 +50,6 @@ const Dashboard = () => {
   const [forecastSkuRequestId, setForecastSkuRequestId] = useState(0);
   const [showPalette, setShowPalette] = useState(false);
   const [dismissedMlopsWarning, setDismissedMlopsWarning] = useState(false);
-  const [activeModel, setActiveModel] = useState(null);
   const [dashboardTargetDate, setDashboardTargetDate] = useState('');
 
   const [loadingCompanyDetails, setLoadingCompanyDetails] = useState(false);
@@ -209,20 +216,16 @@ const Dashboard = () => {
           setDashboardTargetDate('');
         }
 
-        const [kpiRes, marketRes, contextRes, modelsRes] = await Promise.all([
+        const [kpiRes, marketRes, contextRes] = await Promise.all([
           getKPIs(targetAnio, targetMes),
           getMarketShareComposition(targetAnio, targetMes),
-          getContextVariables(targetAnio, targetMes),
-          getMLModels()
+          getContextVariables(targetAnio, targetMes)
         ]);
 
-        setKpis(kpiRes);
-        setSalesData(salesRes);
-        setMarketShare(marketRes);
-        setContextVars(contextRes);
-        
-        const active = modelsRes.find(m => m.activo || m.active);
-        setActiveModel(active);
+        setKpis((prev) => keepIfEqual(prev, kpiRes));
+        setSalesData((prev) => keepIfEqual(prev, salesRes));
+        setMarketShare((prev) => keepIfEqual(prev, marketRes));
+        setContextVars((prev) => keepIfEqual(prev, contextRes));
       } catch (error) {
         console.error("Error al cargar datos del dashboard:", error);
       } finally {
@@ -296,19 +299,11 @@ const Dashboard = () => {
     }
   };
 
-  const formatCurrency = (value) => {
+  const formatCurrency = useCallback((value) => {
     if (value === null || value === undefined || isNaN(value)) return '₲ 0';
     return `₲ ${Math.round(Number(value)).toLocaleString('es-PY')}`;
-  };
+  }, []);
 
-  if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Cargando plataforma...</p>
-      </div>
-    );
-  }
 
   const getDynamicGreeting = () => {
     const hour = new Date().getHours();
@@ -701,8 +696,10 @@ const Dashboard = () => {
         </button>
       </aside>
 
-      <main className="dashboard-grid">
-        {activeTab === 'inicio' && (
+      <main className="dashboard-grid view-transition" key={activeTab}>
+        {activeTab === 'inicio' && (loading ? (
+          <InicioSkeleton />
+        ) : (
           <InicioView 
             kpis={kpis} 
             salesData={salesData} 
@@ -711,7 +708,7 @@ const Dashboard = () => {
             formatCurrency={formatCurrency}
             setActiveTab={setActiveTab}
           />
-        )}
+        ))}
         {activeTab === 'sales' && (
           <SalesView formatCurrency={formatCurrency} />
         )}
@@ -767,7 +764,7 @@ const Dashboard = () => {
           justifyContent: 'center',
           alignItems: 'center',
           zIndex: 10000,
-          animation: 'fade-in 0.2s ease-out'
+          animation: 'overlay-in 0.2s ease-out'
         }} onClick={() => setShowLogoutModal(false)}>
           <div style={{
             background: 'rgba(15, 23, 42, 0.95)',
@@ -885,7 +882,7 @@ const Dashboard = () => {
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 10000,
-            animation: 'fade-in 0.2s ease-out'
+            animation: 'overlay-in 0.2s ease-out'
           }} 
           onClick={() => setShowCompanyModal(false)}
         >

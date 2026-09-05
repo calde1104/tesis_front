@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Loader2, Brain, Server, RefreshCw, Activity, Zap, CheckCircle2, Cpu, Database, Check
 } from 'lucide-react';
@@ -117,7 +118,7 @@ const SettingsInfoView = () => {
       position: 'relative'
     }}>
 
-      {toastMessage && (
+      {toastMessage && createPortal(
         <div style={{
           position: 'fixed',
           top: '20px',
@@ -137,7 +138,8 @@ const SettingsInfoView = () => {
         }}>
           <CheckCircle2 size={16} />
           {toastMessage}
-        </div>
+        </div>,
+        document.body
       )}
 
       <div style={{
@@ -376,12 +378,6 @@ const SettingsInfoView = () => {
 
       </div>
 
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 };

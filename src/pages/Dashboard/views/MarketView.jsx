@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, Award, Building2, TrendingUp, TrendingDown, GlassWater, Utensils, Droplet, Folder, X } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -1083,7 +1084,7 @@ const MarketView = () => {
         </div>
       )}
 
-      {hoveredData && hoveredData.composition && hoveredData.composition.length > 0 && (
+      {hoveredData && hoveredData.composition && hoveredData.composition.length > 0 && createPortal(
         <div style={{
           position: 'fixed',
           top: `${hoveredData.y}px`,
@@ -1164,7 +1165,8 @@ const MarketView = () => {
               })}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

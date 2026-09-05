@@ -60,6 +60,15 @@ export const apiRequest = async (endpoint, options = {}) => {
     if (response.status === 401) {
       localStorage.clear();
       sessionStorage.clear();
+      // Sin esto el dashboard sigue montado pero sin sesion ni datos: cada
+      // request falla y el nombre de la empresa cae a los valores por defecto.
+      // /v1/auth/* queda afuera porque el login tambien responde 401 con
+      // credenciales invalidas y taparia su mensaje de error.
+      const isAuthCall = endpoint.startsWith('/v1/auth/');
+      const onLogin = window.location.pathname === '/login';
+      if (!isAuthCall && !onLogin) {
+        window.location.replace('/login?expired=1');
+      }
     }
     let errorMessage = `Error HTTP ${response.status} (${response.statusText})`;
     try {

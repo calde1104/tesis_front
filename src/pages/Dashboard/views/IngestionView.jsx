@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { UploadCloud, CheckCircle2, RefreshCw, Loader2, Download, FileSpreadsheet, Info, Trash2, AlertTriangle, Calendar, MoreVertical } from 'lucide-react';
 import { uploadFile, checkPipelineStatus, getIngestionHistory, retryFailedIngestion, deleteIngestionHistory } from '../../../services/ingestion';
 import { clearSalesFiltersCache } from '../../../services/sales';
@@ -787,7 +788,7 @@ const IngestionView = () => {
 
       </div>
 
-      {fileToDelete && (
+      {fileToDelete && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
@@ -901,7 +902,8 @@ const IngestionView = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
