@@ -1749,9 +1749,27 @@ svg.spinner {
   color: #94a3b8;
 }
 
-.feature-importance-card .subtitle {
-  color: #64748b;
-  font-size: 0.85rem;
+/* Pildora de la leyenda que abre el modal de explicabilidad: es un <button>,
+   asi que hay que neutralizar los estilos por defecto del control. */
+.legend-pill-model {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: inherit;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 220px;
+}
+
+.legend-pill-model:hover {
+  background: rgba(129, 140, 248, 0.25);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.legend-pill-model:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
 }
 
 .simulator-card {

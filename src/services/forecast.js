@@ -116,21 +116,33 @@ export const getForecast = async (sku = null) => {
   }
 };
 
+// Los campos llegan en snake_case porque el backend no los traduce. Si el
+// servicio de IA no responde, el backend contesta 502 y se propaga el error:
+// no hay datos simulados.
 export const getFeatureImportance = async () => {
   const empresaId = getEmpresaId();
-  try {
-    const data = await apiRequest(`/v1/${empresaId}/forecast/feature-importance`);
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
-    return data.map(v => ({
-      name: v.variable || 'Variable',
-      weight: v.importancia ? Number(v.importancia) * 100 : 0
-    }));
-  } catch (error) {
-    console.warn('getFeatureImportance API call failed:', error);
-    return [];
+  const data = await apiRequest(`/v1/${empresaId}/forecast/feature-importance`);
+
+  if (!data || !Array.isArray(data.importancia_variables)) {
+    const error = new Error('Respuesta de explicabilidad con formato inesperado');
+    error.status = 0;
+    throw error;
   }
+
+  return {
+    modeloTipo: data.modelo_tipo || null,
+    totalVariables: Number(data.total_variables) || data.importancia_variables.length,
+    resumenPorGrupo: Object.entries(data.resumen_por_grupo || {})
+      .map(([grupo, pct]) => ({ grupo, pct: Number(pct) || 0 }))
+      .sort((a, b) => b.pct - a.pct),
+    variables: data.importancia_variables.map(v => ({
+      feature: v.feature,
+      nombre: v.nombre_descriptivo || v.feature,
+      grupo: v.grupo || 'Sin grupo',
+      pct: Number(v.importancia_pct) || 0,
+      nivelImpacto: v.nivel_impacto || null
+    }))
+  };
 };
 
 export const triggerSimulation = async (params = {}) => {

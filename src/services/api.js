@@ -77,7 +77,12 @@ export const apiRequest = async (endpoint, options = {}) => {
     } catch (e) {
       // Ignore if not JSON
     }
-    throw new Error(errorMessage);
+    // El status viaja en el error para que quien llama pueda distinguir casos
+    // (ej. feature-importance trata el 502 como "no disponible ahora", no como
+    // un error generico de red).
+    const error = new Error(errorMessage);
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) {

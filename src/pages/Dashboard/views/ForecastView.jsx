@@ -4,7 +4,9 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, LabelList, ReferenceLine, ReferenceDot
 } from 'recharts';
-import { getForecast, getFeatureImportance, triggerSimulation } from '../../../services/forecast';
+import { getForecast, triggerSimulation } from '../../../services/forecast';
+import FeatureImportanceModal from './FeatureImportanceModal';
+import { useFeatureImportance } from './useFeatureImportance';
 import { getMLModels } from '../../../services/settings';
 import { getSalesFilters, getSalesList } from '../../../services/sales';
 import { sanitizeSearch, sanitizeNumber } from '../../../utils/security';
@@ -290,6 +292,11 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModel, setActiveModel] = useState(null);
+
+  // Explicabilidad del modelo: se carga junto con la vista porque la pildora de
+  // la leyenda muestra el nombre del modelo, no solo el contenido del modal.
+  const [showExplainability, setShowExplainability] = useState(false);
+  const featureImportance = useFeatureImportance();
 
   const [filterOptions, setFilterOptions] = useState(null);
   const [department, setDepartment] = useState('');
@@ -860,7 +867,17 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
             </div>
             <div className="legend-pills" style={{ flexShrink: 0 }}>
               <span className="legend-pill historical">Histórico</span>
-              <span className="legend-pill forecast">Forecast (12 Meses)</span>
+              <button
+                type="button"
+                className="legend-pill forecast legend-pill-model"
+                onClick={() => setShowExplainability(true)}
+                title={featureImportance.data
+                  ? `Ver por que predice asi el modelo ${featureImportance.data.modeloTipo}`
+                  : 'Ver la explicabilidad del modelo'}
+              >
+                {featureImportance.data?.modeloTipo || 'Forecast (12 Meses)'}
+                <HelpCircle size={12} />
+              </button>
               {simResults && <span className="legend-pill simulated">Simulado</span>}
             </div>
           </div>
@@ -1224,6 +1241,14 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
           )}
         </div>
       </div>
+
+      <FeatureImportanceModal
+        open={showExplainability}
+        onClose={() => setShowExplainability(false)}
+        data={featureImportance.data}
+        loading={featureImportance.loading}
+        error={featureImportance.error}
+      />
     </div>
   );
 };
