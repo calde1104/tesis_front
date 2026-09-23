@@ -113,8 +113,32 @@ const IngestionView = () => {
         setPipelineStages({ validation: 'SUCCESS', hashing: 'SUCCESS', insertion: 'RUNNING' });
       }, 1000);
 
+      // El servidor puede tardar en registrar el archivo en el historial. Se
+      // tolera esa demora, pero acotada: sin un limite, un archivo que nunca
+      // aparece dejaria la pantalla girando para siempre.
+      const MAX_SONDEOS_SIN_CONFIRMAR = 10;
+      let sondeosSinConfirmar = 0;
+
       intervalId = setInterval(async () => {
         const res = await checkPipelineStatus(pipelineTaskId);
+
+        if (res.status === 'UNKNOWN') {
+          sondeosSinConfirmar += 1;
+          if (sondeosSinConfirmar >= MAX_SONDEOS_SIN_CONFIRMAR) {
+            clearInterval(intervalId);
+            clearTimeout(t1);
+            clearTimeout(t2);
+            setUploading(false);
+            setSelectedFile(null);
+            setPipelineTaskId(null);
+            setShowSuccessCelebration(false);
+            setShowErrorAlert(true);
+            setErrorMessage('No pudimos confirmar el estado de la ingesta. El archivo puede haberse procesado igual: revisá el historial antes de volver a subirlo.');
+            fetchHistory();
+          }
+          return;
+        }
+
         if (res.status === 'SUCCESS' || res.status === 'FAILED') {
           clearInterval(intervalId);
           clearTimeout(t1);

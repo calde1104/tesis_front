@@ -47,12 +47,16 @@ export const checkPipelineStatus = async (taskId) => {
     console.warn('checkPipelineStatus API warning:', error);
   }
 
+  // No se pudo determinar el estado: el archivo todavia no figura en el
+  // historial, o la consulta fallo. Antes se devolvia SUCCESS, con lo cual la
+  // vista celebraba una ingesta que nunca se confirmo. UNKNOWN no corta el
+  // sondeo (la vista sigue esperando) y nunca se confunde con un exito real.
   return {
     taskId,
-    progress: 100,
-    stage: 'SUCCESS',
-    stages: { validation: 'SUCCESS', hashing: 'SUCCESS', insertion: 'SUCCESS' },
-    status: 'SUCCESS'
+    progress: 60,
+    stage: 'UNKNOWN',
+    stages: { validation: 'SUCCESS', hashing: 'SUCCESS', insertion: 'RUNNING' },
+    status: 'UNKNOWN'
   };
 };
 

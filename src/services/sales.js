@@ -61,6 +61,12 @@ let cachedFiltersResult = null;
 
 export const clearSalesFiltersCache = () => {
   cachedFiltersResult = null;
+  // Los mapas nombre->ID tienen alcance de empresa. Si sobreviven al cierre de
+  // sesion, un nombre de marca sigue resolviendo al ID de la empresa anterior
+  // hasta que la nueva sesion recargue el catalogo.
+  brandNameToIdMap = {};
+  categoryNameToIdMap = {};
+  deptNameToIdMap = {};
 };
 
 export const getSalesFilters = async () => {
