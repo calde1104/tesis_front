@@ -12,5 +12,19 @@ export default defineConfig({
         secure: false,
       }
     }
-  }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+    // El pool de procesos (forks, el default) no llega a levantar el worker
+    // dentro del timeout sobre OneDrive en Windows. Con hilos arranca normal.
+    pool: 'threads',
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/services/**', 'src/utils/**', 'src/pages/**'],
+    },
+  },
 })
