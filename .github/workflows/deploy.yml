@@ -9,8 +9,30 @@ on:
       - main
 
 jobs:
+  # jsdom 30 y vitest 5 exigen Node 22 o superior (ver "engines" en su package.json).
   test:
     name: Pruebas automatizadas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar suite de pruebas
+        run: npm test
+
+  # La imagen de produccion se construye con node:20-slim (ver Dockerfile), asi que
+  # la compilacion se verifica sobre esa misma version.
+  build:
+    name: Compilacion de produccion
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,15 +47,12 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Ejecutar suite de pruebas
-        run: npm test
-
-      - name: Verificar compilacion de produccion
+      - name: Compilar
         run: npm run build
 
   deploy:
     name: Desplegar en el VPS
-    needs: test
+    needs: [test, build]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
