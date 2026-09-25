@@ -4,9 +4,37 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
+  test:
+    name: Pruebas automatizadas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar suite de pruebas
+        run: npm test
+
+      - name: Verificar compilacion de produccion
+        run: npm run build
+
   deploy:
+    name: Desplegar en el VPS
+    needs: test
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Portainer Webhook
