@@ -105,6 +105,17 @@ describe('ColdStartView', () => {
       expect(await screen.findByText('Lacteos')).toBeInTheDocument()
       expect(screen.queryByText('Gaseosas')).not.toBeInTheDocument()
     })
+
+    it('elige un icono segun el rubro del departamento', async () => {
+      getSalesFilters.mockResolvedValue({
+        ...CATALOGO,
+        departments: ['Limpieza del Hogar', 'Cuidado Personal'],
+      })
+      render(<ColdStartView />)
+
+      expect(await screen.findByText('Limpieza del Hogar')).toBeInTheDocument()
+      expect(screen.getByText('Cuidado Personal')).toBeInTheDocument()
+    })
   })
 
   describe('validaciones del formulario', () => {
@@ -115,6 +126,18 @@ describe('ColdStartView', () => {
       estimar()
 
       expect(await screen.findByText(/ingrese el nombre o descripción/i)).toBeInTheDocument()
+      expect(predictColdStart).not.toHaveBeenCalled()
+    })
+
+    it('exige el departamento comercial cuando el catalogo no trae ninguno', async () => {
+      getSalesFilters.mockResolvedValue({ ...CATALOGO, departments: [] })
+      render(<ColdStartView />)
+      await screen.findByRole('button', { name: /estimar demanda/i })
+
+      escribir('Ej: Mayonesa Especial 500g', 'Gaseosa Cola 2L')
+      estimar()
+
+      expect(await screen.findByText(/seleccione el departamento comercial/i)).toBeInTheDocument()
       expect(predictColdStart).not.toHaveBeenCalled()
     })
 

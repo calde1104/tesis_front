@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 vi.mock('../../../services/sales', () => ({
   getSalesFilters: vi.fn(),
@@ -14,6 +14,8 @@ import {
   getSalesFilters,
   getSalesSummary,
   getSalesList,
+  triggerSalesExport,
+  checkExportStatus,
 } from '../../../services/sales'
 
 const CATALOGO = {
@@ -51,6 +53,15 @@ const renderVista = () => render(<SalesView formatCurrency={(v) => `₲ ${v}`} /
 
 const ultimosFiltros = () => getSalesList.mock.calls.at(-1)[0]
 const ultimaPagina = () => getSalesList.mock.calls.at(-1)[1]
+
+const abrirSelect = (etiqueta) => {
+  const label = [...document.querySelectorAll('.filter-group label')].find(
+    (el) => el.textContent === etiqueta
+  )
+  const grupo = label.closest('.filter-group')
+  fireEvent.click(grupo.querySelector(':scope > div'))
+  return grupo
+}
 
 describe('SalesView', () => {
   beforeEach(() => {
@@ -172,6 +183,192 @@ describe('SalesView', () => {
       })
       renderVista()
       expect(await screen.findByText('Gaseosa Cola 2L')).toBeInTheDocument()
+    })
+
+    it('muestra "Consolidado" cuando la fila no trae mes/anio', async () => {
+      getSalesList.mockResolvedValue({
+        ...VENTAS,
+        data: [{ ...VENTAS.data[0], month: undefined, year: undefined }],
+      })
+      renderVista()
+      expect(await screen.findByText('Consolidado')).toBeInTheDocument()
+    })
+  })
+
+  describe('desplegable personalizado (CustomSelect)', () => {
+    it('abre y cierra la lista de opciones al hacer click en el control', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      const grupo = abrirSelect('Departamento')
+      expect(within(grupo).getByText('Bebidas')).toBeInTheDocument()
+
+      fireEvent.click(grupo.querySelector(':scope > div'))
+      expect(within(grupo).queryByText('Bebidas')).not.toBeInTheDocument()
+    })
+
+    it('cierra el desplegable al clickear fuera de el', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      const grupo = abrirSelect('Departamento')
+      expect(within(grupo).getByText('Bebidas')).toBeInTheDocument()
+
+      window.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+      await waitFor(() => expect(within(grupo).queryByText('Bebidas')).not.toBeInTheDocument())
+    })
+
+    it('selecciona una opcion simple y cierra el desplegable', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      const grupo = abrirSelect('Departamento')
+      fireEvent.click(within(grupo).getByText('Bebidas'))
+
+      await waitFor(() => expect(ultimosFiltros().department).toBe('Bebidas'))
+      expect(within(grupo).queryByText('Alimentos')).not.toBeInTheDocument()
+    })
+
+    it('acumula selecciones en un filtro multiple (Año) sin cerrar el desplegable', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      const grupo = abrirSelect('Año')
+      fireEvent.click(within(grupo).getByText('2024'))
+      await waitFor(() => expect(ultimosFiltros().years).toEqual(['2024']))
+
+      fireEvent.click(within(grupo).getByText('2025'))
+      await waitFor(() => expect(ultimosFiltros().years).toEqual(['2024', '2025']))
+
+      fireEvent.click(within(grupo).getByText('2024'))
+      await waitFor(() => expect(ultimosFiltros().years).toEqual(['2025']))
+    })
+
+    it('la opcion "Todos" de un filtro multiple limpia la seleccion', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      const grupo = abrirSelect('Año')
+      fireEvent.click(within(grupo).getByText('2024'))
+      await waitFor(() => expect(ultimosFiltros().years).toEqual(['2024']))
+
+      fireEvent.click(within(grupo).getByText('Todos los Años'))
+      await waitFor(() => expect(ultimosFiltros().years).toEqual([]))
+    })
+
+    it('resalta la opcion al pasar el mouse y la vuelve a su estado normal al salir', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      const grupo = abrirSelect('Departamento')
+      const opcion = within(grupo).getByText('Bebidas').closest('div')
+
+      fireEvent.mouseEnter(opcion)
+      expect(opcion.style.background).toContain('rgba(255, 255, 255, 0.04)')
+
+      fireEvent.mouseLeave(opcion)
+      expect(opcion.style.background).toBe('transparent')
+    })
+  })
+
+  describe('ordenamiento', () => {
+    it('cicla entre descendente, ascendente y sin orden al clickear la misma columna', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      fireEvent.click(screen.getByText('Unidades'))
+      await waitFor(() => {
+        expect(ultimosFiltros().sortBy).toBe('units')
+        expect(ultimosFiltros().sortOrder).toBe('desc')
+      })
+
+      fireEvent.click(screen.getByText('Unidades'))
+      await waitFor(() => expect(ultimosFiltros().sortOrder).toBe('asc'))
+
+      fireEvent.click(screen.getByText('Unidades'))
+      await waitFor(() => {
+        expect(ultimosFiltros().sortBy).toBe('')
+        expect(ultimosFiltros().sortOrder).toBe('desc')
+      })
+    })
+  })
+
+  describe('limpiar filtros', () => {
+    it('muestra el boton solo con filtros activos y restablece todo al clickearlo', async () => {
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      expect(screen.queryByText('Limpiar Filtros')).not.toBeInTheDocument()
+
+      fireEvent.change(screen.getByPlaceholderText('Escribí nombre o SKU...'), {
+        target: { value: 'cola' },
+      })
+
+      const boton = await screen.findByText('Limpiar Filtros')
+      fireEvent.click(boton)
+
+      await waitFor(() => {
+        expect(ultimosFiltros().search).toBe('')
+        expect(ultimosFiltros().department).toBe('')
+      })
+      expect(screen.getByPlaceholderText('Escribí nombre o SKU...').value).toBe('')
+      expect(screen.queryByText('Limpiar Filtros')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('exportacion', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('dispara la exportacion y hace polling hasta SUCCESS, habilitando la descarga', async () => {
+      triggerSalesExport.mockResolvedValue({ taskId: 'task-1' })
+      checkExportStatus
+        .mockResolvedValueOnce({ progress: 40, status: 'RUNNING' })
+        .mockResolvedValueOnce({ progress: 100, status: 'SUCCESS', downloadUrl: 'blob:reporte' })
+
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      fireEvent.click(screen.getByText('Exportar Selección'))
+      await vi.waitFor(() => expect(triggerSalesExport).toHaveBeenCalled())
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await vi.waitFor(() => expect(screen.getByText(/Generando/)).toBeInTheDocument())
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await vi.waitFor(() => expect(screen.getByText('Descargar Reporte')).toBeInTheDocument())
+    })
+
+    it('genera y descarga el CSV al clickear "Descargar Reporte"', async () => {
+      triggerSalesExport.mockResolvedValue({ taskId: 'task-1' })
+      checkExportStatus.mockResolvedValue({
+        progress: 100,
+        status: 'SUCCESS',
+        downloadUrl: 'blob:reporte',
+      })
+      const createObjectURL = vi.fn(() => 'blob:local')
+      const revokeObjectURL = vi.fn()
+      vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+
+      renderVista()
+      await screen.findByText('Gaseosa Cola 2L')
+
+      fireEvent.click(screen.getByText('Exportar Selección'))
+      await vi.advanceTimersByTimeAsync(1000)
+      await vi.waitFor(() => expect(screen.getByText('Descargar Reporte')).toBeInTheDocument())
+
+      fireEvent.click(screen.getByText('Descargar Reporte'))
+
+      expect(createObjectURL).toHaveBeenCalled()
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:local')
+
+      vi.unstubAllGlobals()
     })
   })
 })

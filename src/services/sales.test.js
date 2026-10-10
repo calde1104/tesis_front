@@ -177,6 +177,16 @@ describe('getSalesFilters', () => {
     expect(filtros.categories).toEqual({})
     expect(filtros.years).toEqual([2021, 2022, 2023, 2024, 2025, 2026])
   })
+
+  it('no rompe si falla la consulta del historial usado para los mapas cruzados', async () => {
+    responderPorRuta({ 'filters/options': OPCIONES, '/sales?': new Error('500') })
+
+    const filtros = await getSalesFilters()
+
+    expect(filtros.departments).toEqual(['Bebidas', 'Alimentos'])
+    expect(filtros.categoryBrands).toEqual({})
+    expect(filtros.years).toEqual([2021, 2022, 2023, 2024, 2025, 2026])
+  })
 })
 
 describe('traduccion de nombres a identificadores', () => {
@@ -288,6 +298,23 @@ describe('getSalesList', () => {
     const res = await getSalesList({ sortBy: 'date', sortOrder: 'asc' })
 
     expect(res.data.map((v) => v.sku)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('conserva el orden original entre filas del mismo periodo', async () => {
+    responderPorRuta({
+      '/sales?': {
+        content: [
+          ventaCruda({ sku: 'X', anio: 2025, mes: 3 }),
+          ventaCruda({ sku: 'Y', anio: 2025, mes: 3 }),
+        ],
+        totalElements: 2,
+        totalPages: 1,
+      },
+    })
+
+    const res = await getSalesList({ sortBy: 'date', sortOrder: 'asc' })
+
+    expect(res.data.map((v) => v.sku)).toEqual(['X', 'Y'])
   })
 
   it('traduce el registro de venta a la forma que consume la tabla', async () => {

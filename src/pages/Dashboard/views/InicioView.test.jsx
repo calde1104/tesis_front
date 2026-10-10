@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { isValidElement, cloneElement, Fragment } from 'react'
+
+const renderInjected = (element, extraProps) =>
+  isValidElement(element) ? cloneElement(element, extraProps) : null
 
 vi.mock('recharts', () => {
   const Passthrough = ({ children }) => <div>{children}</div>
@@ -9,13 +13,50 @@ vi.mock('recharts', () => {
     AreaChart: Passthrough,
     PieChart: Passthrough,
     Pie: Passthrough,
-    Area: Nada,
+    Area: ({ activeDot }) => {
+      if (typeof activeDot === 'function') {
+        activeDot({ cx: 5, cy: 5, payload: { month: 'Dic 25' } })
+        activeDot({ cx: 5, cy: 5, payload: { month: 'Otro mes' } })
+      }
+      return null
+    },
     Cell: Nada,
     XAxis: Nada,
-    YAxis: Nada,
+    YAxis: ({ tickFormatter }) => {
+      if (typeof tickFormatter === 'function') {
+        tickFormatter(0)
+        tickFormatter(2_500_000_000)
+        tickFormatter(5_000_000)
+        tickFormatter(500)
+      }
+      return null
+    },
     CartesianGrid: Nada,
-    Tooltip: Nada,
-    ReferenceLine: Nada,
+    Tooltip: ({ content, cursor }) => (
+      <Fragment>
+        {renderInjected(content, { active: false })}
+        {renderInjected(content, { active: true, payload: [] })}
+        {renderInjected(content, {
+          active: true,
+          label: 'Ene 26',
+          payload: [
+            { dataKey: 'historical', name: 'Ventas Históricas', value: 1000, color: '#0ea5e9', payload: { historicalUnits: 100 } },
+            { dataKey: 'forecast', name: 'Demanda Proyectada', value: 1100, color: '#818cf8', payload: { historical: 1000 } },
+          ],
+        })}
+        {renderInjected(content, {
+          active: true,
+          label: 'Dic 25',
+          payload: [
+            { dataKey: 'forecast', name: 'Demanda Proyectada', value: 1100, color: '#818cf8', payload: { historical: 1000 } },
+          ],
+        })}
+        {renderInjected(cursor, { x: 10, y: 20, height: 30 })}
+        {renderInjected(cursor, { points: [{ x: 1, y: 2 }, { x: 1, y: 10 }] })}
+        {renderInjected(cursor, { x1: 5, y1: 6, x2: 5, y2: 16 })}
+      </Fragment>
+    ),
+    ReferenceLine: ({ label }) => renderInjected(label, { x: 50, y: 50 }),
     ReferenceDot: Nada,
   }
 })
@@ -128,6 +169,14 @@ describe('InicioView', () => {
       })
       expect(screen.getByText('N/A')).toBeInTheDocument()
     })
+
+    it('califica de moderada una precision intermedia', () => {
+      renderVista({
+        kpis: { ...KPIS, accuracy: { value: 55, label: 'Precisión del Modelo', trend: null } },
+      })
+      expect(screen.getByText('55%')).toBeInTheDocument()
+      expect(screen.getByText('Precisión Moderada')).toBeInTheDocument()
+    })
   })
 
   describe('navegacion desde los indicadores', () => {
@@ -157,6 +206,42 @@ describe('InicioView', () => {
 
       expect(setActiveTab).toHaveBeenCalledWith('settings-info')
     })
+
+    it('lleva a mercado al pulsar el indicador de price gap', () => {
+      const setActiveTab = vi.fn()
+      renderVista({ setActiveTab })
+
+      fireEvent.click(screen.getByText('Price Gap vs Promedio (%)').closest('.kpi-card'))
+
+      expect(setActiveTab).toHaveBeenCalledWith('market')
+    })
+
+    it('lleva a forecast al pulsar el grafico de evolucion de ventas', () => {
+      const setActiveTab = vi.fn()
+      renderVista({ setActiveTab })
+
+      fireEvent.click(screen.getByText('Evolución de Ventas').closest('.chart-card'))
+
+      expect(setActiveTab).toHaveBeenCalledWith('forecast')
+    })
+
+    it('lleva a mercado al pulsar el grafico de composicion de market share', () => {
+      const setActiveTab = vi.fn()
+      renderVista({ setActiveTab })
+
+      fireEvent.click(screen.getByText('Composición Market Share').closest('.chart-card'))
+
+      expect(setActiveTab).toHaveBeenCalledWith('market')
+    })
+
+    it('lleva a ingestion al pulsar "Ver Historial"', () => {
+      const setActiveTab = vi.fn()
+      renderVista({ setActiveTab })
+
+      fireEvent.click(screen.getByText('Ver Historial'))
+
+      expect(setActiveTab).toHaveBeenCalledWith('ingestion')
+    })
   })
 
   describe('variables de contexto', () => {
@@ -183,6 +268,18 @@ describe('InicioView', () => {
     it('se monta sin datos de ventas cargados', () => {
       renderVista({ salesData: [] })
       expect(screen.getByText('Ventas del Mes')).toBeInTheDocument()
+    })
+  })
+
+  describe('carga inicial', () => {
+    it('no renderiza nada mientras los kpis no llegaron', () => {
+      const { container } = renderVista({ kpis: null })
+      expect(container).toBeEmptyDOMElement()
+    })
+
+    it('no renderiza nada mientras las variables de contexto no llegaron', () => {
+      const { container } = renderVista({ contextVars: null })
+      expect(container).toBeEmptyDOMElement()
     })
   })
 })

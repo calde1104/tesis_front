@@ -147,6 +147,34 @@ describe('marketShare', () => {
       apiRequest.mockRejectedValue(new Error('500'))
       await expect(getPriceGap()).resolves.toEqual([])
     })
+
+    it('devuelve una lista vacia si la respuesta no es un arreglo', async () => {
+      apiRequest.mockResolvedValue({ mensaje: 'sin datos' })
+      await expect(getPriceGap()).resolves.toEqual([])
+    })
+
+    it('traslada los filtros de marca, categoria, departamento, anios y meses', async () => {
+      getBrandId.mockReturnValue(5)
+      getCategoryId.mockReturnValue(12)
+      getDeptId.mockReturnValue(3)
+      apiRequest.mockResolvedValue([])
+
+      await getPriceGap({ brand: 'Coca Cola', category: 'Gaseosas', department: 'Bebidas', years: [2025], months: [3] })
+
+      const url = urlLlamada()
+      expect(url).toContain('marcaId=5')
+      expect(url).toContain('categoriaId=12')
+      expect(url).toContain('departamentoId=3')
+      expect(url).toContain('anios=2025')
+      expect(url).toContain('meses=3')
+    })
+
+    it('memoriza el resultado por combinacion de filtros', async () => {
+      apiRequest.mockResolvedValue([])
+      await getPriceGap()
+      await getPriceGap()
+      expect(apiRequest).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('getMarketShareComposition', () => {
@@ -179,6 +207,32 @@ describe('marketShare', () => {
       apiRequest.mockRejectedValue(new Error('500'))
       await expect(getMarketShareComposition(2025, 12)).resolves.toEqual([])
     })
+
+    it('devuelve una composicion vacia si la respuesta no es un arreglo', async () => {
+      apiRequest.mockResolvedValue({ mensaje: 'sin datos' })
+      await expect(getMarketShareComposition(2025, 12)).resolves.toEqual([])
+    })
+
+    it('traslada los filtros de marca, categoria y departamento', async () => {
+      getBrandId.mockReturnValue(5)
+      getCategoryId.mockReturnValue(12)
+      getDeptId.mockReturnValue(3)
+      apiRequest.mockResolvedValue([])
+
+      await getMarketShareComposition(2025, 12, { brand: 'Coca Cola', category: 'Gaseosas', department: 'Bebidas' })
+
+      const url = urlLlamada()
+      expect(url).toContain('marcaId=5')
+      expect(url).toContain('categoriaId=12')
+      expect(url).toContain('departamentoId=3')
+    })
+
+    it('memoriza el resultado por combinacion de filtros', async () => {
+      apiRequest.mockResolvedValue([])
+      await getMarketShareComposition(2025, 12)
+      await getMarketShareComposition(2025, 12)
+      expect(apiRequest).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('getShareOfAssortment', () => {
@@ -210,6 +264,27 @@ describe('marketShare', () => {
       clearMarketShareCache()
       apiRequest.mockRejectedValue(new Error('500'))
       await expect(getShareOfAssortment(2025, 12)).resolves.toEqual([])
+    })
+
+    it('traslada los filtros de marca, categoria y departamento', async () => {
+      getBrandId.mockReturnValue(5)
+      getCategoryId.mockReturnValue(12)
+      getDeptId.mockReturnValue(3)
+      apiRequest.mockResolvedValue({ shareOfAssortmentPct: 10 })
+
+      await getShareOfAssortment(2025, 12, { brand: 'Coca Cola', category: 'Gaseosas', department: 'Bebidas' })
+
+      const url = urlLlamada()
+      expect(url).toContain('marcaId=5')
+      expect(url).toContain('categoriaId=12')
+      expect(url).toContain('departamentoId=3')
+    })
+
+    it('memoriza el resultado por combinacion de filtros', async () => {
+      apiRequest.mockResolvedValue({ shareOfAssortmentPct: 10 })
+      await getShareOfAssortment(2025, 12)
+      await getShareOfAssortment(2025, 12)
+      expect(apiRequest).toHaveBeenCalledTimes(1)
     })
   })
 

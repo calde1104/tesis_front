@@ -16,9 +16,14 @@ vi.mock('../../../services/settings', () => ({
   getMLModels: vi.fn(),
 }))
 
-// El modal de explicabilidad y su hook resuelven aparte; se neutralizan para
-// que estas pruebas se concentren en el simulador de escenarios.
-vi.mock('./FeatureImportanceModal', () => ({ default: () => null }))
+vi.mock('./FeatureImportanceModal', () => ({
+  default: ({ open, onClose }) =>
+    open ? (
+      <div data-testid="explainability-modal">
+        <button onClick={onClose}>Cerrar modal</button>
+      </div>
+    ) : null,
+}))
 vi.mock('./useFeatureImportance', () => ({
   useFeatureImportance: () => ({ data: null, loading: false, error: null, reload: vi.fn() }),
 }))
@@ -74,6 +79,15 @@ const botonSimular = () => screen.getByRole('button', { name: /correr simulació
 const sliders = () => screen.getAllByRole('slider')
 const moverSlider = (indice, valor) =>
   fireEvent.change(sliders()[indice], { target: { value: String(valor) } })
+
+const abrirSelector = (etiqueta) => {
+  const label = screen.getByText(etiqueta)
+  fireEvent.click(label.nextElementSibling)
+}
+const elegirDeSelector = async (etiqueta, opcion) => {
+  abrirSelector(etiqueta)
+  fireEvent.click(await screen.findByText(opcion))
+}
 
 describe('ForecastView', () => {
   beforeEach(() => {
@@ -135,6 +149,21 @@ describe('ForecastView', () => {
     it('preselecciona el SKU que llega desde una notificacion', async () => {
       renderVista({ initialSku: 'SKU-002', skuRequestId: 1 })
       await waitFor(() => expect(getForecast).toHaveBeenCalledWith('SKU-002'))
+    })
+
+    it('sanea el texto buscado antes de pedir la lista filtrada al backend', async () => {
+      renderVista()
+      await screen.findByText('SKU-001')
+
+      fireEvent.change(screen.getByPlaceholderText('Buscar SKU o nombre...'), {
+        target: { value: "Gaseosa<script>" },
+      })
+
+      await waitFor(() => expect(getSalesList).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: expect.not.stringContaining('<') }),
+        1,
+        100
+      ))
     })
   })
 
@@ -258,6 +287,196 @@ describe('ForecastView', () => {
 
       expect(screen.queryByText(/métricas de impacto real/i)).not.toBeInTheDocument()
       expect(sliders()[0]).toHaveValue('0')
+    })
+  })
+
+  describe('filtros en cascada', () => {
+    it('filtra el catalogo de productos por departamento, categoria y marca', async () => {
+      renderVista()
+      await screen.findByText('SKU-001')
+
+      await elegirDeSelector('Departamento', 'Bebidas')
+
+      await waitFor(() =>
+        expect(getSalesList).toHaveBeenCalledWith(
+          expect.objectContaining({ department: 'Bebidas' }),
+          1,
+          100
+        )
+      )
+    })
+
+    it('una vez elegida la categoria, el selector de departamento solo ofrece los compatibles', async () => {
+      getSalesFilters.mockResolvedValue({
+        departments: ['Bebidas', 'Alimentos'],
+        categories: { Bebidas: ['Gaseosas'], Alimentos: ['Lacteos'] },
+        brands: ['Coca Cola', 'La Serenisima'],
+      })
+
+      renderVista()
+      await screen.findByText('SKU-001')
+
+      // Sin departamento elegido, el selector de categoria ofrece la union
+      // de todas las categorias del catalogo.
+      await elegirDeSelector('Categoría', 'Gaseosas')
+      await waitFor(() => expect(getSalesList).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'Gaseosas' }), 1, 100
+      ))
+
+      abrirSelector('Departamento')
+      expect(screen.getByText('Bebidas')).toBeInTheDocument()
+      expect(screen.queryByText('Alimentos')).not.toBeInTheDocument()
+    })
+
+    it('muestra el boton de limpiar filtros solo cuando hay algo para limpiar', async () => {
+      renderVista()
+      await screen.findByText('SKU-001')
+
+      expect(screen.queryByRole('button', { name: /limpiar filtros/i })).not.toBeInTheDocument()
+
+      await elegirDeSelector('Departamento', 'Bebidas')
+      const limpiar = await screen.findByRole('button', { name: /limpiar filtros/i })
+
+      fireEvent.click(limpiar)
+
+      expect(screen.queryByRole('button', { name: /limpiar filtros/i })).not.toBeInTheDocument()
+      await waitFor(() => expect(getSalesList).toHaveBeenLastCalledWith(
+        expect.objectContaining({ department: '', category: '', brand: '', search: '' }), 1, 100
+      ))
+    })
+
+    it('informa cuando ningun producto matchea los filtros aplicados', async () => {
+      getSalesList.mockResolvedValue({ data: [] })
+
+      renderVista()
+
+      expect(await screen.findByText('No se encontraron productos')).toBeInTheDocument()
+    })
+
+    it('volver al consolidado total oculta el panel de simulacion', async () => {
+      renderVista()
+      await elegirProducto('SKU-001')
+      expect(botonSimular()).toBeInTheDocument()
+
+      fireEvent.click(screen.getByText('Consolidado Total General'))
+
+      expect(screen.queryByRole('button', { name: /correr simulación/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('presets de escenario', () => {
+    it('el preset Optimista carga sus tres variables de un solo click', async () => {
+      renderVista()
+      await elegirProducto('SKU-001')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Optimista' }))
+
+      expect(sliders()[0]).toHaveValue('-5')
+      expect(sliders()[1]).toHaveValue('-5')
+      expect(sliders()[2]).toHaveValue('2')
+    })
+
+    it('el preset Precio y el preset Recorte cargan variables distintas', async () => {
+      renderVista()
+      await elegirProducto('SKU-001')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Precio' }))
+      expect(sliders()[0]).toHaveValue('5')
+      expect(sliders()[1]).toHaveValue('2')
+      expect(sliders()[2]).toHaveValue('4')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Recorte' }))
+      expect(sliders()[0]).toHaveValue('0')
+      expect(sliders()[1]).toHaveValue('8')
+      expect(sliders()[2]).toHaveValue('8')
+    })
+
+    it('el preset Base vuelve a dejar las tres variables en cero', async () => {
+      renderVista()
+      await elegirProducto('SKU-001')
+      moverSlider(0, 10)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Base' }))
+
+      expect(sliders()[0]).toHaveValue('0')
+    })
+  })
+
+  describe('explicabilidad del modelo', () => {
+    it('la pildora del modelo abre el modal y el boton de cerrar lo cierra', async () => {
+      renderVista()
+      await screen.findByText('SKU-001')
+
+      fireEvent.click(screen.getByRole('button', { name: /forecast \(12 meses\)/i }))
+      expect(screen.getByTestId('explainability-modal')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /cerrar modal/i }))
+      expect(screen.queryByTestId('explainability-modal')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('estado de carga de la serie', () => {
+    it('muestra un indicador mientras llega la proyeccion del SKU elegido', async () => {
+      let resolverForecast
+      getForecast.mockReturnValue(new Promise((r) => { resolverForecast = r }))
+
+      renderVista()
+      await screen.findByText('SKU-001')
+
+      expect(await screen.findByText(/cargando serie del sku/i)).toBeInTheDocument()
+
+      resolverForecast(PROYECCION)
+      await waitFor(() =>
+        expect(screen.queryByText(/cargando serie del sku/i)).not.toBeInTheDocument()
+      )
+    })
+  })
+
+  describe('paneles redimensionables', () => {
+    it('arrastrar el separador izquierdo ensancha la columna de SKUs dentro del rango permitido', async () => {
+      const { container } = renderVista()
+      await screen.findByText('SKU-001')
+
+      const [separadorIzquierdo] = container.querySelectorAll('.resizer-handle')
+      const tarjeta = container.querySelector('.interactive-card')
+      const anchoInicial = tarjeta.style.gridTemplateColumns
+
+      fireEvent.mouseDown(separadorIzquierdo)
+      fireEvent.mouseMove(window, { clientX: 300 })
+
+      expect(tarjeta.style.gridTemplateColumns).not.toBe(anchoInicial)
+      expect(document.body.style.cursor).toBe('col-resize')
+
+      fireEvent.mouseUp(window)
+      expect(document.body.style.cursor).toBe('')
+    })
+
+    it('el ancho izquierdo nunca baja de 180px aunque se arrastre mas alla del limite', async () => {
+      const { container } = renderVista()
+      await screen.findByText('SKU-001')
+
+      const [separadorIzquierdo] = container.querySelectorAll('.resizer-handle')
+      const tarjeta = container.querySelector('.interactive-card')
+
+      fireEvent.mouseDown(separadorIzquierdo)
+      fireEvent.mouseMove(window, { clientX: -500 })
+
+      expect(tarjeta.style.gridTemplateColumns).toMatch(/^180px/)
+      fireEvent.mouseUp(window)
+    })
+
+    it('arrastrar el separador derecho ensancha el panel del simulador', async () => {
+      const { container } = renderVista()
+      await screen.findByText('SKU-001')
+
+      const [, separadorDerecho] = container.querySelectorAll('.resizer-handle')
+      const tarjeta = container.querySelector('.interactive-card')
+
+      fireEvent.mouseDown(separadorDerecho)
+      fireEvent.mouseMove(window, { clientX: -600 })
+
+      expect(tarjeta.style.gridTemplateColumns).toMatch(/500px$/)
+      fireEvent.mouseUp(window)
     })
   })
 })

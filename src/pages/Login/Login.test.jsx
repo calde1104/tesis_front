@@ -166,4 +166,36 @@ describe('Login', () => {
       expect(campo).toHaveAttribute('type', 'text')
     })
   })
+
+  describe('modal de terminos y privacidad', () => {
+    it('abre el acuerdo de usuario al hacer click en el link y lo cierra', () => {
+      render(<Login />)
+
+      fireEvent.click(screen.getByText('Acuerdo de Usuario'))
+
+      expect(screen.getByText('Acuerdo de Usuario y Términos de Servicio B2B')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByText('Cerrar'))
+
+      expect(screen.queryByText('Acuerdo de Usuario y Términos de Servicio B2B')).not.toBeInTheDocument()
+    })
+
+    it('abre la politica de privacidad al hacer click en el link', () => {
+      render(<Login />)
+
+      fireEvent.click(screen.getByText('Política de Privacidad'))
+
+      expect(screen.getByText('Política de Privacidad y Protección de Datos')).toBeInTheDocument()
+    })
+
+    it('no marca ni desmarca el checkbox de aceptacion al abrir un modal', () => {
+      // Los links viven dentro del div clickeable que togglea "agreed": sin
+      // stopPropagation(), abrir el modal tambien marcaria el checkbox.
+      render(<Login />)
+
+      fireEvent.click(screen.getByText('Acuerdo de Usuario'))
+
+      expect(document.querySelector('.check-icon.active')).not.toBeInTheDocument()
+    })
+  })
 })
