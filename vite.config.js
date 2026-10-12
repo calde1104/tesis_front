@@ -25,6 +25,12 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/services/**', 'src/utils/**', 'src/pages/**'],
+      // Umbral de sentencias que exige la cátedra (sección 6.1 de la tesis);
+      // solo se gatea esa métrica, no ramas/funciones, para no acoplar el CI
+      // a cifras que el documento no declara como meta.
+      thresholds: {
+        statements: 85,
+      },
     },
   },
 })

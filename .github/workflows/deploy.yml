@@ -26,8 +26,8 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      - name: Ejecutar suite de pruebas
-        run: npm test
+      - name: Ejecutar suite de pruebas con cobertura
+        run: npm run test:coverage
 
   # La imagen de produccion se construye con node:20-slim (ver Dockerfile), asi que
   # la compilacion se verifica sobre esa misma version.
