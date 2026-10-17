@@ -44,3 +44,18 @@ export const deleteProfilePhoto = async () => {
   }
   return true;
 };
+
+export const deleteAccount = async () => {
+  const empresaId = getEmpresaId();
+  const token = getAuthToken();
+
+  const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/v1/${empresaId}/profile`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to delete account');
+  }
+  return true;
+};

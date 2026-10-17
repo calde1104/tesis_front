@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  Home, BarChart3, TrendingUp, UploadCloud, PieChart, 
+import {
+  Home, BarChart3, TrendingUp, UploadCloud, PieChart,
   Settings, LogOut, Bell, ChevronLeft, ChevronRight, AlertCircle, Sparkles, SlidersHorizontal, Server, LineChart,
-  Building2, Shield, Copy, Check, X, Mail, CheckCircle2, Search
+  Building2, Shield, Copy, Check, X, Mail, CheckCircle2, Search, Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariables } from '../../services/dashboard';
 import { getSystemInfo } from '../../services/settings';
 import { logout } from '../../services/auth';
-import { getProfile, uploadProfilePhoto, deleteProfilePhoto } from '../../services/profile';
+import { getProfile, uploadProfilePhoto, deleteProfilePhoto, deleteAccount } from '../../services/profile';
 import { getNotificaciones, marcarNotificacionVista, marcarNotificacionResuelta } from '../../services/notificaciones';
 import { getSalesList } from '../../services/sales';
 import CommandPalette from './CommandPalette';
@@ -44,6 +44,8 @@ const Dashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [companyDetails, setCompanyDetails] = useState(null);
   const [copiedTenant, setCopiedTenant] = useState(false);
   const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
@@ -296,6 +298,19 @@ const Dashboard = () => {
       alert(err.message || "Error al borrar la foto");
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      await deleteAccount();
+      setShowDeleteAccountModal(false);
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      alert(err.message || "Error al dar de baja la cuenta");
+      setDeletingAccount(false);
     }
   };
 
@@ -1060,8 +1075,127 @@ const Dashboard = () => {
                   </div>
                 </div>
 
+                <div style={{ background: 'rgba(239, 68, 68, 0.06)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#f8fafc', fontWeight: '700' }}>Dar de baja mi cuenta</span>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Deshabilita tu acceso de forma permanente.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteAccountModal(true)}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', border: '1px solid rgba(239, 68, 68, 0.3)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)' }}
+                  >
+                    <Trash2 size={14} />
+                    Dar de baja
+                  </button>
+                </div>
+
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showDeleteAccountModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 8, 16, 0.75)',
+          backdropFilter: 'blur(16px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10001,
+          animation: 'overlay-in 0.2s ease-out'
+        }} onClick={() => !deletingAccount && setShowDeleteAccountModal(false)}>
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '16px',
+            padding: '1.75rem 1.5rem',
+            maxWidth: '400px',
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 25px rgba(239, 68, 68, 0.08)',
+            animation: 'scale-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
+
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <AlertCircle size={22} style={{ color: '#f87171' }} />
+            </div>
+
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>¿Dar de baja tu cuenta?</h3>
+              <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.5' }}>
+                Esta acción deshabilita tu acceso de forma permanente. No vas a poder volver a iniciar sesión con este usuario. Los registros de auditoría se conservan por trazabilidad.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', width: '100%', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowDeleteAccountModal(false)}
+                disabled={deletingAccount}
+                style={{
+                  flex: 1,
+                  padding: '0.55rem',
+                  fontSize: '0.82rem',
+                  fontWeight: '600',
+                  cursor: deletingAccount ? 'not-allowed' : 'pointer',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#cbd5e1',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                style={{
+                  flex: 1,
+                  padding: '0.55rem',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#f87171',
+                  cursor: deletingAccount ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                {deletingAccount ? 'Procesando...' : 'Dar de baja'}
+              </button>
+            </div>
           </div>
         </div>
       )}

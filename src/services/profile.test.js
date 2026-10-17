@@ -6,7 +6,7 @@ vi.mock('./api', () => ({
   getAuthToken: vi.fn(() => 'jwt-abc'),
 }))
 
-import { getProfile, uploadProfilePhoto, deleteProfilePhoto } from './profile'
+import { getProfile, uploadProfilePhoto, deleteProfilePhoto, deleteAccount } from './profile'
 import { apiRequest } from './api'
 
 const foto = () => new File(['binario'], 'perfil.png', { type: 'image/png' })
@@ -103,5 +103,36 @@ describe('deleteProfilePhoto', () => {
   it('falla de forma explicita si el backend rechaza la baja', async () => {
     fetchMock.mockResolvedValue({ ok: false })
     await expect(deleteProfilePhoto()).rejects.toThrow(/failed to delete/i)
+  })
+})
+
+describe('deleteAccount', () => {
+  let fetchMock
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  it('da de baja la cuenta por DELETE con el token de sesion', async () => {
+    fetchMock.mockResolvedValue({ ok: true })
+
+    await deleteAccount()
+
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('/v1/7/profile')
+    expect(options.method).toBe('DELETE')
+    expect(options.headers.Authorization).toBe('Bearer jwt-abc')
+  })
+
+  it('confirma la baja', async () => {
+    fetchMock.mockResolvedValue({ ok: true })
+    await expect(deleteAccount()).resolves.toBe(true)
+  })
+
+  it('falla de forma explicita si el backend rechaza la baja', async () => {
+    fetchMock.mockResolvedValue({ ok: false })
+    await expect(deleteAccount()).rejects.toThrow(/failed to delete/i)
   })
 })
