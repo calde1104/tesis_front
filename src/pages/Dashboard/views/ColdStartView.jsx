@@ -204,7 +204,7 @@ const CustomColdStartTooltip = ({ active, payload, label }) => {
               gap: '0.5rem',
               marginTop: '0.15rem'
             }}>
-              <span>Int. Confianza (±20%):</span>
+              <span>Banda estimada (±20%):</span>
               <span style={{ color: '#38bdf8', fontWeight: '600' }}>
                 [{Math.round(data.confidenceInf).toLocaleString('es-PY')} - {Math.round(data.confidenceSup).toLocaleString('es-PY')} un.]
               </span>
@@ -662,7 +662,7 @@ const ColdStartView = () => {
                   Curva de Demanda Proyectada (12 Meses)
                 </h4>
                 <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                  Estimación estacional con intervalo de confianza (±20%)
+                  Estimación estacional con banda de dispersión (±20%)
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', fontSize: '0.7rem' }}>
@@ -672,7 +672,7 @@ const ColdStartView = () => {
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#94a3b8', fontWeight: '500' }}>
                   <span style={{ width: '9px', height: '5px', borderRadius: '2px', background: 'rgba(56, 189, 248, 0.25)', border: '1px dashed #38bdf8' }} />
-                  Confianza ±20%
+                  Banda ±20%
                 </span>
               </div>
             </div>

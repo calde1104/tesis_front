@@ -59,7 +59,7 @@ const SettingsInfoView = () => {
       const activeDate = activeModel?.date || (sysInfo?.ultimoReentrenamiento ? String(sysInfo.ultimoReentrenamiento).replace('T', ' ').substring(0, 16) : 'Activo en producción');
 
       setInfo({
-        frameworkBase: sysInfo?.frameworkBase || activeModel?.algoritmo || activeModel?.algorithm || activeModel?.family || 'Random Forest / Regresión (scikit-learn)',
+        frameworkBase: sysInfo?.frameworkBase || activeModel?.algoritmo || activeModel?.algorithm || activeModel?.family || 'Random Forest híbrido (scikit-learn)',
         versionModelo: activeVersion,
         mape: activeMape,
         mae: activeMae,
@@ -101,12 +101,6 @@ const SettingsInfoView = () => {
       </div>
     );
   }
-
-  const uptimeBlocks = Array.from({ length: 30 }, (_, i) => ({
-    id: i,
-    status: 'operational',
-    title: `Día ${i + 1}: 100% Operativo`
-  }));
 
   return (
     <div className="view-container settings-info-view" style={{ 
@@ -330,50 +324,6 @@ const SettingsInfoView = () => {
             </div>
           </div>
 
-        </div>
-
-        <div className="card" style={{
-          padding: '1.5rem 2rem',
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.88rem', color: '#f8fafc', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CheckCircle2 size={18} style={{ color: '#38bdf8' }} /> Disponibilidad del Servidor (Últimos 30 Días)
-            </span>
-            <span style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: '700', fontFamily: 'monospace' }}>
-              100% Uptime
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '6px', width: '100%', alignItems: 'center' }}>
-            {uptimeBlocks.map((block) => (
-              <div 
-                key={block.id} 
-                title={block.title}
-                style={{
-                  flex: 1,
-                  height: '36px',
-                  borderRadius: '4px',
-                  background: 'rgba(56, 189, 248, 0.25)',
-                  border: '1px solid rgba(56, 189, 248, 0.4)',
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.6)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.25)'; }}
-              />
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
-            <span>Hace 30 días</span>
-            <span>Hoy</span>
-          </div>
         </div>
 
       </div>

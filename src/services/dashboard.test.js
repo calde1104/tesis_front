@@ -94,7 +94,7 @@ describe('getKPIs', () => {
     expect(kpis.margin.trend).toBe(5)
   })
 
-  it('deriva la precision del modelo activo como 100 menos su MAPE', async () => {
+  it('toma el MAPE del modelo activo tal cual, sin derivar una "precision"', async () => {
     responderPorRuta({
       'kpis?anio=2025&mes=12': { ventasFacturado: 100 },
       'kpis?anio=2025&mes=11': { ventasFacturado: 100 },
@@ -106,7 +106,7 @@ describe('getKPIs', () => {
 
     const kpis = await getKPIs(2025, 12)
 
-    expect(kpis.accuracy.value).toBe(84.3)
+    expect(kpis.accuracy.value).toBe(15.7)
   })
 
   it('no informa tendencia cuando no hay mes previo cargado', async () => {

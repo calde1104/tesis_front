@@ -276,21 +276,16 @@ const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency,
             <span className="kpi-label">{kpis.accuracy.label}</span>
             <ShieldCheck size={18} className="kpi-icon" style={{ color: '#38bdf8' }} />
           </div>
-          <div className="kpi-value" style={{ fontSize: kpis.accuracy.value !== null && kpis.accuracy.value < 0 ? '1.15rem' : '1.4rem', fontWeight: '700' }}>
-            {(() => {
-              if (kpis.accuracy.value === null || kpis.accuracy.value === undefined) return 'N/A';
-              if (kpis.accuracy.value >= 70) return `${kpis.accuracy.value}%`;
-              if (kpis.accuracy.value >= 40) return `${kpis.accuracy.value}%`;
-              return 'En Calibración';
-            })()}
+          <div className="kpi-value" style={{ fontSize: '1.4rem', fontWeight: '700' }}>
+            {kpis.accuracy.value === null || kpis.accuracy.value === undefined ? 'N/A' : `${kpis.accuracy.value}%`}
           </div>
           <div className="kpi-footer">
-            <MinimalStatus variant={kpis.accuracy.value >= 70 ? 'green' : (kpis.accuracy.value >= 40 ? 'orange' : 'purple')}>
+            <MinimalStatus variant={kpis.accuracy.value === null ? 'purple' : (kpis.accuracy.value <= 20 ? 'green' : (kpis.accuracy.value <= 40 ? 'orange' : 'red'))}>
               {(() => {
                 if (kpis.accuracy.value === null) return 'Sin Modelo';
-                if (kpis.accuracy.value >= 70) return 'Alta Precisión';
-                if (kpis.accuracy.value >= 40) return 'Precisión Moderada';
-                return 'Modelo Baseline';
+                if (kpis.accuracy.value <= 20) return 'Dentro del objetivo';
+                if (kpis.accuracy.value <= 40) return 'Por encima del objetivo';
+                return 'Requiere revisión';
               })()}
             </MinimalStatus>
           </div>

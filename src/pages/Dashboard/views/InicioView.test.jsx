@@ -67,7 +67,7 @@ const KPIS = {
   sales: { value: 1250000, label: 'Ventas del Mes', trend: 12.5 },
   margin: { value: 32.5, label: 'Share of Assortment (SOA)', trend: 2.5 },
   priceGap: { value: -4.2, label: 'Price Gap vs Promedio (%)', trend: -1.1 },
-  accuracy: { value: 84.3, label: 'Precisión del Modelo', trend: null },
+  accuracy: { value: 15.7, label: 'Error del Modelo (MAPE)', trend: null },
 }
 
 const CONTEXTO = {
@@ -102,7 +102,7 @@ describe('InicioView', () => {
       expect(screen.getByText('Ventas del Mes')).toBeInTheDocument()
       expect(screen.getByText('Share of Assortment (SOA)')).toBeInTheDocument()
       expect(screen.getByText('Price Gap vs Promedio (%)')).toBeInTheDocument()
-      expect(screen.getByText('Precisión del Modelo')).toBeInTheDocument()
+      expect(screen.getByText('Error del Modelo (MAPE)')).toBeInTheDocument()
     })
 
     it('formatea el monto de ventas con la funcion recibida', () => {
@@ -148,34 +148,35 @@ describe('InicioView', () => {
     })
   })
 
-  describe('precision del modelo', () => {
-    it('muestra el porcentaje cuando la precision es utilizable', () => {
+  describe('error del modelo (MAPE)', () => {
+    it('muestra el porcentaje cuando el MAPE esta dentro del objetivo', () => {
       renderVista()
-      expect(screen.getByText('84.3%')).toBeInTheDocument()
+      expect(screen.getByText('15.7%')).toBeInTheDocument()
+      expect(screen.getByText('Dentro del objetivo')).toBeInTheDocument()
     })
 
-    it('evita exhibir un porcentaje negativo crudo y habla de calibracion', () => {
-      // Con MAPE elevado, 100-MAPE da negativo. Mostrar "-877%" al gerente no
-      // comunica nada; la etiqueta cualitativa si.
+    it('marca que el error requiere revision cuando el MAPE es muy alto', () => {
+      // El MAPE se reporta tal cual (no "100 - MAPE"): valores muy altos son
+      // un error real del modelo, no un numero negativo que haya que ocultar.
       renderVista({
-        kpis: { ...KPIS, accuracy: { value: -877.3, label: 'Precisión del Modelo', trend: null } },
+        kpis: { ...KPIS, accuracy: { value: 877.3, label: 'Error del Modelo (MAPE)', trend: null } },
       })
-      expect(screen.getByText('En Calibración')).toBeInTheDocument()
+      expect(screen.getByText('Requiere revisión')).toBeInTheDocument()
     })
 
     it('indica ausencia de dato cuando no hay modelo entrenado', () => {
       renderVista({
-        kpis: { ...KPIS, accuracy: { value: null, label: 'Precisión del Modelo', trend: null } },
+        kpis: { ...KPIS, accuracy: { value: null, label: 'Error del Modelo (MAPE)', trend: null } },
       })
       expect(screen.getByText('N/A')).toBeInTheDocument()
     })
 
-    it('califica de moderada una precision intermedia', () => {
+    it('califica de "por encima del objetivo" un error intermedio', () => {
       renderVista({
-        kpis: { ...KPIS, accuracy: { value: 55, label: 'Precisión del Modelo', trend: null } },
+        kpis: { ...KPIS, accuracy: { value: 27.4, label: 'Error del Modelo (MAPE)', trend: null } },
       })
-      expect(screen.getByText('55%')).toBeInTheDocument()
-      expect(screen.getByText('Precisión Moderada')).toBeInTheDocument()
+      expect(screen.getByText('27.4%')).toBeInTheDocument()
+      expect(screen.getByText('Por encima del objetivo')).toBeInTheDocument()
     })
   })
 
@@ -202,7 +203,7 @@ describe('InicioView', () => {
       const setActiveTab = vi.fn()
       renderVista({ setActiveTab })
 
-      fireEvent.click(screen.getByText('Precisión del Modelo').closest('.kpi-card'))
+      fireEvent.click(screen.getByText('Error del Modelo (MAPE)').closest('.kpi-card'))
 
       expect(setActiveTab).toHaveBeenCalledWith('settings-info')
     })

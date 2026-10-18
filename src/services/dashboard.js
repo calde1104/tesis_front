@@ -55,7 +55,7 @@ const mapBackendKpisToFrontend = (kpis, prevKpis = null, modelAccuracy = null) =
     },
     accuracy: {
       value: modelAccuracy !== null && modelAccuracy !== undefined ? parseFloat(modelAccuracy.toFixed(1)) : null,
-      label: 'Precisión del Modelo',
+      label: 'Error del Modelo (MAPE)',
       trend: null
     }
   };
@@ -168,14 +168,15 @@ export const getKPIs = async (anio = 2025, mes = 12) => {
       // Previous month might not exist in database, prevData stays null
     }
 
+    // Tomar el MAPE (h=1) del modelo activo tal cual se reporta, sin derivar
+    // una "precisión" (100 - MAPE) que no es una equivalencia estándar.
     let accuracy = null;
     try {
       const models = await apiRequest(`/v1/${empresaId}/models`);
       if (models && models.length > 0) {
         const active = models.find(m => m.activo || m.active) || models[0];
         if (active && active.mape !== undefined && active.mape !== null) {
-          const mapeVal = typeof active.mape === 'string' ? parseFloat(active.mape) : active.mape;
-          accuracy = 100 - mapeVal;
+          accuracy = typeof active.mape === 'string' ? parseFloat(active.mape) : active.mape;
         }
       }
     } catch (e) {

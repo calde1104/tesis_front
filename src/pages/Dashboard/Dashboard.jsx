@@ -347,7 +347,7 @@ const Dashboard = () => {
       case 'inicio': return `Resumen predictivo y estado de la demanda comercial (basado en datos de ${dashboardTargetDate || 'último mes cargado'}).`;
       case 'sales': return "Consulta el histórico de transacciones facturadas por SKU.";
       case 'forecast': return "Proyecciones de demanda a 12 meses y simulaciones de contexto.";
-      case 'cold-start': return "Inferencia de demanda inicial para nuevos SKUs mediante algoritmos de agrupamiento.";
+      case 'cold-start': return "Inferencia de demanda inicial para nuevos SKUs mediante búsqueda jerárquica por similitud de atributos.";
       case 'ingestion': return "Carga de archivos de ventas, validación de formato y control de historial.";
       case 'market': return "Análisis de datos reales de cuota de mercado y posicionamiento competitivo.";
       case 'settings': return "Configuración de límites de demanda máxima esperada por producto.";

@@ -197,7 +197,7 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, productList, f
 
               {isForecast && pld.payload?.forecastLower !== null && pld.payload?.forecastLower !== undefined && pld.payload?.forecastUpper !== null && pld.payload?.forecastUpper !== undefined && (
                 <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span>Int. Confianza:</span>
+                  <span>Banda estimada:</span>
                   <span style={{ color: '#818cf8', fontWeight: '600' }}>
                     [{Math.round(pld.payload.forecastLower).toLocaleString('es-PY')} - {Math.round(pld.payload.forecastUpper).toLocaleString('es-PY')} un.]
                   </span>
@@ -206,7 +206,7 @@ const CustomTooltip = ({ active, payload, label, selectedProduct, productList, f
 
               {isSimulated && pld.payload?.simulated !== null && pld.payload?.simulated !== undefined && (
                 <div style={{ paddingLeft: '0.85rem', fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <span>Int. Confianza Simulado:</span>
+                  <span>Banda estimada (simulado):</span>
                   <span style={{ color: '#34d399', fontWeight: '600' }}>
                     [{Math.round(pld.payload.simulated * 0.85).toLocaleString('es-PY')} - {Math.round(pld.payload.simulated * 1.15).toLocaleString('es-PY')} un.]
                   </span>
@@ -314,6 +314,18 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
   const [simStatus, setSimStatus] = useState(null); // 'RUNNING', 'SUCCESS', null
   const [simResults, setSimResults] = useState(null);
   const [simMetrics, setSimMetrics] = useState(null);
+
+  // Invalidar un resultado de simulación anterior en cuanto cambia cualquier
+  // slider o preset: evita mostrar métricas de impacto que ya no corresponden
+  // a los valores de entorno actualmente seleccionados.
+  useEffect(() => {
+    if (simStatus === 'SUCCESS') {
+      setSimStatus('IDLE');
+      setSimMetrics(null);
+      setSimResults(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [priceChange, exchangeRateChange, inflationChange]);
 
   const containerRef = useRef(null);
   const [leftWidth, setLeftWidth] = useState(() => window.innerWidth < 1400 ? 210 : 280);
