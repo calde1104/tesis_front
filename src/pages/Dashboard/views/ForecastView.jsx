@@ -1215,7 +1215,7 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
 
               {simStatus === 'SUCCESS' && simMetrics && (
                 <div className="simulator-results-panel" style={{ marginTop: '0.25rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  <h4 style={{ fontSize: '0.82rem', margin: 0, color: '#38bdf8' }}>Métricas de Impacto Real</h4>
+                  <h4 style={{ fontSize: '0.82rem', margin: 0, color: '#38bdf8' }}>Métricas de Impacto Simulado</h4>
                   <div className="results-grid" style={{ gap: '0.4rem' }}>
                     <div className="result-metric" style={{ padding: '0.35rem', borderRadius: '4px' }}>
                       <span className="result-label" style={{ fontSize: '0.62rem' }}>Impacto Demanda</span>
