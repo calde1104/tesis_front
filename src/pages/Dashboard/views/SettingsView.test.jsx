@@ -247,7 +247,7 @@ describe('SettingsView', () => {
     })
 
     it('no deja el umbral por debajo de cero', async () => {
-      const { container } = render(<SettingsView />)
+      render(<SettingsView />)
       await screen.findByText('Agua Mineral 1L')
 
       const inputs = screen.getAllByRole('spinbutton')

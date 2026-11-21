@@ -146,7 +146,8 @@ describe('predictColdStart', () => {
     })
 
     it('usa "lt" como unidad por defecto', async () => {
-      const { unidadMedida, ...sinUnidad } = productoValido
+      const sinUnidad = { ...productoValido }
+      delete sinUnidad.unidadMedida
       await predictColdStart(sinUnidad)
       expect(payloadEnviado().unidad_medida).toBe('lt')
     })

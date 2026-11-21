@@ -9,7 +9,7 @@ import { getKPIs, getSalesEvolution, getMarketShareComposition, getContextVariab
 import { getSystemInfo } from '../../services/settings';
 import { logout } from '../../services/auth';
 import { getProfile, uploadProfilePhoto, deleteProfilePhoto, deleteAccount } from '../../services/profile';
-import { getNotificaciones, marcarNotificacionVista, marcarNotificacionResuelta } from '../../services/notificaciones';
+import { getNotificaciones, marcarNotificacionVista } from '../../services/notificaciones';
 import { getSalesList } from '../../services/sales';
 import CommandPalette from './CommandPalette';
 import InicioSkeleton from './InicioSkeleton';
@@ -51,7 +51,6 @@ const Dashboard = () => {
   const [forecastSelectedSku, setForecastSelectedSku] = useState(null);
   const [forecastSkuRequestId, setForecastSkuRequestId] = useState(0);
   const [showPalette, setShowPalette] = useState(false);
-  const [dismissedMlopsWarning, setDismissedMlopsWarning] = useState(false);
   const [dashboardTargetDate, setDashboardTargetDate] = useState('');
 
   const [loadingCompanyDetails, setLoadingCompanyDetails] = useState(false);
@@ -76,7 +75,9 @@ const Dashboard = () => {
         const decodedJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
         const payload = JSON.parse(decodedJson);
         if (payload && payload.sub && payload.sub.includes('@')) return payload.sub;
-      } catch (e) {}
+      } catch {
+        // Token ilegible: se usa el nombre de la empresa como respaldo.
+      }
     }
 
     const empNombre = localStorage.getItem('empresaNombre') || 'empresa';
@@ -508,7 +509,7 @@ const Dashboard = () => {
                       let payload = {};
                       try {
                         payload = typeof n.payload === 'string' ? JSON.parse(n.payload) : (n.payload || {});
-                      } catch (e) {
+                      } catch {
                         payload = {};
                       }
 
@@ -732,8 +733,6 @@ const Dashboard = () => {
             formatCurrency={formatCurrency} 
             initialSku={forecastSelectedSku} 
             skuRequestId={forecastSkuRequestId} 
-            dismissedMlopsWarning={dismissedMlopsWarning}
-            onDismissMlopsWarning={() => setDismissedMlopsWarning(true)}
           />
         )}
         {activeTab === 'cold-start' && (

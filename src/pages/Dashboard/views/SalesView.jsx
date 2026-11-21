@@ -192,7 +192,6 @@ const SalesView = ({ formatCurrency }) => {
   const [exportTaskId, setExportTaskId] = useState(null);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportStatus, setExportStatus] = useState(null); // 'RUNNING', 'SUCCESS', null
-  const [downloadUrl, setDownloadUrl] = useState(null);
 
   useEffect(() => {
     const fetchFilters = async () => {
@@ -289,7 +288,6 @@ const SalesView = ({ formatCurrency }) => {
   };
 
   const handleExport = async () => {
-    setDownloadUrl(null);
     setExportProgress(0);
     setExportStatus('RUNNING');
 
@@ -323,7 +321,6 @@ const SalesView = ({ formatCurrency }) => {
         setExportProgress(status.progress);
         if (status.status === 'SUCCESS') {
           setExportStatus('SUCCESS');
-          setDownloadUrl(status.downloadUrl);
           setExportTaskId(null);
         }
       }, 1000);

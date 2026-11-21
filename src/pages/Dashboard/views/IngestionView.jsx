@@ -15,7 +15,6 @@ const IngestionView = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pipelineTaskId, setPipelineTaskId] = useState(null);
-  const [pipelineState, setPipelineState] = useState(null);
   const [pipelineStages, setPipelineStages] = useState(null);
 
   const [frequency, setFrequency] = useState(null); // 'MENSUAL' | 'SEMANAL' | null
@@ -94,12 +93,15 @@ const IngestionView = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial del historial al montar la vista
     fetchHistory();
   }, []);
 
   useEffect(() => {
     let intervalId;
     if (pipelineTaskId) {
+      // Animación progresiva de las tres etapas mientras llega la respuesta del servidor
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- inicia la animación del pipeline al recibir el id de la tarea
       setUploadProgress(25);
       setPipelineStages({ validation: 'RUNNING', hashing: 'PENDING', insertion: 'PENDING' });
 
@@ -230,7 +232,6 @@ const IngestionView = () => {
     setShowSuccessCelebration(false);
     setUploading(true);
     setUploadProgress(0);
-    setPipelineState('VALIDATING');
     setPipelineStages({ validation: 'RUNNING', hashing: 'PENDING', insertion: 'PENDING' });
     
     try {

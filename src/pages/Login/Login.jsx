@@ -34,8 +34,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await login(cleanEmail, password);
-      console.log('Login successful:', response);
+      await login(cleanEmail, password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');

@@ -11,6 +11,7 @@ export const sanitizeSearch = (value, maxLength = 100) => {
   
   let clean = value.slice(0, maxLength);
   
+  // eslint-disable-next-line no-control-regex -- se eliminan caracteres de control a propósito
   clean = clean.replace(/[\x00-\x1F\x7F]/g, '');
   
   clean = clean.replace(DANGEROUS_CHARS_REGEX, '');
@@ -25,6 +26,8 @@ export const sanitizeText = (value, maxLength = 200) => {
   
   let clean = value.slice(0, maxLength);
   
+  // Remover caracteres de control
+  // eslint-disable-next-line no-control-regex -- se eliminan caracteres de control a propósito
   clean = clean.replace(/[\x00-\x1F\x7F]/g, '');
   
   clean = clean.replace(/<[^>]*>?/gm, '');
@@ -39,6 +42,8 @@ export const sanitizeEmail = (value, maxLength = 120) => {
   
   let clean = value.trim().slice(0, maxLength);
   
+  // Remover espacios y caracteres peligrosos para inyección
+  // eslint-disable-next-line no-control-regex -- se eliminan caracteres de control a propósito
   clean = clean.replace(/[\x00-\x1F\x7F\s'"\\;<>{}`]/g, '');
   
   return clean;

@@ -308,7 +308,7 @@ const MarketView = () => {
           setCategoriesSummary(summaryList);
 
           // Si no hay una categoría específica seleccionada, consultar en paralelo la variación de precio
-          // real de cada categoría para que la tabla de competitividad muestre los datos individuales exactos
+          // real de cada categoría para que la tabla de competitividad muestre los datos de cada categoría
           if (!category && summaryList.length > 0) {
             const gapsMap = {};
             await Promise.all(
@@ -322,7 +322,7 @@ const MarketView = () => {
                   } else {
                     gapsMap[catName] = 0;
                   }
-                } catch (e) {
+                } catch {
                   gapsMap[catName] = 0;
                 }
               })
@@ -794,7 +794,7 @@ const MarketView = () => {
                   if (showAllSoa) {
                     displayedList = rankingList;
                   } else {
-                    // Modo colapsado (Top 5 con anclaje de conveniencia de nuestra empresa si no está en Top 5)
+                    // Modo colapsado: los cinco primeros, más nuestra empresa si no está entre ellos
                     const top5 = rankingList.slice(0, 5);
                     const isOurInTop5 = top5.some(c => c.isOurCompany);
                     if (isOurInTop5 || rankingList.length <= 5) {

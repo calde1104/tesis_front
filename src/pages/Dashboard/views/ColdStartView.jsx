@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { predictColdStart } from '../../../services/coldStart';
-import { getSalesFilters, getDeptId, getCategoryId, getBrandId } from '../../../services/sales';
-import { sanitizeText, sanitizeNumber } from '../../../utils/security';
+import { getSalesFilters } from '../../../services/sales';
+import { sanitizeText } from '../../../utils/security';
 
 const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const monthsFullEs = [
@@ -148,7 +148,7 @@ const CustomSelect = ({ label, value, onChange, options, placeholder, direction 
   );
 };
 
-const CustomColdStartTooltip = ({ active, payload, label }) => {
+const CustomColdStartTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const units = typeof data.units === 'number' ? data.units : 0;
@@ -231,12 +231,10 @@ const ColdStartView = () => {
   const [coldExpectedPrice, setColdExpectedPrice] = useState('');
   const [coldExpectedWeight, setColdExpectedWeight] = useState('');
   const [coldUnit, setColdUnit] = useState('lt');
-  const [coldHorizon, setColdHorizon] = useState(12);
 
   const [coldPredicting, setColdPredicting] = useState(false);
   const [coldPredictionResult, setColdPredictionResult] = useState(null);
   const [coldError, setColdError] = useState(null);
-  const [activeResultTab, setActiveResultTab] = useState('forecast'); // 'forecast' | 'twins'
 
   useEffect(() => {
     const fetchData = async () => {
@@ -296,11 +294,10 @@ const ColdStartView = () => {
         expectedPrice: Number(coldExpectedPrice),
         weight: Number(coldExpectedWeight),
         unit: coldUnit,
-        horizonteMeses: Number(coldHorizon) || 12
+        horizonteMeses: 12
       });
 
       setColdPredictionResult(result);
-      setActiveResultTab('forecast');
     } catch (err) {
       console.error("Error al ejecutar predicción Cold Start:", err);
       setColdError(err.message || "Error al comunicarse con el microservicio de IA.");
@@ -339,9 +336,6 @@ const ColdStartView = () => {
   const proyecciones = coldPredictionResult?.proyeccion_12_meses || [];
   const totalUnits12M = proyecciones.reduce((acc, p) => acc + (Number(p.unidades_predichas) || 0), 0);
   const totalRevenue12M = proyecciones.reduce((acc, p) => acc + (Number(p.monto_predicho) || 0), 0);
-  const clusterId = coldPredictionResult?.producto_nuevo?.cluster_asignado ?? 0;
-  const baseUnitsEst = Number(coldPredictionResult?.producto_nuevo?.unidades_base_estimadas || 0);
-  const elasticityFactor = Number(coldPredictionResult?.producto_nuevo?.factor_elasticidad_precio || 1.0);
   const peerProducts = coldPredictionResult?.productos_similares_gemelos || [];
 
   const chartData = proyecciones.map((p, idx) => ({
@@ -851,7 +845,7 @@ const ColdStartView = () => {
           </div>
         </div>
       ) : (
-        /* Initial Empty State */
+        /* Estado inicial vacío */
         <div className="card" style={{
           flex: 1,
           display: 'flex',

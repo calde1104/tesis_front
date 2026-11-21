@@ -1,31 +1,10 @@
 import { apiRequest, getEmpresaId } from './api';
 
-const deptCats = {
-  'Alimentos': ['Aceites', 'Fideos', 'Arroz', 'Salsas', 'Lácteos', 'Fiambres', 'Carnes'],
-  'Bebidas': ['Cervezas', 'Vinos', 'Aperitivos', 'Gaseosas', 'Aguas', 'Jugos'],
-  'Limpieza': ['Jabón Líquido', 'Suavizantes', 'Desinfectantes', 'Limpiadores Multiuso'],
-  'Cuidado Personal': ['Cabello', 'Higiene', 'Oral']
-};
-
-const baseProducts = [
-  { sku: 'SKU-001', name: 'Aceite de Girasol', netContent: 1.5, unit: 'lt', category: 'Aceites', brand: 'Vicentin', baseUnits: 14200, avgPrice: 350 },
-  { sku: 'SKU-002', name: 'Fideos Tallarín', netContent: 500, unit: 'gr', category: 'Fideos', brand: 'Molinos', baseUnits: 28500, avgPrice: 200 },
-  { sku: 'SKU-003', name: 'Arroz Largo Fino', netContent: 1, unit: 'kg', category: 'Arroz', brand: 'Molinos', baseUnits: 22100, avgPrice: 180 },
-  { sku: 'SKU-004', name: 'Puré de Tomate', netContent: 520, unit: 'gr', category: 'Salsas', brand: 'Arcor', baseUnits: 31000, avgPrice: 150 },
-  { sku: 'SKU-005', name: 'Cerveza Lager Lata', netContent: 473, unit: 'ml', category: 'Cervezas', brand: 'Quilmes', baseUnits: 45000, avgPrice: 250 },
-  { sku: 'SKU-006', name: 'Vino Malbec Reserva', netContent: 750, unit: 'ml', category: 'Vinos', brand: 'Otros', baseUnits: 8200, avgPrice: 800 },
-  { sku: 'SKU-007', name: 'Gaseosa Cola', netContent: 2.25, unit: 'lt', category: 'Gaseosas', brand: 'Coca-Cola', baseUnits: 35600, avgPrice: 300 },
-  { sku: 'SKU-008', name: 'Agua Mineral Sin Gas', netContent: 1.5, unit: 'lt', category: 'Aguas', brand: 'Coca-Cola', baseUnits: 18900, avgPrice: 150 },
-  { sku: 'SKU-009', name: 'Jabón Líquido p/Ropa', netContent: 3, unit: 'lt', category: 'Jabón Líquido', brand: 'Unilever', baseUnits: 6200, avgPrice: 1200 },
-  { sku: 'SKU-010', name: 'Desinfectante de Ambientes', netContent: 360, unit: 'ml', category: 'Desinfectantes', brand: 'Unilever', baseUnits: 12400, avgPrice: 300 },
-  { sku: 'SKU-011', name: 'Suavizante Floral', netContent: 3, unit: 'lt', category: 'Suavizantes', brand: 'Unilever', baseUnits: 4500, avgPrice: 1000 },
-  { sku: 'SKU-012', name: 'Limpiador de Pisos', netContent: 1, unit: 'lt', category: 'Limpiadores Multiuso', brand: 'Otros', baseUnits: 9800, avgPrice: 200 }
-];
-
 let brandNameToIdMap = {};
 let categoryNameToIdMap = {};
 let deptNameToIdMap = {};
 
+// Traducen un nombre a su identificador (null si no existe)
 export const getBrandId = (name) => brandNameToIdMap[name] || null;
 export const getCategoryId = (name) => categoryNameToIdMap[name] || null;
 export const getDeptId = (name) => deptNameToIdMap[name] || null;
@@ -56,7 +35,6 @@ const mapSaleItemToFrontend = (item) => {
   };
 };
 
-let validDeptIds = new Set();
 let cachedFiltersResult = null;
 
 export const clearSalesFiltersCache = () => {
@@ -318,8 +296,8 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
 
     let list = data.content ? data.content.map(mapSaleItemToFrontend) : [];
 
-    // For date sort: apply client-side sort as guaranteed fallback
-    // (backend field names for year/month may vary across environments)
+    // Para el orden por fecha se ordena también en el cliente, porque los nombres
+    // de los campos de año y mes del backend pueden variar según el entorno
     if (filters.sortBy === 'date' && list.length > 0) {
       const isAsc = filters.sortOrder === 'asc';
       list = [...list].sort((a, b) => {
@@ -348,7 +326,7 @@ export const getSalesList = async (filters = {}, page = 1, limit = 10) => {
   }
 };
 
-export const triggerSalesExport = async (filters = {}) => {
+export const triggerSalesExport = async () => {
   return new Promise((resolve) => {
     setTimeout(() => {
       const taskId = 'task_export_' + Math.random().toString(36).substring(2, 9);

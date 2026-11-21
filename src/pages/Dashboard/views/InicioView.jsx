@@ -178,7 +178,7 @@ const CustomReferenceLabel = (props) => {
 };
 
 const InicioView = ({ kpis, salesData, marketShare, contextVars, formatCurrency, setActiveTab }) => {
-  // Conectar de forma continua e inteligente el fin del histórico con el inicio del forecast en el cliente
+  // Conectar el fin del histórico con el inicio del pronóstico en el cliente
   // Memoizado: recharts reinicia (y congela) la animacion en curso cuando cambia
   // la referencia de `data`, y sin esto era un array nuevo en cada render.
   const processedSalesData = useMemo(() => salesData.map((item, idx) => {

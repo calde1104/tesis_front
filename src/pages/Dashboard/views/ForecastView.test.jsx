@@ -12,10 +12,6 @@ vi.mock('../../../services/sales', () => ({
   getSalesList: vi.fn(),
 }))
 
-vi.mock('../../../services/settings', () => ({
-  getMLModels: vi.fn(),
-}))
-
 vi.mock('./FeatureImportanceModal', () => ({
   default: ({ open, onClose }) =>
     open ? (
@@ -51,7 +47,6 @@ vi.mock('recharts', () => {
 import ForecastView from './ForecastView'
 import { getForecast, triggerSimulation } from '../../../services/forecast'
 import { getSalesFilters, getSalesList } from '../../../services/sales'
-import { getMLModels } from '../../../services/settings'
 
 const CATALOGO = {
   departments: ['Bebidas'],
@@ -92,12 +87,7 @@ const elegirDeSelector = async (etiqueta, opcion) => {
 describe('ForecastView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'warn').mockImplementation(() => {})
-    getMLModels.mockResolvedValue([
-      { nombre: 'baseline_linear', activo: false },
-      { nombre: 'random_forest_champion', activo: true },
-    ])
     getSalesFilters.mockResolvedValue(CATALOGO)
     getSalesList.mockResolvedValue(PRODUCTOS)
     getForecast.mockResolvedValue(PROYECCION)
@@ -105,10 +95,9 @@ describe('ForecastView', () => {
   })
 
   describe('carga inicial', () => {
-    it('consulta el modelo activo y el catalogo de filtros', async () => {
+    it('consulta el catalogo de filtros', async () => {
       renderVista()
-      await waitFor(() => expect(getMLModels).toHaveBeenCalled())
-      expect(getSalesFilters).toHaveBeenCalled()
+      await waitFor(() => expect(getSalesFilters).toHaveBeenCalled())
     })
 
     it('arranca con la proyeccion consolidada de la empresa', async () => {

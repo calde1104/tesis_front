@@ -64,7 +64,7 @@ const SettingsView = () => {
                 if (firstForecastPoint && firstForecastPoint.forecast !== null) {
                   return { id: prod.id, forecastDemand: Math.round(firstForecastPoint.forecast) };
                 }
-              } catch (e) {
+              } catch {
                 // Fallback si la API de forecast falla para ese SKU
               }
               return { id: prod.id, forecastDemand: null };
@@ -104,17 +104,17 @@ const SettingsView = () => {
           setProductThresholds(newThresholds);
           setSavedThresholds(newThresholds);
         } else {
-          useFallbackProducts(initialThresholds);
+          cargarCatalogoPorDefecto(initialThresholds);
         }
       } catch (err) {
         console.warn("Error cargando productos reales. Usando catálogo por defecto.", err);
-        useFallbackProducts(initialThresholds);
+        cargarCatalogoPorDefecto(initialThresholds);
       } finally {
         setLoading(false);
       }
     };
 
-    const useFallbackProducts = (initialThresholds) => {
+    const cargarCatalogoPorDefecto = (initialThresholds) => {
       const fallbackList = [
         { id: 'SKU-001', sku: 'SKU-001', name: 'Aceite Girasol 1.5L', category: 'Alimentos', brand: 'Vicentin', estimatedDemand: 14200 },
         { id: 'SKU-002', sku: 'SKU-002', name: 'Fideos Tallarín 500g', category: 'Alimentos', brand: 'Molinos', estimatedDemand: 28500 },
@@ -134,6 +134,7 @@ const SettingsView = () => {
     };
 
     loadProductsAndThresholds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga única al montar la vista
   }, []);
 
   // El mapa se indexa por id y por sku a la vez, asi que se prueban los dos.

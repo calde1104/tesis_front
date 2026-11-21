@@ -76,7 +76,8 @@ describe('SettingsInfoView', () => {
     })
 
     it('deriva el rango de los puntos historicos cuando el modelo no lo declara', async () => {
-      const { dataRange, ...sinRango } = MODELOS[1]
+      const sinRango = { ...MODELOS[1] }
+      delete sinRango.dataRange
       getMLModels.mockResolvedValue([sinRango])
 
       render(<SettingsInfoView />)
@@ -85,7 +86,8 @@ describe('SettingsInfoView', () => {
     })
 
     it('informa la ausencia de rango cuando no hay ventas ni rango declarado', async () => {
-      const { dataRange, ...sinRango } = MODELOS[1]
+      const sinRango = { ...MODELOS[1] }
+      delete sinRango.dataRange
       getMLModels.mockResolvedValue([sinRango])
       getSalesEvolution.mockResolvedValue([])
 

@@ -31,7 +31,9 @@ export const getEmpresaId = () => {
       const u = JSON.parse(userStr);
       if (u.empresaId) return u.empresaId;
       if (u.empresa && u.empresa.id) return u.empresa.id;
-    } catch (e) {}
+    } catch {
+      // JSON ilegible: se usa la empresa por defecto
+    }
   }
 
   return '1';
@@ -43,6 +45,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
+  // No se fija Content-Type si el cuerpo es FormData (carga de archivos)
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
@@ -74,8 +77,8 @@ export const apiRequest = async (endpoint, options = {}) => {
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch (e) {
-      // Ignore if not JSON
+    } catch {
+      // La respuesta no es JSON: se conserva el mensaje por defecto
     }
     // El status viaja en el error para que quien llama pueda distinguir casos
     // (ej. feature-importance trata el 502 como "no disponible ahora", no como

@@ -65,11 +65,11 @@ La imagen se construye en dos etapas (`node:20-slim` para compilar y `nginx:alpi
 ## Pruebas
 
 ```bash
-npm test                # 424 pruebas
+npm test                # 528 pruebas
 npm run test:coverage   # con informe de cobertura
 ```
 
-La suite cubre la capa de servicios (96 % de sentencias), las utilidades de seguridad (100 %), el inicio de sesión y las vistas del tablero (71,9 % de sentencias en total). Las pruebas de las vistas mockean la capa de servicios.
+La suite alcanza 88,7 % de sentencias en total (el umbral exigido es 85 %): servicios 98,2 %, utilidades de seguridad 100 %, inicio de sesión 95,2 % y tablero 84,4 %. Las pruebas de las vistas mockean la capa de servicios.
 
 ## Integración y despliegue continuos
 

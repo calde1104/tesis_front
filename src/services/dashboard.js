@@ -2,8 +2,6 @@ import { apiRequest, getEmpresaId } from './api';
 
 const monthsEs = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-// Helper to map backend KPIs to frontend expected structure
-// Helper to map backend KPIs to frontend expected structure
 const mapBackendKpisToFrontend = (kpis, prevKpis = null, modelAccuracy = null) => {
   let salesTrend = null;
   if (kpis && prevKpis && prevKpis.ventasFacturado > 0 && kpis.ventasFacturado !== null && kpis.ventasFacturado !== undefined) {
@@ -164,8 +162,8 @@ export const getKPIs = async (anio = 2025, mes = 12) => {
         prevAnio = anio - 1;
       }
       prevData = await apiRequest(`/v1/${empresaId}/dashboard/kpis?anio=${prevAnio}&mes=${prevMes}`);
-    } catch (e) {
-      // Previous month might not exist in database, prevData stays null
+    } catch {
+      // Puede no haber datos del mes anterior: prevData queda en null
     }
 
     // Tomar el MAPE (h=1) del modelo activo tal cual se reporta, sin derivar
@@ -179,8 +177,8 @@ export const getKPIs = async (anio = 2025, mes = 12) => {
           accuracy = typeof active.mape === 'string' ? parseFloat(active.mape) : active.mape;
         }
       }
-    } catch (e) {
-      // Fallback if models endpoint is unavailable
+    } catch {
+      // Si el endpoint de modelos no responde, la precisión queda sin dato
     }
 
     return mapBackendKpisToFrontend(data, prevData, accuracy);

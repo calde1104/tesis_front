@@ -86,6 +86,7 @@ const SettingsInfoView = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- carga única al montar la vista
   }, []);
 
   const triggerToast = (msg) => {

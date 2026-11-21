@@ -7,18 +7,8 @@ import {
 import { getForecast, triggerSimulation } from '../../../services/forecast';
 import FeatureImportanceModal from './FeatureImportanceModal';
 import { useFeatureImportance } from './useFeatureImportance';
-import { getMLModels } from '../../../services/settings';
 import { getSalesFilters, getSalesList } from '../../../services/sales';
 import { sanitizeSearch, sanitizeNumber } from '../../../utils/security';
-
-const getDepartmentIcon = (deptName) => {
-  const name = deptName ? deptName.toLowerCase() : '';
-  if (name.includes('bebida')) return <GlassWater size={16} />;
-  if (name.includes('aliment') || name.includes('comida') || name.includes('lacteo') || name.includes('frescos')) return <Utensils size={16} />;
-  if (name.includes('limpi') || name.includes('hogar')) return <Droplet size={16} />;
-  if (name.includes('cuidado') || name.includes('personal') || name.includes('perfumer') || name.includes('cosmet')) return <User size={16} />;
-  return <Folder size={16} />;
-};
 
 // Componente selector personalizado para evitar barras de desplazamiento estándar de Windows
 const CustomSelect = ({ label, value, onChange, options, placeholder, direction = 'down' }) => {
@@ -288,10 +278,9 @@ const CustomReferenceLabel = (props) => {
   );
 };
 
-const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlopsWarning, onDismissMlopsWarning }) => {
+const ForecastView = ({ formatCurrency, initialSku, skuRequestId }) => {
   const [forecastData, setForecastData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeModel, setActiveModel] = useState(null);
 
   // Explicabilidad del modelo: se carga junto con la vista porque la pildora de
   // la leyenda muestra el nombre del modelo, no solo el contenido del modal.
@@ -309,7 +298,6 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
   const [exchangeRateChange, setExchangeRateChange] = useState(0);
   const [inflationChange, setInflationChange] = useState(0);
 
-  const [simTaskId, setSimTaskId] = useState(null);
   const [simProgress, setSimProgress] = useState(0);
   const [simStatus, setSimStatus] = useState(null); // 'RUNNING', 'SUCCESS', null
   const [simResults, setSimResults] = useState(null);
@@ -381,14 +369,8 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
 
   useEffect(() => {
     const fetchData = async () => {
-      const [modelsRes, filtersRes] = await Promise.all([
-        getMLModels(),
-        getSalesFilters()
-      ]);
+      const filtersRes = await getSalesFilters();
       setFilterOptions(filtersRes);
-
-      const active = modelsRes.find(m => m.activo || m.active);
-      setActiveModel(active);
       setLoading(false);
     };
     fetchData();
@@ -431,8 +413,8 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
     fetchForecastForSelection();
   }, [selectedProduct]);
 
-  // When coming from a notification or the command palette, clear all filters
-  // and auto-select the SKU. skuRequestId cambia en cada pedido, de modo que
+  // Al llegar desde una notificación o la paleta de comandos, se limpian todos los
+  // filtros y se selecciona el SKU. skuRequestId cambia en cada pedido, de modo que
   // volver a elegir el mismo SKU tambien vuelve a disparar este efecto.
   useEffect(() => {
     if (initialSku) {
@@ -474,7 +456,6 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId, dismissedMlops
       });
       clearInterval(progressTimer);
       setSimProgress(100);
-      console.log('Respuesta backend simulación:', response);
 
       const list = Array.isArray(response?.simulacion) ? response.simulacion : (Array.isArray(response?.data) ? response.data : []);
       
