@@ -845,7 +845,6 @@ const ColdStartView = () => {
           </div>
         </div>
       ) : (
-        /* Estado inicial vacío */
         <div className="card" style={{
           flex: 1,
           display: 'flex',

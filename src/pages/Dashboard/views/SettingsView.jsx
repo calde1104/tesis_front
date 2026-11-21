@@ -65,7 +65,7 @@ const SettingsView = () => {
                   return { id: prod.id, forecastDemand: Math.round(firstForecastPoint.forecast) };
                 }
               } catch {
-                // Fallback si la API de forecast falla para ese SKU
+                // sin forecast para este SKU: queda en null
               }
               return { id: prod.id, forecastDemand: null };
             })

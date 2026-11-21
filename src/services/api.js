@@ -78,7 +78,7 @@ export const apiRequest = async (endpoint, options = {}) => {
       const errorData = await response.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
     } catch {
-      // La respuesta no es JSON: se conserva el mensaje por defecto
+      // la respuesta no es JSON: se conserva el mensaje por defecto
     }
     // El status viaja en el error para que quien llama pueda distinguir casos
     // (ej. feature-importance trata el 502 como "no disponible ahora", no como

@@ -25,3 +25,6 @@ dist-ssr
 
 # Reportes de cobertura generados por vitest
 coverage
+
+# Notas personales
+bitacora.md

@@ -1050,7 +1050,6 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId }) => {
           </div>
 
           {selectedProduct === 'total' ? (
-            /* Disabled / Hint State when no specific SKU is selected */
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -1074,7 +1073,6 @@ const ForecastView = ({ formatCurrency, initialSku, skuRequestId }) => {
               </p>
             </div>
           ) : (
-            /* Active Simulator controls */
             <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.75rem', paddingRight: '0.35rem', marginTop: '0.35rem' }}>
 
               <div>

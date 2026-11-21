@@ -76,7 +76,7 @@ const Dashboard = () => {
         const payload = JSON.parse(decodedJson);
         if (payload && payload.sub && payload.sub.includes('@')) return payload.sub;
       } catch {
-        // Token ilegible: se usa el nombre de la empresa como respaldo.
+        // token ilegible: se usa el nombre de la empresa
       }
     }
 
